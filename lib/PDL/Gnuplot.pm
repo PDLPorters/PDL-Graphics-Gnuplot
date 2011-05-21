@@ -54,6 +54,7 @@ sub plot_xy
   flush $pipe;
 
 
+  # compute how many curves have been passed in, assuming things will thread
   sub numCurves
   {
     my ($x, $y) = @_;
@@ -80,6 +81,7 @@ sub plot_xy
     return $N;
   }
 
+  # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
     my ($N, $options) = @_;
@@ -95,6 +97,8 @@ sub plot_xy
     return 'plot ' . join(',', map {"'-' " . optioncmd($_)} @$options);
 
 
+
+    # parses a curve option
     sub optioncmd
     {
       my $option = shift;
