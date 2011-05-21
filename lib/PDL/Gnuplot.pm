@@ -11,14 +11,13 @@ sub new
 {
   my ($classname, $plotoptions) = @_;
 
-  my $this = {plotoptions => $plotoptions};
+  my $pipe = startGnuplot() or barf "Couldn't start gnuplot backend";
+  say $pipe globalOptionCmds($plotoptions);
+
+  my $this = {pipe => $pipe};
   bless($this, $classname);
 
-  $this->{pipe} = startGnuplot() or barf "Couldn't start gnuplot backend";
-
   return $this;
-
-
 
 
   sub startGnuplot
@@ -30,6 +29,12 @@ sub new
       return;
     }
     return $pipe;
+  }
+
+  sub globalOptionCmds
+  {
+    my $options = shift;
+    return '';
   }
 }
 
