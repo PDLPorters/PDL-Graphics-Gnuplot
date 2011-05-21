@@ -91,9 +91,8 @@ sub plot_xy
   {
     my ($N, $options) = @_;
 
-    $options //= [];
-
     # remove any options that exceed my data
+    $options //= [];
     splice( @$options, $N ) if @$options > $N;
 
     # fill the options list to match the number of curves in length
