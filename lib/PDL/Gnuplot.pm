@@ -164,14 +164,6 @@ sub new
     #   { $valuesPerPoint++; }
     # }
 
-    # handle some basic setup of the 2nd y-axis, if we're using it
-    # {
-    #   if ($options->{y2})
-    #   {
-    #     $cmd .= "set ytics nomirror\n";
-    #     $cmd .= "set y2tics\n";
-    #   }
-    # }
 
     # handle hardcopy output
     # {
@@ -206,65 +198,13 @@ sub new
     }
 
     return $cmd;
-
-
-
-
-
-
-
-# #######################
-# # per curve
-# 'legend=s{2}'
-# 'curvestyle=s{2}'
-# # For the specified values, set the legend entries to 'title "blah blah"'
-#     if(@{$options->{legend}})
-#     {
-#       # @{$options->{legend}} is a list where consecutive pairs are (curveID, legend)
-#       my $n = scalar @{$options->{legend}}/2;
-#       foreach my $idx (0..$n-1)
-#       {
-#         setCurveLabel($options->{legend}[$idx*2    ],
-#                       $options->{legend}[$idx*2 + 1]);
-#       }
-#     }
-
-# # add the extra curve options
-#     if(@{$options->{curvestyle}})
-#     {
-#       # @{$options->{curvestyle}} is a list where consecutive pairs are (curveID, style)
-#       my $n = scalar @{$options->{curvestyle}}/2;
-#       foreach my $idx (0..$n-1)
-#       {
-#         addCurveOption($options->{curvestyle}[$idx*2    ],
-#                        $options->{curvestyle}[$idx*2 + 1]);
-#       }
-#     }
-
-# y2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    return $cmd;
   }
 }
 
-sub plot_xy
+sub plot
 {
   my $this              = shift;
-  my ($x, $y, $options) = @_;
+  my ($x, $y, @options) = @_;
 
   if ($x->dim(0) != $y->dim(0))
   {
@@ -286,9 +226,9 @@ EOB
 
   my $pipe = $this->{pipe};
 
-  say $pipe plotcmd($N, $options);
+  say $pipe plotcmd($N, \@options);
 
-  _plotxy_writedata(@_, $pipe);
+  _plotxy_writedata($x, $y, $pipe);
   flush $pipe;
 
 
@@ -331,7 +271,18 @@ EOB
     # fill the options list to match the number of curves in length
     push @$options, ({}) x ($N - @$options);
 
-    return 'plot ' . join(',', map {"'-' " . optioncmd($_)} @$options);
+    my $cmd = '';
+
+    # if anything is to be plotted on the y2 axis, set it up
+    if( grep {$_->{y2}} @$options )
+    {
+      $cmd .= "set ytics nomirror\n";
+      $cmd .= "set y2tics\n";
+    }
+
+    $cmd .= 'plot ' . join(',', map {"'-' " . optioncmd($_)} @$options);
+
+    return $cmd;
 
 
 
@@ -340,7 +291,17 @@ EOB
     {
       my $option = shift;
 
-      return '';
+      my $cmd = '';
+
+      if( defined $option->{legend} )
+      { $cmd .= "title \"$option->{legend}\" "; }
+      else
+      { $cmd .= "notitle "; }
+
+      $cmd .= "$option->{style} " if defined $option->{style};
+      $cmd .= "axes x1y2 "        if defined $option->{y2};
+
+      return $cmd;
     }
   }
 }
