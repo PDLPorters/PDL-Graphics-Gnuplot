@@ -166,26 +166,24 @@ sub new
 
 
     # handle hardcopy output
-    # {
-    #   my $outputfile;
-    #   my $outputfileType;
-    #   if ( $options->{hardcopy})
-    #   {
-    #     $outputfile = $options->{hardcopy};
-    #     ($outputfileType) = $outputfile =~ /\.(eps|ps|pdf|png)$/;
-    #     if (!$outputfileType)
-    #     { die("Only .eps, .ps, .pdf and .png supported\n"); }
+    {
+      if ( $options->{hardcopy})
+      {
+        my $outputfile = $options->{hardcopy};
+        my ($outputfileType) = $outputfile =~ /\.(eps|ps|pdf|png)$/;
+        if (!$outputfileType)
+        { barf "Only .eps, .ps, .pdf and .png hardcopy output supported\n"; }
 
-    #     my %terminalOpts =
-    #       ( eps  => 'postscript solid color enhanced eps',
-    #         ps   => 'postscript solid color landscape 10',
-    #         pdf  => 'pdfcairo solid color font ",10" size 11in,8.5in',
-    #         png  => 'png size 1280,1024' );
+        my %terminalOpts =
+          ( eps  => 'postscript solid color enhanced eps',
+            ps   => 'postscript solid color landscape 10',
+            pdf  => 'pdfcairo solid color font ",10" size 11in,8.5in',
+            png  => 'png size 1280,1024' );
 
-    #     $cmd .= "set terminal $terminalOpts{$outputfileType}\n";
-    #     $cmd .= "set output \"$outputfile\"\n";
-    #   }
-    # }
+        $cmd .= "set terminal $terminalOpts{$outputfileType}\n";
+        $cmd .= "set output \"$outputfile\"\n";
+      }
+    }
 
 
     # add the extra global options
