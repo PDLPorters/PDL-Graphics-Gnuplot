@@ -324,7 +324,7 @@ EOB
     # so here I only need to look at curveIndex
     my $NrangeCurves = $ranges->ndims;
     if($NrangeCurves != 3)
-    { barf "numCurves got an off-dimensioned ranges. This is a bug"; }
+    { barf "numCurves got an off-dimensioned ranges. This is a bug!"; }
 
     my $N = 1;
 
