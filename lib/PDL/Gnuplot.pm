@@ -226,9 +226,6 @@ sub plot
   # split the arguments into a list of piddles (ranges to plot) and everything else (options)
   my ($rangelist, $options) = part {defined ref($_) && ref($_) eq 'PDL' ? 0 : 1} @_;
 
-  say "$domain";
-  say "@$rangelist";
-
   if( scalar @$rangelist == 0)
   { barf "plot() was not given any ranges"; }
 
