@@ -61,11 +61,11 @@ sub new
       }
       else
       {
-        # if (!$options->{colormap})
-        # {
-        #   if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
-        #   { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
-        # }
+        if (!$options->{colormap})
+        {
+          if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
+          { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
+        }
 
         if ( defined $options->{square_xy} )
         { barf "'square'_xy only makes sense with '3d'\n"; }
@@ -109,11 +109,11 @@ sub new
       $cmd .= "set yrange [$options->{ymin}:$options->{ymax}]\n"    if length( $options->{ymin}  . $options->{ymax} );
       $cmd .= "set y2range [$options->{y2min}:$options->{y2max}]\n" if length( $options->{y2min} . $options->{y2max} );
 
-      # if ($options->{colormap})
-      # {
-      #   $cmd .= "set cbrange [$options->{zmin}:$options->{zmax}]\n" if length( $options->{zmin} . $options->{zmax} );
-      # }
-      # else
+      if ($options->{colormap})
+      {
+        $cmd .= "set cbrange [$options->{zmin}:$options->{zmax}]\n" if length( $options->{zmin} . $options->{zmax} );
+      }
+      else
       {
         $cmd .= "set zrange [$options->{zmin}:$options->{zmax}]\n"    if length( $options->{zmin}  . $options->{zmax} );
       }
@@ -131,12 +131,12 @@ sub new
     # handle a requested square aspect ratio
     {
       # set a square aspect ratio. Gnuplot does this differently for 2D and 3D plots
-      # if ( $options->{'3d'})
-      # {
-      #   if    ($options->{square})    { $cmd .= "set view equal xyz\n"; }
-      #   elsif ($options->{square_xy}) { $cmd .= "set view equal xy\n" ; }
-      # }
-      # else
+      if ( $options->{'3d'})
+      {
+        if    ($options->{square})    { $cmd .= "set view equal xyz\n"; }
+        elsif ($options->{square_xy}) { $cmd .= "set view equal xy\n" ; }
+      }
+      else
       {
         if( $options->{square} ) { $cmd .= "set size ratio -1\n"; }
       }
@@ -145,26 +145,28 @@ sub new
 
 
     # handle multiple-range styles, such as colormaps and circles
-    # {
-    #   if ($options->{circles})
-    #   {
-    #     $options->{curvestyleall} = "with circles $options->{curvestyleall}";
-    #   }
-    #   if ($options->{colormap})
-    #   {
-    #     # colormap styles all curves with palette. Seems like there should be a way to do this with a
-    #     # global setting, but I can't get that to work
-    #     $options->{curvestyleall} .= ' palette';
-    #   }
+    $options->{valuesPerPoint} = 1; # by default, 1 value for each point
+    {
+      # if ($options->{circles})
+      # {
+      #   $options->{curvestyleall} = "with circles $options->{curvestyleall}";
+      # }
+      # if ($options->{colormap})
+      # {
+      #   # colormap styles all curves with palette. Seems like there should be a way to do this with a
+      #   # global setting, but I can't get that to work
+      #   $options->{curvestyleall} .= ' palette';
+      # }
 
-    #   my $valuesPerPoint = 1;
-    #   if ($options->{extraValuesPerPoint})
-    #   { $valuesPerPoint += $options->{extraValuesPerPoint}; }
-    #   if ($options->{colormap})
-    #   { $valuesPerPoint++; }
-    #   if ($options->{circles} )
-    #   { $valuesPerPoint++; }
-    # }
+      if ($options->{extraValuesPerPoint})
+      { $options->{valuesPerPoint} += $options->{extraValuesPerPoint}; }
+
+      if( $options->{colormap} )
+      { $options->{valuesPerPoint}++; }
+
+      if( $options->{circles} )
+      { $options->{valuesPerPoint}++; }
+    }
 
 
     # handle hardcopy output
@@ -207,7 +209,10 @@ sub new
 # The input piddles are a single domain piddle followed by some range piddles.
 # If the domain is null, sequential integers (0,1,2...) are used.
 #
-# For 3d plots the domain is an N-2-... piddle that contains the (x,y) values for each point
+# For 3d plots the domain is an Npoints-2-... piddle that contains the (x,y) values for each point
+#
+# For plots that have more than one value per range, ranges are interpreted to be
+# Npoints-NperRange-... piddles
 #
 # The ranges for each curve can be given in separate arguments to plot(), or stacked in the ranges
 # piddles
@@ -235,6 +240,14 @@ sub plot
     $domain = sequence($rangelist->[0]->dim(0));
   }
 
+  # make sure the domain is appropriately sized for 3d plots. Domain should have dims (N,2,M)
+  # This would describe M different domains each with N (x,y) pairs
+  if ( $this->{options}{'3d'} && $domain->dim(1) != 2 )
+  {
+    my @dims = $domain->dims;
+    barf "plot() was asked to make a 3d plot with a non-2 2nd dim. Domain dims: (@dims).";
+  }
+
   # Make sure the domain and ranges describe the same number of data points
   foreach my $range (@$rangelist)
   {
@@ -244,12 +257,22 @@ sub plot
     { barf "plot() domain-range size mismatch. Domain: $domaindim, a range: $rangedim"; }
   }
 
-  # make sure the domain is appropriately sized for 3d plots. Domain should have dims (N,2,M)
-  # This would describe M different domains each with N (x,y) pairs
-  if ( $this->{options}{'3d'} && $domain->dim(1) != 2 )
+  # if we're plotting something that has more than one value for every point, make sure the
+  # dimensions support this
+  if( $this->{options}{valuesPerPoint} > 1)
   {
-    my @dims = $domain->dims;
-    barf "plot() was asked to make a 3d plot with a non-2 2nd dim. Domain dims: (@dims).";
+    foreach my $range (@$rangelist)
+    {
+      if( $range->ndims < 2 )
+      { barf "Asked to plot more than 1 value per point, but got a range that was only 1D (one value only)"; }
+
+      if( $range->dim(1) != $this->{options}{valuesPerPoint} )
+      {
+        my $havedim = $range->dim(1);
+        my $wantdim = $this->{options}{valuesPerPoint};
+        barf "Expected $wantdim values per point, but got piddle with $havedim";
+      }
+    }
   }
 
   # I now have the domain piddle and some piddles containing the ranges. I can either have each
@@ -258,8 +281,15 @@ sub plot
   # later
   our ($a, $b);
   my $ranges =
-    List::Util::reduce {$a->glue (1, $b)}
-    map                {$_->ndims > 1 ? $_->clump(1..$_->ndims-1) : $_} @$rangelist;
+    # glue all the range data together into one piddle right after....
+    List::Util::reduce {$a->glue (2, $b)}
+
+    # ... collapsing all the extra dims of each range argument into one dim, right after...
+    map                {$_->ndims > 2 ? $_->clump(2..$_->ndims-1) : $_}
+
+    # ... making sure there's an extra dim for valuesPerPoint, creating one if needed
+    map                {$this->{options}{valuesPerPoint} == 1 ? $_->dummy(1) : $_} @$rangelist;
+
 
   # I now have a domain and an appropriately-sized range piddle. PDL threading can do the rest
   my $N = numCurves($domain, $ranges,
@@ -289,30 +319,29 @@ EOB
   {
     my ($domain, $ranges, $firstDataDim) = @_;
 
-    my $maxNdims = maximum pdl($domain->ndims, $ranges->ndims);
-
-    my $domaindim = $firstDataDim;
-    my $rangedim  = 1;
+    # ranges should have dims (pointIndex, valueIndex, curveIndex)
+    # so here I only need to look at curveIndex
+    my $NrangeCurves = $ranges->ndims;
+    if($NrangeCurves != 3)
+    { barf "numCurves got an off-dimensioned ranges. This is a bug"; }
 
     my $N = 1;
-    do
+
+    # I make sure the range curves dimension matches up with the corresponding dimension in the
+    # domain
+    my ($dim0, $dim1) = minmax(pdl($domain->dim($firstDataDim), $NrangeCurves));
+    if ($dim0 == 1 || $dim0 == $dim1)
+    { $N *= $dim1; }
+    else
     {
-      my ($dim0, $dim1) = minmax(pdl($domain->dim($domaindim), $ranges->dim($rangedim)));
+      my @xdims = $domain->dims;
+      my @ydims = $ranges->dims;
+      barf "plot() was given non-threadable arguments. Mismatched dims: (@xdims) and (@ydims)";
+    }
 
-      if ($dim0 == 1 || $dim0 == $dim1)
-      {
-        $N *= $dim1;
-      }
-      else
-      {
-        my @xdims = $domain->dims;
-        my @ydims = $ranges->dims;
-        barf "plot() was given non-threadable arguments. Mismatched dims: (@xdims) and (@ydims)";
-      }
-
-      $domaindim++;
-      $rangedim++;
-    } while($domaindim < $maxNdims || $rangedim < $maxNdims);
+    # Now I add all the extra domain dimensions to my counter
+    for my $domainDim ($firstDataDim+1..$domain->ndims-1)
+    { $N *= $domain->dim($domainDim); }
 
     return $N;
   }
@@ -369,14 +398,14 @@ EOB
   }
 }
 
-thread_define '_writedata_1d_domain(x(n); y(n)), NOtherPars => 1', over
+thread_define '_writedata_1d_domain(x(n); y(n,valuesInPoint)), NOtherPars => 1', over
 {
   my $pipe = pop @_;
   wcols $_[0], $_[1], $pipe;
   say $pipe 'e';
 };
 
-thread_define '_writedata_2d_domain(xy(n,m=2); z(n)), NOtherPars => 1', over
+thread_define '_writedata_2d_domain(xy(n,m=2); z(n,valuesInPoint)), NOtherPars => 1', over
 {
   my $pipe = pop @_;
   wcols $_[0]->dog, $_[1], $pipe;
