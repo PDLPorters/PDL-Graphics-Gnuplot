@@ -11,15 +11,16 @@ our $VERSION = 1.00;
 
 sub new
 {
-  my ($classname, $plotoptions) = @_;
+  my $classname = shift;
 
-  $plotoptions = {} unless defined $plotoptions;
+  my %plotoptions = ();
+  %plotoptions = @_ if @_;
 
-  my $pipe = startGnuplot($plotoptions) or barf "Couldn't start gnuplot backend";
-  say $pipe parseOptions($plotoptions);
+  my $pipe = startGnuplot(\%plotoptions) or barf "Couldn't start gnuplot backend";
+  say $pipe parseOptions(\%plotoptions);
 
   my $this = {pipe    => $pipe,
-              options => $plotoptions};
+              options => \%plotoptions};
   bless($this, $classname);
 
   return $this;
