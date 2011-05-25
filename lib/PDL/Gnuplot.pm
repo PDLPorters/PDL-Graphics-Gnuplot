@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use PDL;
 use IO::Handle;
+use List::Util qw(reduce);
+use List::MoreUtils qw(part);
 use feature qw(say);
 our $VERSION = 1.00;
 
@@ -51,24 +53,24 @@ sub new
 
 
     # make sure I'm not passed invalid combinations of options
-    # {
-    #   if ( $options->{'3d'} )
-    #   {
-    #     if ( defined $options->{y2min} || defined $options->{y2max} || defined $options->{y2} )
-    #     { barf "'3d' does not make sense with 'y2'...\n"; }
-    #   }
-    #   else
-    #   {
-    #     if (!$options->{colormap})
-    #     {
-    #       if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
-    #       { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
-    #     }
+    {
+      if ( $options->{'3d'} )
+      {
+        if ( defined $options->{y2min} || defined $options->{y2max} || defined $options->{y2} )
+        { barf "'3d' does not make sense with 'y2'...\n"; }
+      }
+      else
+      {
+        # if (!$options->{colormap})
+        # {
+        #   if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
+        #   { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
+        # }
 
-    #     if ( defined $options->{square_xy} )
-    #     { barf "'square'_xy only makes sense with '3d'\n"; }
-    #   }
-    # }
+        if ( defined $options->{square_xy} )
+        { barf "'square'_xy only makes sense with '3d'\n"; }
+      }
+    }
 
 
     my $cmd   = '';
@@ -199,18 +201,69 @@ sub new
   }
 }
 
+# the main API function to generate a plot. Input arguments are a bunch of piddles optionally
+# followed by a bunch of options for each curve.
+#
+# The input piddles are a single domain piddle followed by some range piddles.
+# If the domain is null, sequential integers (0,1,2...) are used.
+#
+# For 3d plots the domain is an N-2-... piddle that contains the (x,y) values for each point
+#
+# The ranges for each curve can be given in separate arguments to plot(), or stacked in the ranges
+# piddles
 sub plot
 {
-  my $this              = shift;
-  my ($x, $y, @options) = @_;
+  my $this = shift;
 
-  if ($x->dim(0) != $y->dim(0))
+  my $domain = shift;
+
+  # split the arguments into a list of piddles (ranges to plot) and everything else (options)
+  my ($rangelist, $options) = part {defined ref($_) && ref($_) eq 'PDL' ? 0 : 1} @_;
+
+  say "$domain";
+  say "@$rangelist";
+
+  if( scalar @$rangelist == 0)
+  { barf "plot() was not given any ranges"; }
+
+  # if no domain is specified, make a default one
+  if($domain->nelem == 0)
   {
-    my @xdims = $x->dims;
-    my @ydims = $y->dims;
-    barf "ploxy() args must have equal first dimensions. Dims: (@xdims) and (@ydims)";
+    if( $this->{options}{'3d'} )
+    { barf "Tried to make a 3d plot with no explicit domain"; }
+
+    $domain = sequence($rangelist->[0]->dim(0));
   }
-  my $N = numCurves($x, $y);
+
+  # Make sure the domain and ranges describe the same number of data points
+  foreach my $range (@$rangelist)
+  {
+    my $rangedim  = $range ->dim(0);
+    my $domaindim = $domain->dim(0);
+    if ( $domaindim != $rangedim )
+    { barf "plot() domain-range size mismatch. Domain: $domaindim, a range: $rangedim"; }
+  }
+
+  # make sure the domain is appropriately sized for 3d plots. Domain should have dims (N,2,M)
+  # This would describe M different domains each with N (x,y) pairs
+  if ( $this->{options}{'3d'} && $domain->dim(1) != 2 )
+  {
+    my @dims = $domain->dims;
+    barf "plot() was asked to make a 3d plot with a non-2 2nd dim. Domain dims: (@dims).";
+  }
+
+  # I now have the domain piddle and some piddles containing the ranges. I can either have each
+  # curve in a separate 'ranges' piddle, or the ranges could be stacked together in one piddle.  I
+  # stack all my ranges into a single regardless and let PDL threading sort out the exact mappings
+  # later
+  our ($a, $b);
+  my $ranges =
+    List::Util::reduce {$a->glue (1, $b)}
+    map                {$_->ndims > 1 ? $_->clump(1..$_->ndims-1) : $_} @$rangelist;
+
+  # I now have a domain and an appropriately-sized range piddle. PDL threading can do the rest
+  my $N = numCurves($domain, $ranges,
+                    $this->{options}{'3d'} ? 2 : 1);
 
   if($N > $this->{options}{maxcurves})
   {
@@ -221,26 +274,30 @@ EOB
 
   }
 
-
   my $pipe = $this->{pipe};
+  say $pipe plotcmd($N, $options, $this->{options}{'3d'});
 
-  say $pipe plotcmd($N, \@options);
-
-  _plotxy_writedata($x, $y, $pipe);
+  if( ! $this->{options}{'3d'} )
+  { _writedata_1d_domain($domain, $ranges, $pipe); }
+  else
+  { _writedata_2d_domain($domain, $ranges, $pipe); }
   flush $pipe;
 
 
-  # compute how many curves have been passed in, assuming things will thread
+  # compute how many curves have been passed in, assuming things thread
   sub numCurves
   {
-    my ($x, $y) = @_;
+    my ($domain, $ranges, $firstDataDim) = @_;
+
+    my $maxNdims = maximum pdl($domain->ndims, $ranges->ndims);
+
+    my $domaindim = $firstDataDim;
+    my $rangedim  = 1;
 
     my $N = 1;
-    my $maxNdims = maximum pdl($x->ndims, $y->ndims);
-
-    for my $idim (1..$maxNdims-1)
+    do
     {
-      my ($dim0, $dim1) = minmax(pdl($x->dim($idim), $y->dim($idim)));
+      my ($dim0, $dim1) = minmax(pdl($domain->dim($domaindim), $ranges->dim($rangedim)));
 
       if ($dim0 == 1 || $dim0 == $dim1)
       {
@@ -248,11 +305,14 @@ EOB
       }
       else
       {
-        my @xdims = $x->dims;
-        my @ydims = $y->dims;
-        barf "ploxy() was given non-threadable arguments. Mismatched dims: (@xdims) and (@ydims)";
+        my @xdims = $domain->dims;
+        my @ydims = $ranges->dims;
+        barf "plot() was given non-threadable arguments. Mismatched dims: (@xdims) and (@ydims)";
       }
-    }
+
+      $domaindim++;
+      $rangedim++;
+    } while($domaindim < $maxNdims || $rangedim < $maxNdims);
 
     return $N;
   }
@@ -260,7 +320,7 @@ EOB
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($N, $options) = @_;
+    my ($N, $options, $is3d) = @_;
 
     # remove any options that exceed my data
     $options //= [];
@@ -274,11 +334,16 @@ EOB
     # if anything is to be plotted on the y2 axis, set it up
     if( grep {$_->{y2}} @$options )
     {
+      if( $is3d )
+      { barf "3d plots don't have a y2 axis"; }
+
       $cmd .= "set ytics nomirror\n";
       $cmd .= "set y2tics\n";
     }
 
-    $cmd .= 'plot ' . join(',', map {"'-' " . optioncmd($_)} @$options);
+    if($is3d) { $cmd .= 'splot '; }
+    else      { $cmd .= 'plot ' ; }
+    $cmd .= join(',', map {"'-' " . optioncmd($_)} @$options);
 
     return $cmd;
 
@@ -304,10 +369,17 @@ EOB
   }
 }
 
-thread_define '_plotxy_writedata(x(n); y(n)), NOtherPars => 1', over
+thread_define '_writedata_1d_domain(x(n); y(n)), NOtherPars => 1', over
 {
   my $pipe = pop @_;
-  wcols @_, $pipe;
+  wcols $_[0], $_[1], $pipe;
+  say $pipe 'e';
+};
+
+thread_define '_writedata_2d_domain(xy(n,m=2); z(n)), NOtherPars => 1', over
+{
+  my $pipe = pop @_;
+  wcols $_[0]->dog, $_[1], $pipe;
   say $pipe 'e';
 };
 
