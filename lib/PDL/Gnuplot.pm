@@ -285,11 +285,14 @@ sub plot
     List::Util::reduce {$a->glue (2, $b)}
 
     # ... collapsing all the extra dims of each range argument into one dim, right after...
-    map                {$_->ndims > 2 ? $_->clump(2..$_->ndims-1) : $_}
+    map                {$_->ndims > 3 ? $_->clump(2..$_->ndims-1) : $_}
 
     # ... making sure there's an extra dim for valuesPerPoint, creating one if needed
     map                {$this->{options}{valuesPerPoint} == 1 ? $_->dummy(1) : $_} @$rangelist;
 
+
+  # if we have a single curve, add a dummy dimension to allow the generic functions to work
+  $ranges = $ranges->dummy(2) if $ranges->ndims < 3;
 
   # I now have a domain and an appropriately-sized range piddle. PDL threading can do the rest
   my $N = numCurves($domain, $ranges,
@@ -321,15 +324,14 @@ EOB
 
     # ranges should have dims (pointIndex, valueIndex, curveIndex)
     # so here I only need to look at curveIndex
-    my $NrangeCurves = $ranges->ndims;
-    if($NrangeCurves != 3)
-    { barf "numCurves got ranges with dim $NrangeCurves. It should be 3. This is a bug!"; }
+    if($ranges->ndims != 3)
+    { barf "numCurves got ranges with dim " . $ranges->ndims . ". It should be 3. This is a bug!"; }
 
     my $N = 1;
 
     # I make sure the range curves dimension matches up with the corresponding dimension in the
     # domain
-    my ($dim0, $dim1) = minmax(pdl($domain->dim($firstDataDim), $NrangeCurves));
+    my ($dim0, $dim1) = minmax(pdl($domain->dim($firstDataDim), $ranges->dim(2)));
     if ($dim0 == 1 || $dim0 == $dim1)
     { $N *= $dim1; }
     else
@@ -401,14 +403,14 @@ EOB
 thread_define '_writedata_1d_domain(x(n); y(n,valuesInPoint)), NOtherPars => 1', over
 {
   my $pipe = pop @_;
-  wcols $_[0], $_[1], $pipe;
+  wcols $_[0], $_[1]->dog, $pipe;
   say $pipe 'e';
 };
 
 thread_define '_writedata_2d_domain(xy(n,m=2); z(n,valuesInPoint)), NOtherPars => 1', over
 {
   my $pipe = pop @_;
-  wcols $_[0]->dog, $_[1], $pipe;
+  wcols $_[0]->dog, $_[1]->dog, $pipe;
   say $pipe 'e';
 };
 
