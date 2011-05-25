@@ -86,10 +86,7 @@ sub new
     {
       my $style = '';
 
-      $style .= 'lines'              if $options->{lines};
-      $style .= 'points'             if $options->{points};
       $style .= " $options->{style}" if $options->{style};
-
       $cmd .= "set style data $style\n" if $style;
     }
 
