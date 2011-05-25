@@ -150,24 +150,21 @@ sub new
     # handle multiple-range styles, such as colormaps and circles
     $options->{valuesPerPoint} = 1; # by default, 1 value for each point
     {
-      # if ($options->{circles})
-      # {
-      #   $options->{curvestyleall} = "with circles $options->{curvestyleall}";
-      # }
-      # if ($options->{colormap})
-      # {
-      #   # colormap styles all curves with palette. Seems like there should be a way to do this with a
-      #   # global setting, but I can't get that to work
-      #   $options->{curvestyleall} .= ' palette';
-      # }
+      if( $options->{colormap} )
+      {
+        # colormap styles all curves with palette. Seems like there should be a way to do this with a
+        # global setting, but I can't get that to work
+        $options->{style_allcurves} = 'palette';
+      }
 
-      if ($options->{extraValuesPerPoint})
+
+      if( $options->{extraValuesPerPoint})
       { $options->{valuesPerPoint} += $options->{extraValuesPerPoint}; }
 
       if( $options->{colormap} )
       { $options->{valuesPerPoint}++; }
 
-      if( $options->{circles} )
+      if( $options->{style} =~ /circles/ )
       { $options->{valuesPerPoint}++; }
     }
 
@@ -308,7 +305,7 @@ EOB
   }
 
   my $pipe = $this->{pipe};
-  say $pipe plotcmd($N, $options, $this->{options}{'3d'});
+  say $pipe plotcmd($N, $options, $this->{options}{'3d'}, $this->{options}{style_allcurves} );
 
   if( ! $this->{options}{'3d'} )
   { _writedata_1d_domain($domain, $ranges, $pipe); }
@@ -351,7 +348,7 @@ EOB
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($N, $options, $is3d) = @_;
+    my ($N, $options, $is3d, $style_allcurves) = @_;
 
     # remove any options that exceed my data
     $options //= [];
@@ -374,7 +371,7 @@ EOB
 
     if($is3d) { $cmd .= 'splot '; }
     else      { $cmd .= 'plot ' ; }
-    $cmd .= join(',', map {"'-' " . optioncmd($_)} @$options);
+    $cmd .= join(',', map {"'-' " . optioncmd($_, $style_allcurves)} @$options);
 
     return $cmd;
 
@@ -383,7 +380,8 @@ EOB
     # parses a curve option
     sub optioncmd
     {
-      my $option = shift;
+      my $option          = shift;
+      my $style_allcurves = shift;
 
       my $cmd = '';
 
@@ -393,6 +391,7 @@ EOB
       { $cmd .= "notitle "; }
 
       $cmd .= "$option->{style} " if defined $option->{style};
+      $cmd .= "$style_allcurves " if defined $style_allcurves;
       $cmd .= "axes x1y2 "        if defined $option->{y2};
 
       return $cmd;
