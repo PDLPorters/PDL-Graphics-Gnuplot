@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use PDL;
 use IO::Handle;
-use List::Util qw(reduce);
+use List::Util;
 use List::MoreUtils qw(part);
 use feature qw(say);
 our $VERSION = 1.00;
