@@ -9,6 +9,8 @@ use List::MoreUtils qw(part);
 use feature qw(say);
 our $VERSION = 1.00;
 
+$PDL::use_commas = 1;
+
 sub new
 {
   my $classname = shift;
