@@ -61,6 +61,9 @@ sub new
       {
         if ( defined $options->{y2min} || defined $options->{y2max} || defined $options->{y2} )
         { barf "'3d' does not make sense with 'y2'...\n"; }
+
+        if( $options->{style} =~ /circles/ )
+        { barf "At this time gnuplot does not support 3d plotting with circles."; }
       }
       else
       {
