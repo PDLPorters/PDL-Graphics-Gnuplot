@@ -10,6 +10,19 @@ use PDL::Gnuplot;
 
 use feature qw(say);
 
+# plot a simple parabola, domain=null
+{
+  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
+                               title  => 'parabola domain=null',
+                               xlabel => 'x');
+
+  my $x = sequence(21) - 10;
+  $plot->plot( null,
+               $x**2, {legend => 'parabola',
+                       style => 'lw 5'}
+             );
+}
+
 # plot a simple parabola, domainless
 {
   my $plot = PDL::Gnuplot->new(style  => 'linespoints',
@@ -17,9 +30,21 @@ use feature qw(say);
                                xlabel => 'x');
 
   my $x = sequence(21) - 10;
-  $plot->plot( null,
-               $x**2, {legend => 'parabola',
+  $plot->plot( $x**2, {legend => 'parabola',
                        style => 'lw 5'}
+             );
+}
+
+# plot parabola, cubic. domainless
+{
+  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
+                               title  => 'parabola, cubic domainless',
+                               xlabel => 'x');
+
+  my $x = sequence(21) - 10;
+  $plot->plot( PDL::cat($x**2, $x**3),
+               {legend => 'parabola', style => 'lw 5'},
+               {legend => 'cubic',    style => 'lw 3'}
              );
 }
 
