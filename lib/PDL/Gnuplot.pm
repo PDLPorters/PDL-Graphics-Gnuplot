@@ -164,7 +164,7 @@ sub new
       if( $options->{colormap} )
       { $options->{valuesPerPoint}++; }
 
-      if( $options->{style} =~ /circles/ )
+      if( defined $options->{style} && $options->{style} =~ /circles/ )
       { $options->{valuesPerPoint}++; }
     }
 
