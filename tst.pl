@@ -69,10 +69,8 @@ use feature qw(say);
 
   my $x = sequence(21) - 10;
   $plot->plot( $x,
-               $x**2, {legend => 'parabola',
-                       style => 'lw 5'},
-               $x**3, {legend => 'cubic',
-                       style => 'lw 5'}
+               $x**2, {legend => 'parabola', style => 'lw 5'},
+               $x**3, {legend => 'cubic',    style => 'lw 5'}
              );
 }
 
@@ -98,10 +96,8 @@ use feature qw(say);
 
   my $x = sequence(21) - 10;
   $plot->plot( $x,
-               PDL::cat($x**2, $x->abs/10), {legend => 'parabola',
-                                             style => 'lw 5'},
-               PDL::cat($x**3, $x->abs/10), {legend => 'cubic',
-                                             style => 'lw 5'}
+               PDL::cat($x**2, $x->abs/10), {legend => 'parabola', style => 'lw 5'},
+               PDL::cat($x**3, $x->abs/10), {legend => 'cubic',    style => 'lw 5'}
              );
 }
 
@@ -131,10 +127,8 @@ use feature qw(say);
 
   my $x = sequence(21) - 10;
   $plot->plot( $x,
-               PDL::cat($x**2, $x->abs/10), {legend => 'parabola',
-                                             style => 'lw 5'},
-               PDL::cat($x**3, $x->abs/10), {legend => 'cubic',
-                                             style => 'lw 5'}
+               PDL::cat($x**2, $x->abs/10), {legend => 'parabola', style => 'lw 5'},
+               PDL::cat($x**3, $x->abs/10), {legend => 'cubic',    style => 'lw 5'}
              );
 }
 
@@ -167,10 +161,8 @@ use feature qw(say);
 
   my $x = sequence(21) - 10;
   $plot->plot( $x,
-               PDL::cat($x**2, $x->abs/10, $x->abs),
-               {legend => 'parabola', style => 'lw 5'},
-               PDL::cat($x**3, $x->abs/10, $x->abs),
-               {legend => 'cubic',    style => 'lw 5'}
+               PDL::cat($x**2, $x->abs/10, $x->abs), {legend => 'parabola', style => 'lw 5'},
+               PDL::cat($x**3, $x->abs/10, $x->abs), {legend => 'cubic',    style => 'lw 5'}
              );
 }
 
@@ -208,8 +200,8 @@ use feature qw(say);
                     PDL::flat( cos($ph)*sin($th) ));
   my $z = PDL::flat( sin($ph) * $th->ones );
 
-  $plot->plot( $xy, $z,
-               {legend => 'sphere'}
+  $plot->plot( $xy,
+               $z, {legend => 'sphere'}
              );
 }
 
