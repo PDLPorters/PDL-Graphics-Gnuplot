@@ -208,9 +208,15 @@ sub new
 #
 # The input piddles are a single domain piddle followed by some range piddles.
 # If the domain is null, sequential integers (0,1,2...) are used.
+# If the domain is null, and we're plotting in 3D, we use an appropriately-sized grid (see below)
 # If only a single piddle argument is given, domain==null is assumed
 #
 # For 3d plots the domain is an Npoints-2-... piddle that contains the (x,y) values for each point
+
+# If the domain is null and we're plotting in 3D, a grid based on the first
+# 2-dimensions of the range is used. For instance if the first 2 dims of a range
+# are 3x5, the range is plotted on a 3x5 grid with x in 0..2 and y in 0..4
+
 #
 # For plots that have more than one value per range, ranges are interpreted to be
 # Npoints-NperRange-... piddles
@@ -236,10 +242,43 @@ sub plot
   # if no domain is specified, make a default one
   if($domain->nelem == 0)
   {
-    if( $this->{options}{'3d'} )
-    { barf "Tried to make a 3d plot with no explicit domain"; }
+    if( !$this->{options}{'3d'} )
+    {
+      # in 2D, the default domain is simply increasing integers
+      $domain = sequence($rangelist->[0]->dim(0));
+    }
+    else
+    {
+      # in 3D, the first 2 dimensions of every range are plotted in a grid
+      my $domaindims;
+      foreach my $range(@$rangelist)
+      {
+        my @dims = $range->dims;
+        barf "plot() got a null range" if(! @dims);
 
-    $domain = sequence($rangelist->[0]->dim(0));
+        # a 1D range gets a degenerate dimension
+        push( @dims, 1) if(@dims == 1);
+
+        if(! $domaindims)
+        {
+          # store the domain dimensions if I don't already have them
+          $domaindims = \@dims;
+
+          # generate an Nx2 domain useable by the rest of the code
+          my $Npoints = $dims[0] * $dims[1];
+          $domain = zeros(@dims[0..1])->ndcoords->reshape(2,$Npoints)->transpose;
+        }
+        else
+        {
+          # if I do have them, make sure they match
+          if($domaindims->[0] != $dims[0] || $domaindims->[1] != $dims[1])
+          { barf "plot() grid domain mismatch"; }
+        }
+
+        # make the range dimensionality reflect the domain
+        $range = $range->clump(2);
+      }
+    }
   }
 
   # make sure the domain is appropriately sized for 3d plots. Domain should have dims (N,2,M)
