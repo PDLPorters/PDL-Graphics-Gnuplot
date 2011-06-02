@@ -208,6 +208,7 @@ sub new
 #
 # The input piddles are a single domain piddle followed by some range piddles.
 # If the domain is null, sequential integers (0,1,2...) are used.
+# If only a single piddle argument is given, domain==null is assumed
 #
 # For 3d plots the domain is an Npoints-2-... piddle that contains the (x,y) values for each point
 #
@@ -220,13 +221,17 @@ sub plot
 {
   my $this = shift;
 
-  my $domain = shift;
+  # split the arguments into a list of piddles (data to plot) and everything else (options)
+  my ($datalist, $options) = part {defined ref($_) && ref($_) eq 'PDL' ? 0 : 1} @_;
 
-  # split the arguments into a list of piddles (ranges to plot) and everything else (options)
-  my ($rangelist, $options) = part {defined ref($_) && ref($_) eq 'PDL' ? 0 : 1} @_;
+  if( scalar @$datalist == 0)
+  { barf "plot() was not given any data"; }
 
-  if( scalar @$rangelist == 0)
-  { barf "plot() was not given any ranges"; }
+  my $domain;
+  if(@$datalist == 1) { $domain = null; }
+  else                { $domain = shift @$datalist; }
+
+  my $rangelist = $datalist;
 
   # if no domain is specified, make a default one
   if($domain->nelem == 0)
