@@ -28,7 +28,7 @@ sub new
     { %plotoptions = @_; }
   }
 
-  my $pipe = startGnuplot(\%plotoptions) or barf "Couldn't start gnuplot backend";
+  my $pipe = startGnuplot( $plotoptions{dump} ) or barf "Couldn't start gnuplot backend";
   say $pipe parseOptions(\%plotoptions);
 
   my $this = {pipe    => $pipe,
@@ -41,8 +41,8 @@ sub new
   sub startGnuplot
   {
     # if we're simply dumping the gnuplot commands to stdout, simply return a handle to STDOUT
-    my $options = shift;
-    return *STDOUT if exists $options->{dump};
+    my $dump = shift;
+    return *STDOUT if $dump;
 
 
     my $pipe;
