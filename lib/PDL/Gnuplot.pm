@@ -226,6 +226,8 @@ sub new
 sub plot
 {
   my $this = shift;
+  my $pipe        = $this->{pipe};
+  my $plotOptions = $this->{options};
 
   # split the arguments into a list of piddles (data to plot) and everything else (options)
   my ($datalist, $options) = part {defined ref($_) && ref($_) eq 'PDL' ? 0 : 1} @_;
@@ -242,7 +244,7 @@ sub plot
   # if no domain is specified, make a default one
   if($domain->nelem == 0)
   {
-    if( !$this->{options}{'3d'} )
+    if( !$plotOptions->{'3d'} )
     {
       # in 2D, the default domain is simply increasing integers
       $domain = sequence($rangelist->[0]->dim(0));
@@ -283,7 +285,7 @@ sub plot
 
   # make sure the domain is appropriately sized for 3d plots. Domain should have dims (N,2,M)
   # This would describe M different domains each with N (x,y) pairs
-  if ( $this->{options}{'3d'} && $domain->dim(1) != 2 )
+  if ( $plotOptions->{'3d'} && $domain->dim(1) != 2 )
   {
     my @dims = $domain->dims;
     barf "plot() was asked to make a 3d plot with a non-2 2nd dim. Domain dims: (@dims).";
@@ -300,17 +302,17 @@ sub plot
 
   # if we're plotting something that has more than one value for every point, make sure the
   # dimensions support this
-  if( $this->{options}{valuesPerPoint} > 1)
+  if( $plotOptions->{valuesPerPoint} > 1)
   {
     foreach my $range (@$rangelist)
     {
       if( $range->ndims < 2 )
       { barf "Asked to plot more than 1 value per point, but got a range that was only 1D (one value only)"; }
 
-      if( $range->dim(1) != $this->{options}{valuesPerPoint} )
+      if( $range->dim(1) != $plotOptions->{valuesPerPoint} )
       {
         my $havedim = $range->dim(1);
-        my $wantdim = $this->{options}{valuesPerPoint};
+        my $wantdim = $plotOptions->{valuesPerPoint};
         barf "Expected $wantdim values per point, but got piddle with $havedim";
       }
     }
@@ -329,7 +331,7 @@ sub plot
     map                {$_->ndims > 3 ? $_->clump(2..$_->ndims-1) : $_}
 
     # ... making sure there's an extra dim for valuesPerPoint, creating one if needed
-    map                {$this->{options}{valuesPerPoint} == 1 ? $_->dummy(1) : $_} @$rangelist;
+    map                {$plotOptions->{valuesPerPoint} == 1 ? $_->dummy(1) : $_} @$rangelist;
 
 
   # if we have a single curve, add a dummy dimension to allow the generic functions to work
@@ -337,9 +339,9 @@ sub plot
 
   # I now have a domain and an appropriately-sized range piddle. PDL threading can do the rest
   my $N = numCurves($domain, $ranges,
-                    $this->{options}{'3d'} ? 2 : 1);
+                    $plotOptions->{'3d'} ? 2 : 1);
 
-  if($N > $this->{options}{maxcurves})
+  if($N > $plotOptions->{maxcurves})
   {
     barf <<EOB;
 Tried to exceed the 'maxcurves' setting.\n
@@ -348,10 +350,9 @@ EOB
 
   }
 
-  my $pipe = $this->{pipe};
-  say $pipe plotcmd($N, $options, $this->{options}{'3d'}, $this->{options}{style_allcurves} );
+  say $pipe plotcmd($N, $options, $plotOptions->{'3d'}, $plotOptions->{style_allcurves} );
 
-  if( ! $this->{options}{'3d'} )
+  if( ! $plotOptions->{'3d'} )
   { _writedata_1d_domain($domain, $ranges, $pipe); }
   else
   { _writedata_2d_domain($domain, $ranges, $pipe); }
