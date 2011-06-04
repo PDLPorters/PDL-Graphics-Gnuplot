@@ -11,12 +11,22 @@ our $VERSION = 1.00;
 
 $PDL::use_commas = 1;
 
+use base 'Exporter';
+our @EXPORT_OK = qw(plot);
+
+
 sub new
 {
   my $classname = shift;
 
   my %plotoptions = ();
-  %plotoptions = @_ if @_;
+  if(@_)
+  {
+    if(ref $_[0])
+    { %plotoptions = %{$_[0]}; }
+    else
+    { %plotoptions = @_; }
+  }
 
   my $pipe = startGnuplot(\%plotoptions) or barf "Couldn't start gnuplot backend";
   say $pipe parseOptions(\%plotoptions);
@@ -225,7 +235,25 @@ sub new
 # piddles
 sub plot
 {
-  my $this = shift;
+  barf( "Plot called with no arguments") unless @_;
+
+  my $this;
+
+  if(!defined ref $_[0] || ref $_[0] ne 'PDL::Gnuplot')
+  {
+    my $plotOptions = {};
+    if(defined ref $_[0] && ref $_[0] eq 'HASH')
+    {
+      $plotOptions = shift;
+    }
+
+    $this = PDL::Gnuplot->new($plotOptions);
+  }
+  else
+  {
+    $this = shift;
+  }
+
   my $pipe        = $this->{pipe};
   my $plotOptions = $this->{options};
 
