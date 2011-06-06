@@ -64,7 +64,7 @@ sub new
   }
 
   my $pipe = startGnuplot( $plotoptions{dump} ) or barf "Couldn't start gnuplot backend";
-  say $pipe parseOptions(\%plotoptions);
+  print $pipe parseOptions(\%plotoptions);
 
   my $this = {pipe    => $pipe,
               options => \%plotoptions};
