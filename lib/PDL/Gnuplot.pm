@@ -257,20 +257,31 @@ sub plot
     # plot() called as a global function, NOT as a method.  the first argument
     # can be a hashref of plot options, or it could be the data directly.
     my $plotOptions = {};
-    my $arg0 = $_[0];
-    if(defined ref $arg0 && ref $arg0 eq 'HASH')
-    {
-      # arg0 is a hash. Is it plot options or curve options?
-      my @plotOptions = grep {defined $plotOptionsSet{$_}} keys %$arg0;
 
-      if(@plotOptions != 0)
+    if(defined ref $_[0] && ref $_[0] eq 'HASH')
+    {
+      # first arg is a hash. Is it plot options or curve options?
+      my $NmatchedPlotOptions = grep {defined $plotOptionsSet{$_}} keys %{$_[0]};
+
+      if($NmatchedPlotOptions != 0)
       {
-        if(scalar @plotOptions != scalar keys %$arg0)
+        if($NmatchedPlotOptions != scalar keys %{$_[0]})
         {
           barf "Got an option hash that isn't completely plot options or non-plot options";
         }
 
         $plotOptions = shift;
+      }
+    }
+    else
+    {
+      # first arg is NOT a hashref. It could be an inline hash. I now grab the hash
+      # elements one at a time as long as they're plot options
+      while( @_ >= 2 && $plotOptionsSet{$_[0]} )
+      {
+        my $key = shift;
+        my $val = shift;
+        $plotOptions->{$key} = $val;
       }
     }
 
