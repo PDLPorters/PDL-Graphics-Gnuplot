@@ -473,16 +473,28 @@ EOB
       my $tupleSize    = getTupleSize($is3d, $chunk{options});
       my $NdataPiddles = $nextOptionIdx - $argIndex;
 
-      if($NdataPiddles < $tupleSize)
-      { barf "plot() needed $tupleSize data piddles, but only got $NdataPiddles"; }
-
       if($NdataPiddles > $tupleSize)
       {
         $nextOptionIdx = $argIndex + $tupleSize;
-        $NdataPiddles = $tupleSize;
+        $NdataPiddles  = $tupleSize;
       }
 
       my @dataPiddles   = @args[$argIndex..$nextOptionIdx-1];
+
+      if($NdataPiddles < $tupleSize)
+      {
+        # I got fewer data elements than I expected
+
+        if(!$is3d && $NdataPiddles+1 == $tupleSize)
+        {
+          # A 2D plot is one data element short. Fill in a sequential domain
+          # 0,1,2,...
+          unshift @dataPiddles, sequence($dataPiddles[0]->dim(0));
+        }
+        else
+        { barf "plot() needed $tupleSize data piddles, but only got $NdataPiddles"; }
+      }
+
       $chunk{data}      = \@dataPiddles;
       $chunk{tupleSize} = $tupleSize;
 
