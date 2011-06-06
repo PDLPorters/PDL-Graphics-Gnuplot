@@ -427,8 +427,8 @@ EOB
     # Here I parse the plot() arguments.  Each chunk of data to plot appears in
     # the argument list as plot(options, options, ..., data, data, ....). The
     # options are either a hash (reference or inline) or a ref to an array of
-    # hashrefs, or can be absent entirely. THE OPTIONS ARE ALWAYS DEFINED ON TOP
-    # OF THE PREVIOUS SET OF OPTIONS
+    # hashrefs, or can be absent entirely. THE OPTIONS ARE ALWAYS CUMULATIVELY
+    # DEFINED ON TOP OF THE PREVIOUS SET OF OPTIONS (except the legend)
     #
     # Based on the options I know the size of the plot tuple. For example,
     # simple x-y plots have 2 values per point, while x-y-z-color plots have
@@ -437,7 +437,8 @@ EOB
     my $is3d = shift;
     my @args = @_;
 
-    # options are cumulative. This is a hashref that contains the accumulator
+    # options are cumulative except the legend (don't want multiple plots named
+    # the same). This is a hashref that contains the accumulator
     my $lastOptions = {};
 
     my @chunks;
@@ -448,6 +449,10 @@ EOB
       # First, I find and parse the options in this chunk
       my $nextDataIdx = first {ref $args[$_] && ref $args[$_] eq 'PDL'} $argIndex..$#args;
       last if !defined $nextDataIdx; # no more data. done.
+
+      # I do not reuse the curve legend, since this would result it multiple
+      # curves with the same name
+      delete $lastOptions->{legend};
 
       my %chunk;
       if( $nextDataIdx > $argIndex )
@@ -496,7 +501,7 @@ EOB
 
     sub parseOptionsArgs
     {
-      # my options are cumulative. This variable contains the accumulator
+      # my options are cumulative, except the legend. This variable contains the accumulator
       my $options = shift;
 
       # I now have my options arguments. Each curve is described by a hash
@@ -519,6 +524,10 @@ EOB
             # add this hashref to the options
             @{$options}{keys %$optionArg} = values %$optionArg;
             push @curveOptions, dclone($options);
+
+            # I do not reuse the curve legend, since this would result it multiple
+            # curves with the same name
+            delete $options->{legend};
           }
           elsif (ref $optionArg eq 'ARRAY')
           {
@@ -531,6 +540,10 @@ EOB
 
               @{$options}{keys %$_} = values %$_;
               push @curveOptions, dclone($options);
+
+              # I do not reuse the curve legend, since this would result it multiple
+              # curves with the same name
+              delete $options->{legend};
             }
           }
           else
@@ -555,6 +568,10 @@ EOB
             $optionArgIdx++;
           } while($optionArgIdx < @optionsArgs && !ref $optionsArgs[$optionArgIdx]);
           push @curveOptions, dclone($options);
+
+          # I do not reuse the curve legend, since this would result it multiple
+          # curves with the same name
+          delete $options->{legend};
         }
 
       }
@@ -593,8 +610,10 @@ EOB
       { barf "plot() got $Noptions options but only $Ncurves curves. Not enough curves"; }
       elsif($Noptions < $Ncurves)
       {
-        # I have more curves then options. I pad the option list with the last option
-        my $lastOption = $chunk->{options}[-1];
+        # I have more curves then options. I pad the option list with the last
+        # option, removing the legend
+        my $lastOption = dclone $chunk->{options}[-1];
+        delete $lastOption->{legend};
         push @{$chunk->{options}}, ($lastOption) x ($Ncurves - $Noptions);
       }
 
