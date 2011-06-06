@@ -4,8 +4,9 @@ use strict;
 use warnings;
 use PDL;
 use IO::Handle;
-use List::Util;
-use List::MoreUtils qw(part);
+use List::Util qw(first);
+use Storable qw(dclone);
+
 use feature qw(say);
 our $VERSION = 1.00;
 
@@ -80,11 +81,11 @@ sub new
       }
       else
       {
-        if (!$options->{colormap})
-        {
-          if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
-          { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
-        }
+        # if (!$options->{colormap})
+        # {
+        #   if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
+        #   { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
+        # }
 
         if ( defined $options->{square_xy} )
         { barf "'square'_xy only makes sense with '3d'\n"; }
@@ -125,11 +126,11 @@ sub new
       $cmd .= "set yrange [$options->{ymin}:$options->{ymax}]\n"    if length( $options->{ymin}  . $options->{ymax} );
       $cmd .= "set y2range [$options->{y2min}:$options->{y2max}]\n" if length( $options->{y2min} . $options->{y2max} );
 
-      if ($options->{colormap})
-      {
-        $cmd .= "set cbrange [$options->{zmin}:$options->{zmax}]\n" if length( $options->{zmin} . $options->{zmax} );
-      }
-      else
+      # if ($options->{colormap})
+      # {
+      #   $cmd .= "set cbrange [$options->{zmin}:$options->{zmax}]\n" if length( $options->{zmin} . $options->{zmax} );
+      # }
+      # else
       {
         $cmd .= "set zrange [$options->{zmin}:$options->{zmax}]\n"    if length( $options->{zmin}  . $options->{zmax} );
       }
@@ -161,25 +162,27 @@ sub new
 
 
     # handle multiple-range styles, such as colormaps and circles
-    $options->{valuesPerPoint} = 1; # by default, 1 value for each point
-    {
-      if( $options->{colormap} )
-      {
-        # colormap styles all curves with palette. Seems like there should be a way to do this with a
-        # global setting, but I can't get that to work
-        $options->{style_allcurves} = 'palette';
-      }
+    $options->{style_allcurves} = undef; # placeholder until the following is re-enabled
+
+    # $options->{valuesPerPoint} = 1; # by default, 1 value for each point
+    # {
+    #   if( $options->{colormap} )
+    #   {
+    #     # colormap styles all curves with palette. Seems like there should be a way to do this with a
+    #     # global setting, but I can't get that to work
+    #     $options->{style_allcurves} = 'palette';
+    #   }
 
 
-      if( $options->{extraValuesPerPoint})
-      { $options->{valuesPerPoint} += $options->{extraValuesPerPoint}; }
+    #   if( $options->{extraValuesPerPoint})
+    #   { $options->{valuesPerPoint} += $options->{extraValuesPerPoint}; }
 
-      if( $options->{colormap} )
-      { $options->{valuesPerPoint}++; }
+    #   if( $options->{colormap} )
+    #   { $options->{valuesPerPoint}++; }
 
-      if( defined $options->{style} && $options->{style} =~ /circles/ )
-      { $options->{valuesPerPoint}++; }
-    }
+    #   if( defined $options->{style} && $options->{style} =~ /circles/ )
+    #   { $options->{valuesPerPoint}++; }
+    # }
 
 
     # handle hardcopy output
@@ -260,185 +263,95 @@ sub plot
   my $pipe        = $this->{pipe};
   my $plotOptions = $this->{options};
 
-  # split the arguments into a list of piddles (data to plot) and everything else (options)
-  my ($datalist, $options) = part {defined ref($_) && ref($_) eq 'PDL' ? 0 : 1} @_;
 
-  if( scalar @$datalist == 0)
+  # I split my data-to-plot into similarly-styled chunks
+  # pieces of data we're plotting. Each chunk has a similar style
+  my ($chunks, $Ncurves) = parseArgs(@_);
+
+
+  if( scalar @$chunks == 0)
   { barf "plot() was not given any data"; }
 
-  my $domain;
-  if(@$datalist == 1) { $domain = null; }
-  else                { $domain = shift @$datalist; }
+  # # if no domain is specified, make a default one
+  # if($domain->nelem == 0)
+  # {
+  #   if( !$plotOptions->{'3d'} )
+  #   {
+  #     # in 2D, the default domain is simply increasing integers
+  #     $domain = sequence($rangelist->[0]->dim(0));
+  #   }
+  #   else
+  #   {
+  #     # in 3D, the first 2 dimensions of every range are plotted in a grid
+  #     my $domaindims;
+  #     foreach my $range(@$rangelist)
+  #     {
+  #       my @dims = $range->dims;
+  #       barf "plot() got a null range" if(! @dims);
 
-  my $rangelist = $datalist;
+  #       # a 1D range gets a degenerate dimension
+  #       push( @dims, 1) if(@dims == 1);
 
-  # if no domain is specified, make a default one
-  if($domain->nelem == 0)
+  #       if(! $domaindims)
+  #       {
+  #         # store the domain dimensions if I don't already have them
+  #         $domaindims = \@dims;
+
+  #         # generate an Nx2 domain useable by the rest of the code
+  #         my $Npoints = $dims[0] * $dims[1];
+  #         $domain = zeros(@dims[0..1])->ndcoords->reshape(2,$Npoints)->transpose;
+  #       }
+  #       else
+  #       {
+  #         # if I do have them, make sure they match
+  #         if($domaindims->[0] != $dims[0] || $domaindims->[1] != $dims[1])
+  #         { barf "plot() grid domain mismatch"; }
+  #       }
+
+  #       # make the range dimensionality reflect the domain
+  #       $range = $range->clump(2);
+  #     }
+  #   }
+  # }
+
+
+
+  if($Ncurves > $plotOptions->{maxcurves})
   {
-    if( !$plotOptions->{'3d'} )
-    {
-      # in 2D, the default domain is simply increasing integers
-      $domain = sequence($rangelist->[0]->dim(0));
-    }
-    else
-    {
-      # in 3D, the first 2 dimensions of every range are plotted in a grid
-      my $domaindims;
-      foreach my $range(@$rangelist)
-      {
-        my @dims = $range->dims;
-        barf "plot() got a null range" if(! @dims);
+    # this is here in case the user made an error that makes the plotter blow up
 
-        # a 1D range gets a degenerate dimension
-        push( @dims, 1) if(@dims == 1);
-
-        if(! $domaindims)
-        {
-          # store the domain dimensions if I don't already have them
-          $domaindims = \@dims;
-
-          # generate an Nx2 domain useable by the rest of the code
-          my $Npoints = $dims[0] * $dims[1];
-          $domain = zeros(@dims[0..1])->ndcoords->reshape(2,$Npoints)->transpose;
-        }
-        else
-        {
-          # if I do have them, make sure they match
-          if($domaindims->[0] != $dims[0] || $domaindims->[1] != $dims[1])
-          { barf "plot() grid domain mismatch"; }
-        }
-
-        # make the range dimensionality reflect the domain
-        $range = $range->clump(2);
-      }
-    }
-  }
-
-  # make sure the domain is appropriately sized for 3d plots. Domain should have dims (N,2,M)
-  # This would describe M different domains each with N (x,y) pairs
-  if ( $plotOptions->{'3d'} && $domain->dim(1) != 2 )
-  {
-    my @dims = $domain->dims;
-    barf "plot() was asked to make a 3d plot with a non-2 2nd dim. Domain dims: (@dims).";
-  }
-
-  # Make sure the domain and ranges describe the same number of data points
-  foreach my $range (@$rangelist)
-  {
-    my $rangedim  = $range ->dim(0);
-    my $domaindim = $domain->dim(0);
-    if ( $domaindim != $rangedim )
-    { barf "plot() domain-range size mismatch. Domain: $domaindim, a range: $rangedim"; }
-  }
-
-  # if we're plotting something that has more than one value for every point, make sure the
-  # dimensions support this
-  if( $plotOptions->{valuesPerPoint} > 1)
-  {
-    foreach my $range (@$rangelist)
-    {
-      if( $range->ndims < 2 )
-      { barf "Asked to plot more than 1 value per point, but got a range that was only 1D (one value only)"; }
-
-      if( $range->dim(1) != $plotOptions->{valuesPerPoint} )
-      {
-        my $havedim = $range->dim(1);
-        my $wantdim = $plotOptions->{valuesPerPoint};
-        barf "Expected $wantdim values per point, but got piddle with $havedim";
-      }
-    }
-  }
-
-  # I now have the domain piddle and some piddles containing the ranges. I can either have each
-  # curve in a separate 'ranges' piddle, or the ranges could be stacked together in one piddle.  I
-  # stack all my ranges into a single regardless and let PDL threading sort out the exact mappings
-  # later
-  our ($a, $b);
-  my $ranges =
-    # glue all the range data together into one piddle right after....
-    List::Util::reduce {$a->glue (2, $b)}
-
-    # ... collapsing all the extra dims of each range argument into one dim, right after...
-    map                {$_->ndims > 3 ? $_->clump(2..$_->ndims-1) : $_}
-
-    # ... making sure there's an extra dim for valuesPerPoint, creating one if needed
-    map                {$plotOptions->{valuesPerPoint} == 1 ? $_->dummy(1) : $_} @$rangelist;
-
-
-  # if we have a single curve, add a dummy dimension to allow the generic functions to work
-  $ranges = $ranges->dummy(2) if $ranges->ndims < 3;
-
-  # I now have a domain and an appropriately-sized range piddle. PDL threading can do the rest
-  my $N = numCurves($domain, $ranges,
-                    $plotOptions->{'3d'} ? 2 : 1);
-
-  if($N > $plotOptions->{maxcurves})
-  {
     barf <<EOB;
-Tried to exceed the 'maxcurves' setting.\n
+Tried to plot $Ncurves curves.
+This exceeds the 'maxcurves' setting.\n
 Invoke with a higher 'maxcurves' option if you really want to do this.\n
 EOB
 
   }
 
-  say $pipe plotcmd($N, $options, $plotOptions->{'3d'}, $plotOptions->{style_allcurves} );
+  say $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{style_allcurves});
 
-  if( ! $plotOptions->{'3d'} )
-  { _writedata_1d_domain($domain, $ranges, $pipe); }
-  else
-  { _writedata_2d_domain($domain, $ranges, $pipe); }
+  foreach my $chunk(@$chunks)
+  {
+    my $tupleSize = $chunk->{tupleSize};
+    my $data      = $chunk->{data};
+    eval( "_writedata_$tupleSize" . '(@$data, $pipe)');
+  }
+
   flush $pipe;
 
-
-  # compute how many curves have been passed in, assuming things thread
-  sub numCurves
-  {
-    my ($domain, $ranges, $firstDataDim) = @_;
-
-    # ranges should have dims (pointIndex, valueIndex, curveIndex)
-    # so here I only need to look at curveIndex
-    if($ranges->ndims != 3)
-    { barf "numCurves got ranges with dim " . $ranges->ndims . ". It should be 3. This is a bug!"; }
-
-    my $N = 1;
-
-    # I make sure the range curves dimension matches up with the corresponding dimension in the
-    # domain
-    my ($dim0, $dim1) = minmax(pdl($domain->dim($firstDataDim), $ranges->dim(2)));
-    if ($dim0 == 1 || $dim0 == $dim1)
-    { $N *= $dim1; }
-    else
-    {
-      my @xdims = $domain->dims;
-      my @ydims = $ranges->dims;
-      barf "plot() was given non-threadable arguments. Mismatched dims: (@xdims) and (@ydims)";
-    }
-
-    # Now I add all the extra domain dimensions to my counter
-    for my $domainDim ($firstDataDim+1..$domain->ndims-1)
-    { $N *= $domain->dim($domainDim); }
-
-    return $N;
-  }
 
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($N, $options, $is3d, $style_allcurves) = @_;
-
-    # remove any options that exceed my data
-    $options //= [];
-    splice( @$options, $N ) if @$options > $N;
-
-    # fill the options list to match the number of curves in length
-    push @$options, ({}) x ($N - @$options);
+    my ($chunks, $is3d, $style_allcurves) = @_;
 
     my $cmd = '';
 
+
     # if anything is to be plotted on the y2 axis, set it up
-    if( grep {$_->{y2}} @$options )
+    if( grep {my $chunk = $_; grep {$_->{y2}} @{$chunk->{options}}} @$chunks)
     {
-      if( $is3d )
+      if ( $is3d )
       { barf "3d plots don't have a y2 axis"; }
 
       $cmd .= "set ytics nomirror\n";
@@ -447,7 +360,12 @@ EOB
 
     if($is3d) { $cmd .= 'splot '; }
     else      { $cmd .= 'plot ' ; }
-    $cmd .= join(',', map {"'-' " . optioncmd($_, $style_allcurves)} @$options);
+
+    $cmd .=
+      join(',',
+           map
+           { map {"'-' " . optioncmd($_, $style_allcurves)} @{$_->{options}} }
+           @$chunks);
 
     return $cmd;
 
@@ -473,20 +391,239 @@ EOB
       return $cmd;
     }
   }
+
+  sub parseArgs
+  {
+    # Here I parse the plot() arguments.  Each chunk of data to plot appears in
+    # the argument list as plot(options, options, ..., data, data, ....). The
+    # options are either a hash (reference or inline) or a ref to an array of
+    # hashrefs, or can be absent entirely. If no options are given, the previous
+    # options are used.  If ANY options are given, the new option list is
+    # independent of the previous.
+    #
+    # Based on the options I know the size of the plot tuple. For example,
+    # simple x-y plots have 2 values per point, while x-y-z-color plots have
+    # 4. The data arguments are one-argument-per-tuple-element.
+    # TODO: get implicit domains working
+    my @args = @_;
+
+    my @chunks;
+    my $Ncurves = 0;
+
+    my $tupleSize = 2; # given no other info, assume I'm simply plotting y-vs-x
+
+    my $argIndex = 0;
+    while($argIndex <= $#args)
+    {
+      # First, I find and parse the options in this chunk
+      my $nextDataIdx = first {ref $args[$_] && ref $args[$_] eq 'PDL'} $argIndex..$#args;
+      last if !defined $nextDataIdx; # no more data. done.
+
+      my %chunk = (options => []);
+      if( $nextDataIdx > $argIndex )
+      {
+        $chunk{options} = parseOptionsArgs(@args[$argIndex..$nextDataIdx-1]);
+      }
+      else
+      {
+        # No options given for this chunk, so use the last ones if there are some
+        $chunk{options} = [ $chunks[-1]{options}[-1] ] if($chunks[-1] && $chunks[-1]{options}[-1]);
+      }
+
+      # I now have the options for this chunk. Let's grab the data
+      $argIndex         = $nextDataIdx;
+      my $nextOptionIdx = first {!ref $args[$_] || ref $args[$_] ne 'PDL'} $argIndex..$#args;
+      $nextOptionIdx = @args unless defined $nextOptionIdx;
+
+      $tupleSize = getTupleSize($chunk{options});
+      my $NdataPiddles = $nextOptionIdx - $argIndex;
+
+      if($NdataPiddles < $tupleSize)
+      { barf "plot() needed $tupleSize data piddles, but only got $NdataPiddles"; }
+
+      if($NdataPiddles > $tupleSize)
+      {
+        $nextOptionIdx = $argIndex + $tupleSize;
+        $NdataPiddles = $tupleSize;
+      }
+
+      my @dataPiddles   = @args[$argIndex..$nextOptionIdx-1];
+      $chunk{data}      = \@dataPiddles;
+      $chunk{tupleSize} = $tupleSize;
+
+      $chunk{Ncurves} = countCurvesAndValidate(\%chunk);
+      $Ncurves += $chunk{Ncurves};
+
+      push @chunks, \%chunk;
+
+      $argIndex = $nextOptionIdx;
+    }
+
+    return (\@chunks, $Ncurves);
+
+
+
+
+    sub parseOptionsArgs
+    {
+      # I now have my options arguments. Each curve is described by a hash
+      # (reference or inline). To have separate options for each curve, I use an
+      # ref to an array of hashrefs
+      my @optionsArgs = @_;
+
+      # the options for each curve go here
+      my @curveOptions = ();
+
+      # cumulative options in this chunk. Starts out empty.
+      my %options;
+
+      my $optionArgIdx = 0;
+      while ($optionArgIdx < @optionsArgs)
+      {
+        my $optionArg = $optionsArgs[$optionArgIdx];
+
+        if (ref $optionArg)
+        {
+          if (ref $optionArg eq 'HASH')
+          {
+            # add this hashref to the options
+            @options{keys %$optionArg} = values %$optionArg;
+            push @curveOptions, dclone(\%options);
+          }
+          elsif (ref $optionArg eq 'ARRAY')
+          {
+            # got a list of options. Each element should be a hashref, applying
+            # to each successive curve. These intra-chunk options build on each other
+            foreach (@$optionArg)
+            {
+              if(defined ref $_ && ref $_ ne 'HASH')
+              { barf "plot() was given an array-ref option that didn't consist of hashrefs-only"; }
+
+              @options{keys %$_} = values %$_;
+              push @curveOptions, dclone(\%options);
+            }
+          }
+          else
+          {
+            barf "plot() got a reference to a " . ref( $optionArg) . ". I can only deal with HASHes and ARRAYs";
+          }
+        }
+        else
+        {
+          # this is a scalar. I interpret a pair as key/value
+          if ($optionArgIdx+1 == @optionsArgs)
+          { barf "plot() got a lone scalar argument $optionArg, where a key/value was expected"; }
+
+          $options{$optionArg} = $optionsArgs[++$optionArgIdx];
+          push @curveOptions, dclone(\%options);
+        }
+
+        $optionArgIdx++;
+      }
+
+      return \@curveOptions;
+    }
+
+    sub countCurvesAndValidate
+    {
+      my $chunk = shift;
+
+      # Make sure the domain and ranges describe the same number of data points
+      my $data = $chunk->{data};
+      foreach (1..$#$data)
+      {
+        my $dim0 = $data->[$_  ]->dim(0);
+        my $dim1 = $data->[$_-1]->dim(0);
+        if( $dim0 != $dim1 )
+        { barf "plot() was given mismatched tuples to plot. $dim0 vs $dim1"; }
+      }
+
+      # I now make sure I have exactly one set of curve options per curve
+      my $Ncurves = countCurves($data);
+      my $Noptions = scalar @{$chunk->{options}};
+
+      if($Noptions > $Ncurves)
+      { barf "plot() got $Noptions options but only $Ncurves curves. Not enough curves"; }
+      elsif($Noptions < $Ncurves)
+      {
+        # I have more curves then options. I pad the option list with the last option
+        my $lastOption = $chunk->{options}[-1];
+        push @{$chunk->{options}}, ($lastOption) x ($Ncurves - $Noptions);
+      }
+
+      return $Ncurves;
+
+
+
+      sub countCurves
+      {
+        # compute how many curves have been passed in, assuming things thread
+
+        my $data = shift;
+
+        my $N = 1;
+
+        # I need to look through every dimension to check that things can thread
+        # and then to compute how many threads there will be. I skip the first
+        # dimension since that's the data points, NOT separate curves
+        my $maxNdims = List::Util::max map {$_->ndims} @$data;
+        foreach my $dimidx (1..$maxNdims-1)
+        {
+          # in a particular dimension, there can be at most 1 non-1 unique
+          # dimension. Otherwise threading won't work.
+          my $nonDegenerateDim;
+
+          foreach (@$data)
+          {
+            my $dim = $_->dim($dimidx);
+            if($dim != 1)
+            {
+              if(defined $nonDegenerateDim)
+              {
+                barf "plot() was given non-threadable arguments. Got a dim of size $dim, when I already saw size $nonDegenerateDim";
+              }
+              else
+              {
+                $nonDegenerateDim = $dim;
+              }
+            }
+          }
+
+          # this dimension checks out. Count up the curve contribution
+          $N *= $nonDegenerateDim if $nonDegenerateDim;
+        }
+
+        return $N;
+      }
+    }
+
+    sub getTupleSize
+    {
+      return 2;
+    }
+  }
 }
 
-thread_define '_writedata_1d_domain(x(n); y(n,valuesInPoint)), NOtherPars => 1', over
+# subroutine to write the columns of some piddles into a gnuplot stream. This
+# assumes the last argument is a file handle. Generally you should NOT be using
+# this directly at all; it's just used to define the threading-aware routines
+sub _wcols_gnuplot
 {
-  my $pipe = pop @_;
-  wcols $_[0], $_[1]->dog, $pipe;
+  wcols @_;
+  my $pipe = $_[-1];
   say $pipe 'e';
 };
 
-thread_define '_writedata_2d_domain(xy(n,m=2); z(n,valuesInPoint)), NOtherPars => 1', over
+# I generate a bunch of PDL definitions such as
+# _writedata_2(x1(n), x2(n)), NOtherPars => 1
+# 20 tuples per point sounds like plenty. The most complicated plots Gnuplot can
+# handle probably max out at 5 or so
+for my $n (2..20)
 {
-  my $pipe = pop @_;
-  wcols $_[0]->dog, $_[1]->dog, $pipe;
-  say $pipe 'e';
-};
+  my $def = "_writedata_$n(" . join( ';', map {"x$_(n)"} 1..$n) . "), NOtherPars => 1";
+  thread_define $def, over \&_wcols_gnuplot;
+}
+
+
 
 1;
