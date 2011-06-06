@@ -25,6 +25,11 @@ my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square squar
 my %plotOptionsSet;
 foreach(@allPlotOptions) { $plotOptionsSet{$_} = 1; }
 
+my @allCurveOptions = qw(legend y2 with);
+my %curveOptionsSet;
+foreach(@allCurveOptions) { $curveOptionsSet{$_} = 1; }
+
+
 sub new
 {
   my $classname = shift;
@@ -571,6 +576,15 @@ EOB
         my $dim1 = $data->[$_-1]->dim(0);
         if( $dim0 != $dim1 )
         { barf "plot() was given mismatched tuples to plot. $dim0 vs $dim1"; }
+      }
+
+      # make sure I know what to do with all the options
+      foreach my $option(@{$chunk->{options}})
+      {
+        if(my @badKeys = grep {!defined $curveOptionsSet{$_}} keys %$option)
+        {
+          barf "plot() got some unknown curve options: (@badKeys)";
+        }
       }
 
       # I now make sure I have exactly one set of curve options per curve
