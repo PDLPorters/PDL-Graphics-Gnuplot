@@ -15,6 +15,13 @@ $PDL::use_commas = 1;
 use base 'Exporter';
 our @EXPORT_OK = qw(plot);
 
+# if I call plot() as a global function I create a new PDL::Gnuplot object. I
+# would like the gnuplot process to persist to keep the plot interactive at
+# least while the perl program is running. This global variable keeps the new
+# object referenced so that it does not get deleted. Once can create their own
+# PDL::Gnuplot objects, but there's one free global one available
+my $globalPlot;
+
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
 my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square square_xy title
@@ -267,7 +274,7 @@ sub plot
       }
     }
 
-    $this = PDL::Gnuplot->new($plotOptions);
+    $this = $globalPlot = PDL::Gnuplot->new($plotOptions);
   }
   else
   {
