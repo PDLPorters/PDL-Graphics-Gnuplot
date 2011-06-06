@@ -633,7 +633,7 @@ EOB
             my $dim = $_->dim($dimidx);
             if($dim != 1)
             {
-              if(defined $nonDegenerateDim)
+              if(defined $nonDegenerateDim && $nonDegenerateDim != $dim)
               {
                 barf "plot() was given non-threadable arguments. Got a dim of size $dim, when I already saw size $nonDegenerateDim";
               }
