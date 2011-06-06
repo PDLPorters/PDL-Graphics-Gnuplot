@@ -15,6 +15,15 @@ $PDL::use_commas = 1;
 use base 'Exporter';
 our @EXPORT_OK = qw(plot);
 
+# I make a list of all the plot (not curve) options. I can use this list to
+# determine if an options hash I encounter is for the plot, or for a curve
+my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square square_xy title
+                        xlabel xmax xmin
+                        y2label y2max y2min
+                        ylabel ymax ymin
+                        zlabel zmax zmin );
+my %plotOptionsSet;
+foreach(@allPlotOptions) { $plotOptionsSet{$_} = 1; }
 
 sub new
 {
@@ -34,6 +43,11 @@ sub new
     }
     else
     { %plotoptions = @_; }
+  }
+
+  if( my @badKeys = grep {!defined $plotOptionsSet{$_}} keys %plotoptions )
+  {
+    barf "PDL::Gnuplot->new() got option(s) that were NOT a plot option: @badKeys";
   }
 
   my $pipe = startGnuplot( $plotoptions{dump} ) or barf "Couldn't start gnuplot backend";
@@ -254,10 +268,24 @@ sub plot
 
   if(!defined ref $_[0] || ref $_[0] ne 'PDL::Gnuplot')
   {
+    # plot() called as a global function, NOT as a method.  the first argument
+    # can be a hashref of plot options, or it could be the data directly.
     my $plotOptions = {};
-    if(defined ref $_[0] && ref $_[0] eq 'HASH')
+    my $arg0 = $_[0];
+    if(defined ref $arg0 && ref $arg0 eq 'HASH')
     {
-      $plotOptions = shift;
+      # arg0 is a hash. Is it plot options or curve options?
+      my @plotOptions = grep {defined $plotOptionsSet{$_}} keys %$arg0;
+
+      if(@plotOptions != 0)
+      {
+        if(scalar @plotOptions != scalar keys %$arg0)
+        {
+          barf "Got an option hash that isn't completely plot options or non-plot options";
+        }
+
+        $plotOptions = shift;
+      }
     }
 
     $this = PDL::Gnuplot->new($plotOptions);
