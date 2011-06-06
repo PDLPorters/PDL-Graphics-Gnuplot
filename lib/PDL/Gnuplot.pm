@@ -29,7 +29,8 @@ my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square squar
                         xlabel xmax xmin
                         y2label y2max y2min
                         ylabel ymax ymin
-                        zlabel zmax zmin );
+                        zlabel zmax zmin
+                        cbmin cbmax);
 my %plotOptionsSet;
 foreach(@allPlotOptions) { $plotOptionsSet{$_} = 1; }
 
@@ -105,12 +106,6 @@ sub new
       }
       else
       {
-        # if (!$options->{colormap})
-        # {
-        #   if ( defined $options->{zmin} || defined $options->{zmax} || defined $options->{zlabel} )
-        #   { barf "'zmin'/'zmax'/'zlabel' only makes sense with '3d' or 'colormap'\n"; }
-        # }
-
         if ( defined $options->{square_xy} )
         { barf "'square'_xy only makes sense with '3d'\n"; }
       }
@@ -146,20 +141,15 @@ sub new
       $options->{y2max} = '' unless defined $options->{y2max};
       $options->{zmin}  = '' unless defined $options->{zmin};
       $options->{zmax}  = '' unless defined $options->{zmax};
+      $options->{cbmin} = '' unless defined $options->{cbmin};
+      $options->{cbmax} = '' unless defined $options->{cbmax};
 
       # if any of the ranges are given, set the range
-      $cmd .= "set xrange [$options->{xmin}:$options->{xmax}]\n"    if length( $options->{xmin}  . $options->{xmax} );
-      $cmd .= "set yrange [$options->{ymin}:$options->{ymax}]\n"    if length( $options->{ymin}  . $options->{ymax} );
+      $cmd .= "set xrange  [$options->{xmin} :$options->{xmax} ]\n" if length( $options->{xmin}  . $options->{xmax} );
+      $cmd .= "set yrange  [$options->{ymin} :$options->{ymax} ]\n" if length( $options->{ymin}  . $options->{ymax} );
+      $cmd .= "set zrange  [$options->{zmin} :$options->{zmax} ]\n" if length( $options->{zmin}  . $options->{zmax} );
+      $cmd .= "set cbrange [$options->{cbmin}:$options->{cbmax}]\n" if length( $options->{cbmin} . $options->{cbmax} );
       $cmd .= "set y2range [$options->{y2min}:$options->{y2max}]\n" if length( $options->{y2min} . $options->{y2max} );
-
-      # if ($options->{colormap})
-      # {
-      #   $cmd .= "set cbrange [$options->{zmin}:$options->{zmax}]\n" if length( $options->{zmin} . $options->{zmax} );
-      # }
-      # else
-      {
-        $cmd .= "set zrange [$options->{zmin}:$options->{zmax}]\n"    if length( $options->{zmin}  . $options->{zmax} );
-      }
     }
 
     # set the curve labels, titles
