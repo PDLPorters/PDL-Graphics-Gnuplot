@@ -52,7 +52,7 @@ sub new
 
   if( my @badKeys = grep {!defined $plotOptionsSet{$_}} keys %plotoptions )
   {
-    barf "PDL::Gnuplot->new() got option(s) that were NOT a plot option: @badKeys";
+    barf "PDL::Gnuplot->new() got option(s) that were NOT a plot option: (@badKeys)";
   }
 
   my $pipe = startGnuplot( $plotoptions{dump} ) or barf "Couldn't start gnuplot backend";
