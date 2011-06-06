@@ -24,7 +24,14 @@ sub new
   if(@_)
   {
     if(ref $_[0])
-    { %plotoptions = %{$_[0]}; }
+    {
+      if(@_ != 1)
+      {
+        barf "PDL::Gnuplot->new() got a ref as a first argument and has OTHER arguments. Don't know what to do";
+      }
+
+      %plotoptions = %{$_[0]};
+    }
     else
     { %plotoptions = @_; }
   }
