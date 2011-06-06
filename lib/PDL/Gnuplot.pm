@@ -426,9 +426,9 @@ EOB
   {
     # Here I parse the plot() arguments.  Each chunk of data to plot appears in
     # the argument list as plot(options, options, ..., data, data, ....). The
-    # options are either a hash (reference or inline) or a ref to an array of
-    # hashrefs, or can be absent entirely. THE OPTIONS ARE ALWAYS CUMULATIVELY
-    # DEFINED ON TOP OF THE PREVIOUS SET OF OPTIONS (except the legend)
+    # options are a hashref, an inline hash or can be absent entirely. THE
+    # OPTIONS ARE ALWAYS CUMULATIVELY DEFINED ON TOP OF THE PREVIOUS SET OF
+    # OPTIONS (except the legend)
     #
     # Based on the options I know the size of the plot tuple. For example,
     # simple x-y plots have 2 values per point, while x-y-z-color plots have
@@ -528,23 +528,6 @@ EOB
             # I do not reuse the curve legend, since this would result it multiple
             # curves with the same name
             delete $options->{legend};
-          }
-          elsif (ref $optionArg eq 'ARRAY')
-          {
-            # got a list of options. Each element should be a hashref, applying
-            # to each successive curve. These intra-chunk options build on each other
-            foreach (@$optionArg)
-            {
-              if(defined ref $_ && ref $_ ne 'HASH')
-              { barf "plot() was given an array-ref option that didn't consist of hashrefs-only"; }
-
-              @{$options}{keys %$_} = values %$_;
-              push @curveOptions, dclone($options);
-
-              # I do not reuse the curve legend, since this would result it multiple
-              # curves with the same name
-              delete $options->{legend};
-            }
           }
           else
           {
