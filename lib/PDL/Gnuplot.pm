@@ -526,18 +526,26 @@ EOB
           {
             barf "plot() got a reference to a " . ref( $optionArg) . ". I can only deal with HASHes and ARRAYs";
           }
+
+          $optionArgIdx++;
         }
         else
         {
-          # this is a scalar. I interpret a pair as key/value
-          if ($optionArgIdx+1 == @optionsArgs)
-          { barf "plot() got a lone scalar argument $optionArg, where a key/value was expected"; }
+          my %unrefedOptions;
+          do
+          {
+            $optionArg = $optionsArgs[$optionArgIdx];
 
-          $options->{$optionArg} = $optionsArgs[++$optionArgIdx];
+            # this is a scalar. I interpret a pair as key/value
+            if ($optionArgIdx+1 == @optionsArgs)
+            { barf "plot() got a lone scalar argument $optionArg, where a key/value was expected"; }
+
+            $options->{$optionArg} = $optionsArgs[++$optionArgIdx];
+            $optionArgIdx++;
+          } while($optionArgIdx < @optionsArgs && !ref $optionsArgs[$optionArgIdx]);
           push @curveOptions, dclone($options);
         }
 
-        $optionArgIdx++;
       }
 
       return \@curveOptions;
