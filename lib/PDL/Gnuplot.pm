@@ -18,6 +18,7 @@ our @EXPORT_OK = qw(plot);
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
 my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square square_xy title
+                        lines points linespoints
                         xlabel xmax xmin
                         y2label y2max y2min
                         ylabel ymax ymin
@@ -126,7 +127,9 @@ sub new
     {
       my $style = '';
 
-      $style .= " $options->{with}" if $options->{with};
+      if($options->{lines}  || $options->{linespoints}) { $style .= "lines"; }
+      if($options->{points} || $options->{linespoints}) { $style .= "points"; }
+
       $cmd .= "set style data $style\n" if $style;
     }
 
