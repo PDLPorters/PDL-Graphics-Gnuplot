@@ -102,9 +102,6 @@ sub new
       {
         if ( defined $options->{y2min} || defined $options->{y2max} )
         { barf "'3d' does not make sense with 'y2'...\n"; }
-
-        if( $options->{with} =~ /circles/ )
-        { barf "At this time gnuplot does not support 3d plotting with circles."; }
       }
       else
       {
@@ -187,32 +184,6 @@ sub new
         if( $options->{square} ) { $cmd .= "set size ratio -1\n"; }
       }
     }
-
-
-
-    # handle multiple-range styles, such as colormaps and circles
-    $options->{style_allcurves} = undef; # placeholder until the following is re-enabled
-
-    # $options->{valuesPerPoint} = 1; # by default, 1 value for each point
-    # {
-    #   if( $options->{colormap} )
-    #   {
-    #     # colormap styles all curves with palette. Seems like there should be a way to do this with a
-    #     # global setting, but I can't get that to work
-    #     $options->{style_allcurves} = 'palette';
-    #   }
-
-
-    #   if( $options->{extraValuesPerPoint})
-    #   { $options->{valuesPerPoint} += $options->{extraValuesPerPoint}; }
-
-    #   if( $options->{colormap} )
-    #   { $options->{valuesPerPoint}++; }
-
-    #   if( defined $options->{with} && $options->{with} =~ /circles/ )
-    #   { $options->{valuesPerPoint}++; }
-    # }
-
 
     # handle hardcopy output
     {
@@ -309,7 +280,7 @@ sub plot
 
   # I split my data-to-plot into similarly-styled chunks
   # pieces of data we're plotting. Each chunk has a similar style
-  my ($chunks, $Ncurves) = parseArgs(@_);
+  my ($chunks, $Ncurves) = parseArgs($plotOptions->{'3d'}, @_);
 
 
   if( scalar @$chunks == 0)
@@ -371,7 +342,7 @@ EOB
 
   }
 
-  say $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{style_allcurves});
+  say $pipe plotcmd($chunks, $plotOptions->{'3d'});
 
   foreach my $chunk(@$chunks)
   {
@@ -386,7 +357,7 @@ EOB
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($chunks, $is3d, $style_allcurves) = @_;
+    my ($chunks, $is3d) = @_;
 
     my $cmd = '';
 
@@ -407,7 +378,7 @@ EOB
     $cmd .=
       join(',',
            map
-           { map {"'-' " . optioncmd($_, $style_allcurves)} @{$_->{options}} }
+           { map {"'-' " . optioncmd($_)} @{$_->{options}} }
            @$chunks);
 
     return $cmd;
@@ -418,7 +389,6 @@ EOB
     sub optioncmd
     {
       my $option          = shift;
-      my $style_allcurves = shift;
 
       my $cmd = '';
 
@@ -428,7 +398,6 @@ EOB
       { $cmd .= "notitle "; }
 
       $cmd .= "with $option->{with} " if defined $option->{with};
-      $cmd .= "$style_allcurves "     if defined $style_allcurves;
       $cmd .= "axes x1y2 "            if defined $option->{y2};
 
       return $cmd;
@@ -447,6 +416,7 @@ EOB
     # simple x-y plots have 2 values per point, while x-y-z-color plots have
     # 4. The data arguments are one-argument-per-tuple-element.
     # TODO: get implicit domains working
+    my $is3d = shift;
     my @args = @_;
 
     # options are cumulative. This is a hashref that contains the accumulator
@@ -477,7 +447,7 @@ EOB
       my $nextOptionIdx = first {!ref $args[$_] || ref $args[$_] ne 'PDL'} $argIndex..$#args;
       $nextOptionIdx = @args unless defined $nextOptionIdx;
 
-      $tupleSize = getTupleSize($chunk{options});
+      my $tupleSize    = getTupleSize($is3d, $chunk{options});
       my $NdataPiddles = $nextOptionIdx - $argIndex;
 
       if($NdataPiddles < $tupleSize)
@@ -650,7 +620,43 @@ EOB
 
     sub getTupleSize
     {
-      return 2;
+      my $is3d    = shift;
+      my $options = shift;
+
+      # I have a list of options for a set of curves in a chunk. Inside a chunk
+      # the tuple set MUST be the same. I.e. I can have 2d data in one chunk and
+      # 3d data in another, but inside a chunk it MUST be consistent
+      my $size;
+      foreach my $option (@$options)
+      {
+        my $sizehere = $is3d ? 3 : 2; # given nothing else, use ONLY the geometrical plotting
+
+        if (defined $option->{with})
+        {
+          if ( $option->{with} =~ /circles/ )
+          {
+            if ( $is3d )
+            { barf "At this time gnuplot does not support 3d plotting with circles. Sorry"; }
+
+            $sizehere++;
+          }
+        }
+
+        if (defined $option->{extraValuesPerPoint})
+        { $sizehere += $option->{extraValuesPerPoint}; }
+
+        if(!defined $size)
+        { $size = $sizehere;}
+        else
+        {
+          if($size != $sizehere)
+          {
+            barf "plot() tried to change tupleSize in a chunk: $size vs $sizehere";
+          }
+        }
+      }
+
+      return $size;
     }
   }
 }
