@@ -15,8 +15,8 @@ $PDL::use_commas = 1;
 use base 'Exporter';
 our @EXPORT_OK = qw(plot);
 
-# I make a list of all the plot (not curve) options. I can use this list to
-# determine if an options hash I encounter is for the plot, or for a curve
+# I make a list of all the options. I can use this list to determine if an
+# options hash I encounter is for the plot, or for a curve
 my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square square_xy title
                         xlabel xmax xmin
                         y2label y2max y2min
