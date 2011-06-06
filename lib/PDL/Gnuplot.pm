@@ -80,7 +80,7 @@ sub new
     {
       if ( $options->{'3d'} )
       {
-        if ( defined $options->{y2min} || defined $options->{y2max} || defined $options->{y2} )
+        if ( defined $options->{y2min} || defined $options->{y2max} )
         { barf "'3d' does not make sense with 'y2'...\n"; }
 
         if( $options->{with} =~ /circles/ )
