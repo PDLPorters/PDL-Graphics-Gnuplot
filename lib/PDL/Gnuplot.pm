@@ -442,7 +442,7 @@ EOB
           # 0,1,2,...
           unshift @dataPiddles, sequence($dataPiddles[0]->dim(0));
         }
-        if($is3d && $NdataPiddles+2 == $tupleSize)
+        elsif($is3d && $NdataPiddles+2 == $tupleSize)
         {
           # a 3D plot is 2 elements short. Use a grid as a domain
           my @dims = $dataPiddles[0]->dims();
