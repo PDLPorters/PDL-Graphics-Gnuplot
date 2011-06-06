@@ -5,336 +5,83 @@ use lib 'lib';
 
 use PDL;
 use PDL::NiceSlice;
-use PDL::Gnuplot;
+use PDL::Gnuplot qw(plot);
 
 
 use feature qw(say);
 
-# plot a simple parabola, domain=null
+# data I use for 2D testing
+my $x = sequence(21) - 10;
+
+# data I use for 3D testing
+my $th   = zeros(30)->           xlinvals( 0,          3.14159*2);
+my $ph   = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
+my $x_3d = PDL::flat( cos($ph)*cos($th));
+my $y_3d = PDL::flat( cos($ph)*sin($th));
+my $z_3d = PDL::flat( sin($ph) * $th->ones );
+
+
+#################################
+# Now the tests!
+#################################
+
+# first, some very basic stuff. Testing implicit domains, multiple curves in
+# arguments, packed in piddles, etc
+plot($x**2);
+plot(-$x, $x**3);
+plot(-$x, $x**3,
+     $x,  $x**2);
+plot(PDL::cat($x**2, $x**3));
+plot(-$x,
+     PDL::cat($x**2, $x**3));
+
+# various ways of giving options, some multi-range stuff
+plot( linespoints => 1, title => 'fanciness',
+      $x, $x**2,
+
+      {with => 'linespoints', legend => 'cubic'},
+      {legend => 'shifted cubic'},
+      $x, PDL::cat($x**3, $x**3 - 100),
+
+      with => 'circles', y2 => 1, $x, $x**2 + 1, $x**2/400 );
+
+# some more varied plotting, using the object-oriented interface
 {
-  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
-                               title  => 'parabola domain=null',
-                               xlabel => 'x');
+  my $plot = PDL::Gnuplot->new(linespoints => 1, xmin => -10,
+                               title => 'fanciness');
 
-  my $x = sequence(21) - 10;
-  $plot->plot( null,
-               $x**2, {legend => 'parabola',
-                       style => 'lw 5'}
-             );
-}
+  $plot->plot( style => 'lw 4', y2 => 1, legend => 'a parabola',
+               PDL::cat($x, $x*2, $x*3), $x**2 - 300,
 
-# plot a simple parabola, domainless
-{
-  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
-                               title  => 'parabola domainless',
-                               xlabel => 'x');
+               y2 => 0,
+               style => 'lw 1',
+               with => 'xyerrorbars', extraValuesPerPoint => 2,
+               $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
 
-  my $x = sequence(21) - 10;
-  $plot->plot( $x**2, {legend => 'parabola',
-                       style => 'lw 5'}
-             );
-}
+               {with => '', legend => 'cubic', extraValuesPerPoint => 0},
+               {legend => 'shifted cubic'},
+               $x, PDL::cat($x**3, $x**3 - 100) );
 
-# plot parabola, cubic. domainless
-{
-  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
-                               title  => 'parabola, cubic domainless',
-                               xlabel => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( PDL::cat($x**2, $x**3),
-               {legend => 'parabola', style => 'lw 5'},
-               {legend => 'cubic',    style => 'lw 3'}
-             );
-}
-
-# plot a simple parabola
-{
-  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
-                               title  => 'parabola',
-                               xlabel => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               $x**2, {legend => 'parabola',
-                       style => 'lw 5'}
-             );
-}
-
-# plot a simple parabola and a cubic, separate args
-{
-  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
-                               title  => 'polynomials',
-                               xlabel => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               $x**2, {legend => 'parabola', style => 'lw 5'},
-               $x**3, {legend => 'cubic',    style => 'lw 5'}
-             );
-}
-
-# plot a simple parabola and a cubic, single arg
-{
-  my $plot = PDL::Gnuplot->new(style  => 'linespoints',
-                               title  => 'polynomials',
-                               xlabel => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat($x**2, $x**3),
-               {legend => 'parabola'},
-               {legend => 'cubic', style => 'lw 5'}
-             );
-}
-
-# plot a simple parabola and a cubic, separate args, with circles
-{
-  my $plot = PDL::Gnuplot->new(style  => 'circles',
-                               title  => 'polynomials',
-                               xlabel => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat($x**2, $x->abs/10), {legend => 'parabola', style => 'lw 5'},
-               PDL::cat($x**3, $x->abs/10), {legend => 'cubic',    style => 'lw 5'}
-             );
-}
-
-# plot a simple parabola and a cubic, single arg, with circles
-{
-  my $plot = PDL::Gnuplot->new(style  => 'circles',
-                               title  => 'polynomials',
-                               xlabel => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat(PDL::cat($x**2, $x->abs/10),
-                        PDL::cat($x**3, $x->abs/10)),
-               {legend => 'parabola',
-                style => 'lw 3'},
-               {legend => 'cubic',
-                style => 'lw 2'},
-             );
-}
-
-# plot a simple parabola and a cubic, separate args, with colors
-{
-  my $plot = PDL::Gnuplot->new(style    => 'points',
-                               colormap => 1,
-                               title    => 'polynomials',
-                               xlabel   => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat($x**2, $x->abs/10), {legend => 'parabola', style => 'lw 5'},
-               PDL::cat($x**3, $x->abs/10), {legend => 'cubic',    style => 'lw 5'}
-             );
-}
-
-# plot a simple parabola and a cubic, joint args, with colors
-{
-  my $plot = PDL::Gnuplot->new(style    => 'points',
-                               colormap => 1,
-                               title    => 'polynomials',
-                               xlabel   => 'x');
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat(PDL::cat($x**2, $x->abs/10),
-                        PDL::cat($x**3, $x->abs/10)),
-               {legend => 'parabola', style => 'lw 5'},
-               {legend => 'cubic',    style => 'lw 5'}
-             );
 }
 
 
-# plot a simple parabola and a cubic, separate args, with colors
-{
-  my $plot = PDL::Gnuplot->new(style    => 'circles',
-                               colormap => 1,
-                               title    => 'polynomials',
-                               xlabel   => 'x',
-                               zmin     => 0,
-                               zmax     => 10
-                              );
 
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat($x**2, $x->abs/10, $x->abs), {legend => 'parabola', style => 'lw 5'},
-               PDL::cat($x**3, $x->abs/10, $x->abs), {legend => 'cubic',    style => 'lw 5'}
-             );
-}
-
-# plot a simple parabola and a cubic, joint args, with colors AND circles
-{
-  my $plot = PDL::Gnuplot->new(style    => 'circles',
-                               colormap => 1,
-                               title    => 'polynomials',
-                               xlabel   => 'x',
-                               zmin     => 0,
-                               zmax     => 10
-                              );
-
-  my $x = sequence(21) - 10;
-  $plot->plot( $x,
-               PDL::cat(PDL::cat($x**2, $x->abs/10, $x->abs),
-                        PDL::cat($x**3, $x->abs/10, $x->abs)),
-               {legend => 'parabola', style => 'lw 5'},
-               {legend => 'cubic',    style => 'lw 5'}
-             );
-}
+################################
+# some 3d stuff
+################################
 
 # plot a sphere
-{
-  my $plot = PDL::Gnuplot->new(style  => 'points',
-                               title  => 'sphere',
-                               '3d'   => 1,
-                               square => 1);
+plot( points => 1, title  => 'sphere',
+      '3d'   => 1, square => 1,
 
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
+      {legend => 'sphere'}, $x_3d, $y_3d, $z_3d,
+    );
 
+# sphere, ellipse together
+plot( points => 1, title  => 'sphere',
+      '3d'   => 1, square => 1,
 
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
+      {legend => 'sphere'}, {legend => 'ellipse'},
+                             $x_3d->cat($x_3d*2),
+                             $y_3d->cat($y_3d*2), $z_3d );
 
-  $plot->plot( $xy,
-               $z, {legend => 'sphere'}
-             );
-}
-
-# plot a sphere, ellipse with 2 args
-{
-  my $plot = PDL::Gnuplot->new(style  => 'points',
-                               title  => 'sphere',
-                               '3d'   => 1,
-                               square => 1);
-
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-
-
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
-
-  $plot->plot( $xy,
-               $z,   {legend => 'sphere'},
-               $z*2, {legend => 'ellipse', style => 'with lines'}
-             );
-}
-
-# plot a sphere, ellipse with a single arg
-{
-  my $plot = PDL::Gnuplot->new(style  => 'points',
-                               title  => 'sphere single arg',
-                               '3d'   => 1,
-                               square => 1);
-
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-
-
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
-
-  $plot->plot( $xy,
-               $z->cat($z*2),
-               {legend => 'sphere'},
-               {legend => 'ellipse'}
-             );
-}
-
-# sphere, ellipse: single range, double domain
-{
-  my $plot = PDL::Gnuplot->new(style  => 'points',
-                               title  => 'sphere, ellipse made with 2 domains',
-                               '3d'   => 1,
-                               square => 1);
-
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-
-
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
-
-  $plot->plot( $xy->cat($xy*2),
-               $z,
-               {legend => 'sphere'},
-               {legend => 'ellipse'}
-             );
-}
-
-# 2 spheres: 2 ranges, 2 domains
-{
-  my $plot = PDL::Gnuplot->new(style  => 'points',
-                               title  => '2 spheres',
-                               '3d'   => 1,
-                               square => 1);
-
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-
-
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
-
-  $plot->plot( $xy->cat($xy*2),
-               $z ->cat($z*2),
-               {legend => 'sphere'},
-               {legend => 'ellipse'}
-             );
-}
-
-# 2 spheres: 2 ranges, 2 domains, with colors
-{
-  my $plot = PDL::Gnuplot->new(style    => 'points',
-                               title    => '2 spheres',
-                               colormap => 1,
-                               '3d'     => 1,
-                               square   => 1);
-
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-
-
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
-
-  $plot->plot( $xy->cat($xy*2),
-               $z ->cat($z*2)->dummy(1,2),
-               {legend => 'sphere'},
-               {legend => 'ellipse'}
-             );
-}
-
-# 2 spheres: 2 ranges, 2 domains, with colors, written to a pdf
-{
-  my $plot = PDL::Gnuplot->new(style    => 'points',
-                               title    => '2 spheres',
-                               colormap => 1,
-                               '3d'     => 1,
-                               square   => 1,
-                               hardcopy => 'spheres.pdf');
-
-  my $th = zeros(30)->           xlinvals( 0,          3.14159*2);
-  my $ph = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-
-
-  my $xy = PDL::cat(PDL::flat( cos($ph)*cos($th) ),
-                    PDL::flat( cos($ph)*sin($th) ));
-  my $z = PDL::flat( sin($ph) * $th->ones );
-
-  $plot->plot( $xy->cat($xy*2),
-               $z ->cat($z*2)->dummy(1,2),
-               {legend => 'sphere'},
-               {legend => 'ellipse'}
-             );
-}
