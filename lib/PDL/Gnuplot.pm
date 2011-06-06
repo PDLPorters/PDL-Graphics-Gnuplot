@@ -408,9 +408,9 @@ EOB
       else
       { $cmd .= "notitle "; }
 
-      $cmd .= "with $option->{with} " if defined $option->{with};
-      $cmd .= "$option->{style} "     if defined $option->{style};
-      $cmd .= "axes x1y2 "            if defined $option->{y2};
+      $cmd .= "with $option->{with} " if $option->{with};
+      $cmd .= "$option->{style} "     if $option->{style};
+      $cmd .= "axes x1y2 "            if $option->{y2};
 
       return $cmd;
     }
