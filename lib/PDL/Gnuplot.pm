@@ -58,11 +58,14 @@ sub new
   {
     my $options = shift;
 
+    # if no options are defined, I'm done
+    my $defaultsOnly;
+    $defaultsOnly = 1 unless keys %$options;
+
     # set some defaults
     $options->{ maxcurves } = 100 unless defined $options->{ maxcurves };
 
-    # if no options are defined, I'm done
-    return '' unless keys %$options;
+    return if $defaultsOnly;
 
 
     # make sure I'm not passed invalid combinations of options
