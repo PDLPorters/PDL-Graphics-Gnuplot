@@ -297,49 +297,6 @@ sub plot
   if( scalar @$chunks == 0)
   { barf "plot() was not given any data"; }
 
-  # # if no domain is specified, make a default one
-  # if($domain->nelem == 0)
-  # {
-  #   if( !$plotOptions->{'3d'} )
-  #   {
-  #     # in 2D, the default domain is simply increasing integers
-  #     $domain = sequence($rangelist->[0]->dim(0));
-  #   }
-  #   else
-  #   {
-  #     # in 3D, the first 2 dimensions of every range are plotted in a grid
-  #     my $domaindims;
-  #     foreach my $range(@$rangelist)
-  #     {
-  #       my @dims = $range->dims;
-  #       barf "plot() got a null range" if(! @dims);
-
-  #       # a 1D range gets a degenerate dimension
-  #       push( @dims, 1) if(@dims == 1);
-
-  #       if(! $domaindims)
-  #       {
-  #         # store the domain dimensions if I don't already have them
-  #         $domaindims = \@dims;
-
-  #         # generate an Nx2 domain useable by the rest of the code
-  #         my $Npoints = $dims[0] * $dims[1];
-  #         $domain = zeros(@dims[0..1])->ndcoords->reshape(2,$Npoints)->transpose;
-  #       }
-  #       else
-  #       {
-  #         # if I do have them, make sure they match
-  #         if($domaindims->[0] != $dims[0] || $domaindims->[1] != $dims[1])
-  #         { barf "plot() grid domain mismatch"; }
-  #       }
-
-  #       # make the range dimensionality reflect the domain
-  #       $range = $range->clump(2);
-  #     }
-  #   }
-  # }
-
-
 
   if($Ncurves > $plotOptions->{maxcurves})
   {
@@ -484,6 +441,23 @@ EOB
           # A 2D plot is one data element short. Fill in a sequential domain
           # 0,1,2,...
           unshift @dataPiddles, sequence($dataPiddles[0]->dim(0));
+        }
+        if($is3d && $NdataPiddles+2 == $tupleSize)
+        {
+          # a 3D plot is 2 elements short. Use a grid as a domain
+          my @dims = $dataPiddles[0]->dims();
+          if(@dims < 2)
+          { barf "plot() tried to build a 2D implicit domain, but not the first data piddle is too small"; }
+
+          # grab the first 2 dimensions to build the x-y domain
+          splice @dims, 2;
+          my $x = zeros(@dims)->xvals->clump(2);
+          my $y = zeros(@dims)->yvals->clump(2);
+          unshift @dataPiddles, $x, $y;
+
+          # un-grid the data-to plot to match the new domain
+          foreach my $data(@dataPiddles)
+          { $data = $data->clump(2); }
         }
         else
         { barf "plot() needed $tupleSize data piddles, but only got $NdataPiddles"; }
