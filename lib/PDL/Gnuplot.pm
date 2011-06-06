@@ -437,9 +437,8 @@ EOB
     # Here I parse the plot() arguments.  Each chunk of data to plot appears in
     # the argument list as plot(options, options, ..., data, data, ....). The
     # options are either a hash (reference or inline) or a ref to an array of
-    # hashrefs, or can be absent entirely. If no options are given, the previous
-    # options are used.  If ANY options are given, the new option list is
-    # independent of the previous.
+    # hashrefs, or can be absent entirely. THE OPTIONS ARE ALWAYS DEFINED ON TOP
+    # OF THE PREVIOUS SET OF OPTIONS
     #
     # Based on the options I know the size of the plot tuple. For example,
     # simple x-y plots have 2 values per point, while x-y-z-color plots have
@@ -447,11 +446,11 @@ EOB
     # TODO: get implicit domains working
     my @args = @_;
 
+    # options are cumulative. This is a hashref that contains the accumulator
+    my $lastOptions = {};
+
     my @chunks;
-    my $Ncurves = 0;
-
-    my $tupleSize = 2; # given no other info, assume I'm simply plotting y-vs-x
-
+    my $Ncurves  = 0;
     my $argIndex = 0;
     while($argIndex <= $#args)
     {
@@ -459,15 +458,15 @@ EOB
       my $nextDataIdx = first {ref $args[$_] && ref $args[$_] eq 'PDL'} $argIndex..$#args;
       last if !defined $nextDataIdx; # no more data. done.
 
-      my %chunk = (options => []);
+      my %chunk;
       if( $nextDataIdx > $argIndex )
       {
-        $chunk{options} = parseOptionsArgs(@args[$argIndex..$nextDataIdx-1]);
+        $chunk{options} = parseOptionsArgs($lastOptions, @args[$argIndex..$nextDataIdx-1]);
       }
       else
       {
-        # No options given for this chunk, so use the last ones if there are some
-        $chunk{options} = [ $chunks[-1]{options}[-1] ] if($chunks[-1] && $chunks[-1]{options}[-1]);
+        # No options given for this chunk, so use the last ones
+        $chunk{options} = [ dclone $lastOptions ];
       }
 
       # I now have the options for this chunk. Let's grab the data
@@ -506,6 +505,9 @@ EOB
 
     sub parseOptionsArgs
     {
+      # my options are cumulative. This variable contains the accumulator
+      my $options = shift;
+
       # I now have my options arguments. Each curve is described by a hash
       # (reference or inline). To have separate options for each curve, I use an
       # ref to an array of hashrefs
@@ -513,9 +515,6 @@ EOB
 
       # the options for each curve go here
       my @curveOptions = ();
-
-      # cumulative options in this chunk. Starts out empty.
-      my %options;
 
       my $optionArgIdx = 0;
       while ($optionArgIdx < @optionsArgs)
@@ -527,8 +526,8 @@ EOB
           if (ref $optionArg eq 'HASH')
           {
             # add this hashref to the options
-            @options{keys %$optionArg} = values %$optionArg;
-            push @curveOptions, dclone(\%options);
+            @{$options}{keys %$optionArg} = values %$optionArg;
+            push @curveOptions, dclone($options);
           }
           elsif (ref $optionArg eq 'ARRAY')
           {
@@ -539,8 +538,8 @@ EOB
               if(defined ref $_ && ref $_ ne 'HASH')
               { barf "plot() was given an array-ref option that didn't consist of hashrefs-only"; }
 
-              @options{keys %$_} = values %$_;
-              push @curveOptions, dclone(\%options);
+              @{$options}{keys %$_} = values %$_;
+              push @curveOptions, dclone($options);
             }
           }
           else
@@ -554,8 +553,8 @@ EOB
           if ($optionArgIdx+1 == @optionsArgs)
           { barf "plot() got a lone scalar argument $optionArg, where a key/value was expected"; }
 
-          $options{$optionArg} = $optionsArgs[++$optionArgIdx];
-          push @curveOptions, dclone(\%options);
+          $options->{$optionArg} = $optionsArgs[++$optionArgIdx];
+          push @curveOptions, dclone($options);
         }
 
         $optionArgIdx++;
