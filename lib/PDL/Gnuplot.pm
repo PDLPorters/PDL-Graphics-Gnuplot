@@ -33,7 +33,7 @@ my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square squar
 my %plotOptionsSet;
 foreach(@allPlotOptions) { $plotOptionsSet{$_} = 1; }
 
-my @allCurveOptions = qw(legend y2 with extraValuesPerPoint);
+my @allCurveOptions = qw(legend y2 with style extraValuesPerPoint);
 my %curveOptionsSet;
 foreach(@allCurveOptions) { $curveOptionsSet{$_} = 1; }
 
@@ -416,6 +416,7 @@ EOB
       { $cmd .= "notitle "; }
 
       $cmd .= "with $option->{with} " if defined $option->{with};
+      $cmd .= "$option->{style} "     if defined $option->{style};
       $cmd .= "axes x1y2 "            if defined $option->{y2};
 
       return $cmd;
