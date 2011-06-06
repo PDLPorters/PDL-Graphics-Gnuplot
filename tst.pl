@@ -85,3 +85,27 @@ plot( points => 1, title  => 'sphere',
                              $x_3d->cat($x_3d*2),
                              $y_3d->cat($y_3d*2), $z_3d );
 
+
+
+# similar, written to a pdf
+plot(points => 1, title    => '2 spheres',
+#     colormap => 1,
+     '3d'     => 1,
+     square   => 1, hardcopy => 'spheres.pdf',
+
+     {legend => 'sphere'}, {legend => 'ellipse'},
+     $x_3d->cat($x_3d*2), $y_3d->cat($y_3d*2), $z_3d );
+
+
+# some paraboloids plotted on an implicit 2D domain
+{
+  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
+  my $z = inner($xy, $xy);
+
+  my $xy_half = zeros(11,11)->ndcoords;
+  my $z_half = inner($xy_half, $xy_half);
+
+  plot(points => 1, title  => 'gridded paraboloids', '3d' => 1,
+       {legend => 'zplus'} , {legend=>'zminus'}, $z->cat(-$z),
+       {legend => 'zplus2'}, $z*2);
+}
