@@ -76,7 +76,7 @@ sub new
         if ( defined $options->{y2min} || defined $options->{y2max} || defined $options->{y2} )
         { barf "'3d' does not make sense with 'y2'...\n"; }
 
-        if( $options->{style} =~ /circles/ )
+        if( $options->{with} =~ /circles/ )
         { barf "At this time gnuplot does not support 3d plotting with circles."; }
       }
       else
@@ -100,7 +100,7 @@ sub new
     {
       my $style = '';
 
-      $style .= " $options->{style}" if $options->{style};
+      $style .= " $options->{with}" if $options->{with};
       $cmd .= "set style data $style\n" if $style;
     }
 
@@ -180,7 +180,7 @@ sub new
     #   if( $options->{colormap} )
     #   { $options->{valuesPerPoint}++; }
 
-    #   if( defined $options->{style} && $options->{style} =~ /circles/ )
+    #   if( defined $options->{with} && $options->{with} =~ /circles/ )
     #   { $options->{valuesPerPoint}++; }
     # }
 
@@ -384,9 +384,9 @@ EOB
       else
       { $cmd .= "notitle "; }
 
-      $cmd .= "$option->{style} " if defined $option->{style};
-      $cmd .= "$style_allcurves " if defined $style_allcurves;
-      $cmd .= "axes x1y2 "        if defined $option->{y2};
+      $cmd .= "with $option->{with} " if defined $option->{with};
+      $cmd .= "$style_allcurves "     if defined $style_allcurves;
+      $cmd .= "axes x1y2 "            if defined $option->{y2};
 
       return $cmd;
     }
