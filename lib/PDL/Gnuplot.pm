@@ -304,8 +304,8 @@ EOB
 
   foreach my $chunk(@$chunks)
   {
-    my $tupleSize = $chunk->{tupleSize};
     my $data      = $chunk->{data};
+    my $tupleSize = scalar @$data;
     eval( "_writedata_$tupleSize" . '(@$data, $pipe)');
   }
 
@@ -454,7 +454,6 @@ EOB
       }
 
       $chunk{data}      = \@dataPiddles;
-      $chunk{tupleSize} = $tupleSize;
 
       $chunk{Ncurves} = countCurvesAndValidate(\%chunk);
       $Ncurves += $chunk{Ncurves};
