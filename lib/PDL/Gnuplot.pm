@@ -34,7 +34,7 @@ my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square squar
 my %plotOptionsSet;
 foreach(@allPlotOptions) { $plotOptionsSet{$_} = 1; }
 
-my @allCurveOptions = qw(legend y2 with style extraValuesPerPoint);
+my @allCurveOptions = qw(legend y2 with style tuplesize);
 my %curveOptionsSet;
 foreach(@allCurveOptions) { $curveOptionsSet{$_} = 1; }
 
@@ -626,21 +626,17 @@ EOB
       my $size;
       foreach my $option (@$options)
       {
-        my $sizehere = $is3d ? 3 : 2; # given nothing else, use ONLY the geometrical plotting
+        my $sizehere;
 
-        if (defined $option->{with})
+        if ($option->{tuplesize})
         {
-          if ( $option->{with} =~ /circles/ )
-          {
-            if ( $is3d )
-            { barf "At this time gnuplot does not support 3d plotting with circles. Sorry"; }
-
-            $sizehere++;
-          }
+          # if we have a given tuple size, just use it
+          $sizehere = $option->{tuplesize};
         }
-
-        if (defined $option->{extraValuesPerPoint})
-        { $sizehere += $option->{extraValuesPerPoint}; }
+        else
+        {
+          $sizehere = $is3d ? 3 : 2; # given nothing else, use ONLY the geometrical plotting
+        }
 
         if(!defined $size)
         { $size = $sizehere;}
