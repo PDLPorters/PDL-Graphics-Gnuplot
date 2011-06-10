@@ -200,6 +200,11 @@ sub new
     {
       if($options->{extracmds})
       {
+        # if there's a single extracmds option, put it into a 1-element list to
+        # make the processing work
+        if(!ref $options->{extracmds} )
+        { $options->{extracmds} = [$options->{extracmds}]; }
+
         foreach (@{$options->{extracmds}})
         { $cmd .= "$_\n"; }
       }
