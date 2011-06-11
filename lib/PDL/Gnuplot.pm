@@ -678,3 +678,91 @@ for my $n (2..20)
 
 
 1;
+
+
+__END__
+
+
+=head1 NAME
+
+PDL::Gnuplot - Gnuplot-based plotter for PDL
+
+=head1 SYNOPSIS
+
+ my $x = sequence(101) - 50;
+ plot($x**2);
+
+ plot( title => 'Curves',
+       with => 'xyerrorbars', tuplesize => 4,
+       $x**2 * 10, $x**2/40, $x**2/2 );
+
+ my $xy = zeros(21,21)->ndcoords - pdl(10,10);
+ my $z = inner($xy, $xy);
+ plot(title  => 'gridded paraboloids', '3d' => 1,
+      extracmds => 'set view 0,0',
+      {legend => 'zplus2', with => 'image',tuplesize => 3}, $z*2);
+
+=head1 DESCRIPTION
+
+This module allows PDL data to be plotted using Gnuplot as a backend. As much as
+was possible, this module acts as a passive pass-through to Gnuplot, thus making
+available the full power and flexibility of the Gnuplot backend.
+
+The main subroutine that C<PDL::Gnuplot> exports is C<plot()>. A call to
+C<plot()> looks like
+
+ plot(plot_options,
+      curve_options, data, data, ... ,
+      curve_options, data, data, ... );
+
+Each set of options is a hash that can be passed inline or as a hashref: both
+C<plot( title =E<gt> 'Fancy plot!', ... )> and C<plot( {title =E<gt> 'Another fancy
+plot'}, ...)> work. The plot options I<must> precede all the curve options.
+
+The plot options are parameters that affect the whole plot, like the title of
+the plot, the axis labels, the extents, 2d/3d selection, etc. All the plot
+options are described below in L</"Plot options">.
+
+The curve options are parameters that affect only one curve in particular. Each
+call to C<plot()> can contain many curves, and options for a particular curve
+I<precede> the data for that curve in the argument list. Furthermore, I<curve
+options are all cumulative>. So if you set a particular style for a curve, this
+style will persist for all the following curves, until this style is turned
+off. The only exception to this is the C<legend> option, since it's very rarely
+a good idea to have multiple curves with the same label. An example:
+
+ plot(x,y);
+ plot({label => 'asdf'}, {label => 'asdff'},
+      x,y,z);
+
+
+data threads, can have implicits tuplisize
+
+
+OO
+
+=head2 Functions
+
+=head2 Options
+
+=head3 Plot options
+
+=over 4
+
+=item * thier
+
+asdf
+
+=item * asdf
+
+qewr
+
+=back
+
+=head3 Curve options
+
+
+
+
+=cut
+
