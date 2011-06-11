@@ -8,7 +8,7 @@ use List::Util qw(first);
 use Storable qw(dclone);
 
 use feature qw(say);
-our $VERSION = 1.00;
+our $VERSION = 0.01;
 
 $PDL::use_commas = 1;
 
