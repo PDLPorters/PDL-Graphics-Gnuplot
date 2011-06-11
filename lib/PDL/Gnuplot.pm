@@ -25,7 +25,7 @@ my $globalPlot;
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
 my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square square_xy title
-                        lines points linespoints
+                        globalwith
                         xlabel xmax xmin
                         y2label y2max y2min
                         ylabel ymax ymin
@@ -34,7 +34,7 @@ my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square squar
 my %plotOptionsSet;
 foreach(@allPlotOptions) { $plotOptionsSet{$_} = 1; }
 
-my @allCurveOptions = qw(legend y2 with style tuplesize);
+my @allCurveOptions = qw(legend y2 with tuplesize);
 my %curveOptionsSet;
 foreach(@allCurveOptions) { $curveOptionsSet{$_} = 1; }
 
@@ -97,6 +97,9 @@ sub new
     # set some defaults
     $options->{ maxcurves } = 100 unless defined $options->{ maxcurves };
 
+    # plot with lines and points by default
+    $options->{globalwith} = 'linespoints' unless defined $options->{globalwith};
+
     # make sure I'm not passed invalid combinations of options
     {
       if ( $options->{'3d'} )
@@ -113,17 +116,6 @@ sub new
 
 
     my $cmd   = '';
-
-
-    # set the global style
-    {
-      my $style = '';
-
-      if($options->{lines}  || $options->{linespoints}) { $style .= "lines"; }
-      if($options->{points} || $options->{linespoints}) { $style .= "points"; }
-
-      $cmd .= "set style data $style\n" if $style;
-    }
 
     # grid on by default
     if( !$options->{nogrid} )
@@ -305,7 +297,7 @@ EOB
 
   }
 
-  say $pipe plotcmd($chunks, $plotOptions->{'3d'});
+  say $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
 
   foreach my $chunk(@$chunks)
   {
@@ -320,7 +312,7 @@ EOB
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($chunks, $is3d) = @_;
+    my ($chunks, $is3d, $globalwith) = @_;
 
     my $cmd = '';
 
@@ -341,7 +333,7 @@ EOB
     $cmd .=
       join(',',
            map
-           { map {"'-' " . optioncmd($_)} @{$_->{options}} }
+           { map {"'-' " . optioncmd($_, $globalwith)} @{$_->{options}} }
            @$chunks);
 
     return $cmd;
@@ -351,7 +343,8 @@ EOB
     # parses a curve option
     sub optioncmd
     {
-      my $option          = shift;
+      my $option     = shift;
+      my $globalwith = shift;
 
       my $cmd = '';
 
@@ -360,9 +353,12 @@ EOB
       else
       { $cmd .= "notitle "; }
 
-      $cmd .= "with $option->{with} " if $option->{with};
-      $cmd .= "$option->{style} "     if $option->{style};
-      $cmd .= "axes x1y2 "            if $option->{y2};
+      # use the given per-curve 'with' style if there is one. Otherwise fall
+      # back on the global
+      my $with = $option->{with} || $globalwith;
+
+      $cmd .= "with $with " if $with;
+      $cmd .= "axes x1y2 "  if $option->{y2};
 
       return $cmd;
     }
