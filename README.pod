@@ -1,11 +1,3 @@
-=head1 OVERVIEW
-
-This is a Gnuplot-based plotter for PDL. This repository stores the history for
-the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
-page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
-
-=cut
-
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
