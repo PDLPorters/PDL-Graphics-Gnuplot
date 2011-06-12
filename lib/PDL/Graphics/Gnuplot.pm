@@ -736,7 +736,7 @@ plot. An example:
          legend => 'spiral 1' },
        { legend => 'spiral 2' },
 
-       # 2 sets of x, y, z:
+       # 2 sets of x, 2 sets of y, single z:
        cos($theta)->cat(-cos($theta)),
        sin($theta)->cat(-sin($theta)),
        $z,
@@ -745,13 +745,12 @@ plot. An example:
        0.5 + abs(cos($theta)), sin(2*$theta) );
 
 This is a 3d plot with variable size and color. There are 5 values in the tuple,
-which we specify. All the data piddles except the first have a single dimension;
-the first data piddle has dimensions (N,2). Thus the PDL threading generates 2
-distinct curves, with identical values for all the data piddles except the
-first. To label the curves differently, 2 different sets of curve options are
-given. Since the curve options are cumulative, the style and tuplesize needs
-only to be passed in for the first curve; the second curve inherits those
-options.
+which we specify. The first 2 piddles have dimensions (N,2); all the other
+piddles have a single dimension. Thus the PDL threading generates 2 distinct
+curves, with varying values for x,y and identical values for everything else. To
+label the curves differently, 2 different sets of curve options are given. Since
+the curve options are cumulative, the style and tuplesize needs only to be
+passed in for the first curve; the second curve inherits those options.
 
 
 =head3 Implicit domains
