@@ -1,4 +1,4 @@
-package PDL::Gnuplot;
+package PDL::Graphics::Gnuplot;
 
 use strict;
 use warnings;
@@ -15,11 +15,12 @@ $PDL::use_commas = 1;
 use base 'Exporter';
 our @EXPORT_OK = qw(plot);
 
-# if I call plot() as a global function I create a new PDL::Gnuplot object. I
-# would like the gnuplot process to persist to keep the plot interactive at
-# least while the perl program is running. This global variable keeps the new
-# object referenced so that it does not get deleted. Once can create their own
-# PDL::Gnuplot objects, but there's one free global one available
+# if I call plot() as a global function I create a new PDL::Graphics::Gnuplot
+# object. I would like the gnuplot process to persist to keep the plot
+# interactive at least while the perl program is running. This global variable
+# keeps the new object referenced so that it does not get deleted. Once can
+# create their own PDL::Graphics::Gnuplot objects, but there's one free global
+# one available
 my $globalPlot;
 
 # I make a list of all the options. I can use this list to determine if an
@@ -50,7 +51,7 @@ sub new
     {
       if(@_ != 1)
       {
-        barf "PDL::Gnuplot->new() got a ref as a first argument and has OTHER arguments. Don't know what to do";
+        barf "PDL::Graphics::Gnuplot->new() got a ref as a first argument and has OTHER arguments. Don't know what to do";
       }
 
       %plotoptions = %{$_[0]};
@@ -61,7 +62,7 @@ sub new
 
   if( my @badKeys = grep {!defined $plotOptionsSet{$_}} keys %plotoptions )
   {
-    barf "PDL::Gnuplot->new() got option(s) that were NOT a plot option: (@badKeys)";
+    barf "PDL::Graphics::Gnuplot->new() got option(s) that were NOT a plot option: (@badKeys)";
   }
 
   my $pipe = startGnuplot( $plotoptions{dump} ) or barf "Couldn't start gnuplot backend";
@@ -230,7 +231,7 @@ sub plot
 
   my $this;
 
-  if(!defined ref $_[0] || ref $_[0] ne 'PDL::Gnuplot')
+  if(!defined ref $_[0] || ref $_[0] ne 'PDL::Graphics::Gnuplot')
   {
     # plot() called as a global function, NOT as a method.  the first argument
     # can be a hashref of plot options, or it could be the data directly.
@@ -263,7 +264,7 @@ sub plot
       }
     }
 
-    $this = $globalPlot = PDL::Gnuplot->new($plotOptions);
+    $this = $globalPlot = PDL::Graphics::Gnuplot->new($plotOptions);
   }
   else
   {
@@ -671,9 +672,11 @@ __END__
 
 =head1 NAME
 
-PDL::Gnuplot - Gnuplot-based plotter for PDL
+PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
 
 =head1 SYNOPSIS
+
+ use PDL::Graphics::Gnuplot qw(plot);
 
  my $x = sequence(101) - 50;
  plot($x**2);
@@ -694,8 +697,8 @@ This module allows PDL data to be plotted using Gnuplot as a backend. As much as
 was possible, this module acts as a passive pass-through to Gnuplot, thus making
 available the full power and flexibility of the Gnuplot backend.
 
-The main subroutine that C<PDL::Gnuplot> exports is C<plot()>. A call to
-C<plot()> looks like
+The main subroutine that C<PDL::Graphics::Gnuplot> exports is C<plot()>. A call
+to C<plot()> looks like
 
  plot(plot_options,
       curve_options, data, data, ... ,
@@ -774,33 +777,34 @@ options.
 
 =head3 Implicit domains
 
-When a particular tuplesize is specified, PDL::Gnuplot will attempt to read that
-many piddles. If there aren't enough piddles available, PDL::Gnuplot will throw
-an error, unless an implicit domain can be used. This happens if we are
-I<exactly> 1 piddle short when plotting in 2D or 2 piddles short when plotting
-in 3D.
+When a particular tuplesize is specified, PDL::Graphics::Gnuplot will attempt to
+read that many piddles. If there aren't enough piddles available,
+PDL::Graphics::Gnuplot will throw an error, unless an implicit domain can be
+used. This happens if we are I<exactly> 1 piddle short when plotting in 2D or 2
+piddles short when plotting in 3D.
 
-When making a simple 2D plot, if exactly 1 dimension is missing, PDL::Gnuplot
-will use C<sequence(N)> as the domain. This is why code like
-C<plot(pdl(1,5,3,4,4) )> works. Only one piddle is given here, but a default tuplesize
-of 2 is active, and we are thus exactly 1 piddle short. This is thus equivalent
-to C<plot( sequence(5), pdl(1,5,3,4,4) )>.
+When making a simple 2D plot, if exactly 1 dimension is missing,
+PDL::Graphics::Gnuplot will use C<sequence(N)> as the domain. This is why code
+like C<plot(pdl(1,5,3,4,4) )> works. Only one piddle is given here, but a
+default tuplesize of 2 is active, and we are thus exactly 1 piddle short. This
+is thus equivalent to C<plot( sequence(5), pdl(1,5,3,4,4) )>.
 
 If plotting in 3d, an implicit domain will be used if we are exactly 2 piddles
-short. In this case, PDL::Gnuplot will use a 2D grid as a domain. Example:
+short. In this case, PDL::Graphics::Gnuplot will use a 2D grid as a
+domain. Example:
 
  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
  plot('3d' => 1,
        with => 'points', inner($xy, $xy));
 
 Here the only given piddle has dimensions (21,21). This is a 3D plot, so we are
-exactly 2 piddles short. Thus, PDL::Gnuplot generates an implicit domain,
-corresponding to a 21-by-21 grid.
+exactly 2 piddles short. Thus, PDL::Graphics::Gnuplot generates an implicit
+domain, corresponding to a 21-by-21 grid.
 
-One thing to watch out for it to make sure PDL::Gnuplot doesn't get confused
-about when to use implicit domains. For example, C<plot($a,$b)> is interpreted
-as plotting $b vs $a, I<not> $a vs an implicit domain and $b vs an implicit
-domain. If 2 implicit plots are desired, add a separator:
+One thing to watch out for it to make sure PDL::Graphics::Gnuplot doesn't get
+confused about when to use implicit domains. For example, C<plot($a,$b)> is
+interpreted as plotting $b vs $a, I<not> $a vs an implicit domain and $b vs an
+implicit domain. If 2 implicit plots are desired, add a separator:
 C<plot($a,{},$b)>. Here C<{}> is an empty curve options hash. If C<$a> and C<$b>
 have the same dimensions, one can also do C<plot($a->cat($b))>, taking advantage
 of PDL threading.
@@ -816,17 +820,18 @@ only 2 piddles (y, color).
 The default backend Gnuplot uses to generate the plots is interactive, allowing
 the user to pan, zoom, rotate and measure the data in the plot window. See the
 Gnuplot documentation for details about how to do this. One thing to note with
-PDL::Gnuplot is that the interactivity is only possible if the gnuplot process
-is running. As long as the perl program calling PDL::Gnuplot is running, the
-plots are interactive, but once it exits, the child gnuplot process will exit
-also. This will keep the plot windows up, but the interactivity will be lost. So
-if the perl program makes a plot and exits, the plot will NOT be interactive.
+PDL::Graphics::Gnuplot is that the interactivity is only possible if the gnuplot
+process is running. As long as the perl program calling PDL::Graphics::Gnuplot
+is running, the plots are interactive, but once it exits, the child gnuplot
+process will exit also. This will keep the plot windows up, but the
+interactivity will be lost. So if the perl program makes a plot and exits, the
+plot will NOT be interactive.
 
-Due to particulars of the current implementation of PDL::Gnuplot, each time
-C<plot()> is called, a new gnuplot process is launched, killing the previous
-one. This results only in the latest plot being interactive. The way to resolve
-this is to use the object-oriented interface to PDL::Gnuplot (see L</"Exports">
-below).
+Due to particulars of the current implementation of PDL::Graphics::Gnuplot, each
+time C<plot()> is called, a new gnuplot process is launched, killing the
+previous one. This results only in the latest plot being interactive. The way to
+resolve this is to use the object-oriented interface to PDL::Graphics::Gnuplot
+(see L</"Exports"> below).
 
 
 =head1 DETAILS
@@ -837,20 +842,21 @@ Currently there's one importable subroutine: C<plot()>. Each C<plot()> call
 creates a new plot in a new window. There's also an object-oriented interface
 that can be used like so:
 
-  my $plot = PDL::Gnuplot->new(title => 'Object-oriented plot');
+  my $plot = PDL::Graphics::Gnuplot->new(title => 'Object-oriented plot');
   $plot->plot( legend => 'curve', sequence(5) );
 
 The plot options are passed into the constructor; the curve options and the data
 are passed into the method. One advantage of making plots this way is that
-there's a gnuplot process associated with each PDL::Gnuplot instance, so as long
-as C<$plot> exists, the plot will be interactive. Also, calling C<$plot-E<gt>plot()>
-multiple times reuses the plot window instead of creating a new one.
+there's a gnuplot process associated with each PDL::Graphics::Gnuplot instance,
+so as long as C<$plot> exists, the plot will be interactive. Also, calling
+C<$plot-E<gt>plot()> multiple times reuses the plot window instead of creating a
+new one.
 
 
 =head2 Plot options
 
 The plot options are a hash, passed as the initial arguments to the global
-C<plot()> subroutine or as the only arguments to the PDL::Gnuplot
+C<plot()> subroutine or as the only arguments to the PDL::Graphics::Gnuplot
 contructor. The supported keys of this hash are as follows:
 
 =over 2
