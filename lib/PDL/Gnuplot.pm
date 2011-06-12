@@ -24,7 +24,7 @@ my $globalPlot;
 
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
-my @allPlotOptions = qw(3d dump extracmds hardcopy maxcurves nogrid square square_xy title
+my @allPlotOptions = qw(3d dump extracmds hardcopy nogrid square square_xy title
                         globalwith
                         xlabel xmax xmin
                         y2label y2max y2min
@@ -95,8 +95,6 @@ sub new
     my $options = shift;
 
     # set some defaults
-    $options->{ maxcurves } = 100 unless defined $options->{ maxcurves };
-
     # plot with lines and points by default
     $options->{globalwith} = 'linespoints' unless defined $options->{globalwith};
 
@@ -284,18 +282,6 @@ sub plot
   if( scalar @$chunks == 0)
   { barf "plot() was not given any data"; }
 
-
-  if($Ncurves > $plotOptions->{maxcurves})
-  {
-    # this is here in case the user made an error that makes the plotter blow up
-
-    barf <<EOB;
-Tried to plot $Ncurves curves.
-This exceeds the 'maxcurves' setting.\n
-Invoke with a higher 'maxcurves' option if you really want to do this.\n
-EOB
-
-  }
 
   say $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
 
