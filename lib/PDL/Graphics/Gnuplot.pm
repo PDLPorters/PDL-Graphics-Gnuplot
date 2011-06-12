@@ -205,26 +205,9 @@ sub new
   }
 }
 
-# the main API function to generate a plot. Input arguments are a bunch of piddles optionally
-# followed by a bunch of options for each curve.
-#
-# The input piddles are a single domain piddle followed by some range piddles.
-# If the domain is null, sequential integers (0,1,2...) are used.
-# If the domain is null, and we're plotting in 3D, we use an appropriately-sized grid (see below)
-# If only a single piddle argument is given, domain==null is assumed
-#
-# For 3d plots the domain is an Npoints-2-... piddle that contains the (x,y) values for each point
-
-# If the domain is null and we're plotting in 3D, a grid based on the first
-# 2-dimensions of the range is used. For instance if the first 2 dims of a range
-# are 3x5, the range is plotted on a 3x5 grid with x in 0..2 and y in 0..4
-
-#
-# For plots that have more than one value per range, ranges are interpreted to be
-# Npoints-NperRange-... piddles
-#
-# The ranges for each curve can be given in separate arguments to plot(), or stacked in the ranges
-# piddles
+# the main API function to generate a plot. Input arguments are a bunch of
+# piddles optionally preceded by a bunch of options for each curve. See the POD
+# for details
 sub plot
 {
   barf( "Plot called with no arguments") unless @_;
@@ -358,11 +341,7 @@ sub plot
     # options are a hashref, an inline hash or can be absent entirely. THE
     # OPTIONS ARE ALWAYS CUMULATIVELY DEFINED ON TOP OF THE PREVIOUS SET OF
     # OPTIONS (except the legend)
-    #
-    # Based on the options I know the size of the plot tuple. For example,
-    # simple x-y plots have 2 values per point, while x-y-z-color plots have
-    # 4. The data arguments are one-argument-per-tuple-element.
-    # TODO: get implicit domains working
+    # The data arguments are one-argument-per-tuple-element.
     my $is3d = shift;
     my @args = @_;
 
