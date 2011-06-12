@@ -660,15 +660,22 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
  my $x = sequence(101) - 50;
  plot($x**2);
 
- plot( title => 'Curves',
-       with => 'xyerrorbars', tuplesize => 4,
-       $x**2 * 10, $x**2/40, $x**2/2 );
+ plot( title => 'Parabola with error bars',
+       with => 'xyerrorbars', tuplesize => 4, legend => 'Parabola',
+       $x**2 * 10, abs($x)/10, abs($x)*5 );
 
  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
  my $z = inner($xy, $xy);
- plot(title  => 'gridded paraboloids', '3d' => 1,
+ plot(title  => 'Heat map', '3d' => 1,
       extracmds => 'set view 0,0',
-      {legend => 'zplus2', with => 'image',tuplesize => 3}, $z*2);
+      {with => 'image',tuplesize => 3}, $z*2);
+
+ my $pi    = 3.14159;
+ my $theta = zeros(200)->xlinvals(0, 6*$pi);
+ my $z     = zeros(200)->xlinvals(0, 5);
+ plot( '3d' => 1,
+       cos($theta), sin($theta), $z);
+
 
 =head1 DESCRIPTION
 
@@ -737,8 +744,8 @@ plot. An example:
        { legend => 'spiral 2' },
 
        # 2 sets of x, 2 sets of y, single z:
-       cos($theta)->cat(-cos($theta)),
-       sin($theta)->cat(-sin($theta)),
+       PDL::cat( cos($theta), -cos($theta)),
+       PDL::cat( sin($theta), -sin($theta)),
        $z,
 
        # pointsize, color
