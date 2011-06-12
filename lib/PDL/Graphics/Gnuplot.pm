@@ -840,53 +840,53 @@ contructor. The supported keys of this hash are as follows:
 
 =over 2
 
-=item * title
+=item title
 
 Specifies the title of the plot
 
-=item * 3d
+=item 3d
 
 If true, a 3D plot is constructed. This changes the default tuple size from 2 to
 3
 
-=item * nogrid
+=item nogrid
 
 By default a grid is drawn on the plot. If this option is true, this is turned off
 
-=item * globalwith
+=item globalwith
 
 If no valid 'with' curve option is given, use this as a default
 
-=item * square, square_xy
+=item square, square_xy
 
 If true, these request a square aspect ratio. For 3D plots, square_xy plots with
 a square aspect ratio in x and y, but scales z
 
-=item * xmin, xmax, ymin, ymax, zmin, zmax, y2min, y2max, cbmin, cbmax
+=item xmin, xmax, ymin, ymax, zmin, zmax, y2min, y2max, cbmin, cbmax
 
 If given, these set the extents of the plot window for the requested axes. The
 y2 axis is the secondary y-axis that is enabled by the 'y2' curve option. The
 'cb' axis represents the color axis, used when color-coded plots are being
 generated
 
-=item * xlabel, ylabel, zlabel, y2label
+=item xlabel, ylabel, zlabel, y2label
 
 These specify axis labels
 
-=item * hardcopy
+=item hardcopy
 
 Instead of drawing a plot on screen, plot into a file instead. The output
 filename is the value associated with this key. The output format is inferred
 from the filename. Currently only eps, ps, pdf, png are supported with some
 default sets of options. This may become more configurable later
 
-=item * extracmds
+=item extracmds
 
 Arbitrary extra commands to pass to gnuplot before the plots are created. These
 are passed directly to gnuplot, without any validation. The value is either a
 string of an arrayref of different commands
 
-=item * dump
+=item dump
 
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
 of writing to a gnuplot process
@@ -901,21 +901,21 @@ keys are as follows:
 
 =over 2
 
-=item * legend
+=item legend
 
 Specifies the legend label for this curve
 
-=item * with
+=item with
 
 Specifies the style for this curve. The value is passed to gnuplot using its
 'with' keyword, so valid values are whatever gnuplot supports. Read the gnuplot
 documentation for the 'with' keyword for more information
 
-=item * y2
+=item y2
 
 If true, requests that this curve be plotted on the y2 axis instead of the main y axis
 
-=item * tuplesize
+=item tuplesize
 
 Specifies how many values represent each data point. For 2D plots this defaults
 to 2; for 3D plots this defaults to 3.
