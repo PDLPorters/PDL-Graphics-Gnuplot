@@ -5,7 +5,7 @@ use lib 'lib';
 
 use PDL;
 use PDL::NiceSlice;
-use PDL::Gnuplot qw(plot);
+use PDL::Graphics::Gnuplot qw(plot);
 
 
 use feature qw(say);
@@ -35,50 +35,43 @@ plot(PDL::cat($x**2, $x**3));
 plot(-$x,
      PDL::cat($x**2, $x**3));
 
-# various ways of giving options, some multi-range stuff
-plot( linespoints => 1, title => 'fanciness',
-      $x, $x**2,
-
-      {with => 'linespoints', legend => 'cubic'},
-      {legend => 'shifted cubic'},
-      $x, PDL::cat($x**3, $x**3 - 100),
-
-      with => 'circles', y2 => 1, $x, $x**2 + 1, $x**2/400 );
-
 # some more varied plotting, using the object-oriented interface
 {
-  my $plot = PDL::Gnuplot->new(linespoints => 1, xmin => -10,
-                               title => 'fanciness');
+  my $plot = PDL::Graphics::Gnuplot->new(globalwith => 'linespoints', xmin => -10,
+                                         title => 'Error bars and other things');
 
-  $plot->plot( style => 'lw 4', y2 => 1, legend => 'a parabola',
-               PDL::cat($x, $x*2, $x*3), $x**2 - 300,
+  $plot->plot(with => 'lines lw 4',
+              y2 => 1, legend => 'a parabola',
+              PDL::cat($x, $x*2, $x*3), $x**2 - 300,
 
-               y2 => 0,
-               style => 'lw 1',
-               with => 'xyerrorbars', extraValuesPerPoint => 2,
-               $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
+              y2 => 0,
+              with => 'xyerrorbars', tuplesize => 4,
+              $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
 
-               {with => '', legend => 'cubic', extraValuesPerPoint => 0},
-               {legend => 'shifted cubic'},
-               $x, PDL::cat($x**3, $x**3 - 100) );
-
+              {with => '', legend => 'cubic', tuplesize => 2},
+              {legend => 'shifted cubic'},
+              $x, PDL::cat($x**3, $x**3 - 100) );
 }
 
-
+# 2 different ways to control the point size
+plot({cbmin => -600, cbmax => 600}, {with => 'circles palette', tuplesize => 4},
+     $x**2, abs($x)/10, $x*50);
+plot({cbmin => -600, cbmax => 600}, {with => 'points pointtype 7 pointsize variable palette', tuplesize => 4},
+     $x**2, abs($x)/2, $x*50);
 
 ################################
 # some 3d stuff
 ################################
 
 # plot a sphere
-plot( points => 1, title  => 'sphere',
+plot( globalwith => 'points', title  => 'sphere',
       '3d'   => 1, square => 1,
 
       {legend => 'sphere'}, $x_3d, $y_3d, $z_3d,
     );
 
 # sphere, ellipse together
-plot( points => 1, title  => 'sphere',
+plot( globalwith => 'points', title  => 'sphere, ellipse',
       '3d'   => 1, square => 1,
 
       {legend => 'sphere'}, {legend => 'ellipse'},
@@ -88,10 +81,9 @@ plot( points => 1, title  => 'sphere',
 
 
 # similar, written to a pdf
-plot(points => 1, title    => '2 spheres',
-#     colormap => 1,
-     '3d'     => 1,
-     square   => 1, hardcopy => 'spheres.pdf',
+plot (globalwith => 'points', title    => 'sphere, ellipse',
+     '3d'     => 1, square   => 1,
+      hardcopy => 'spheres.pdf',
 
      {legend => 'sphere'}, {legend => 'ellipse'},
      $x_3d->cat($x_3d*2), $y_3d->cat($y_3d*2), $z_3d );
@@ -105,7 +97,36 @@ plot(points => 1, title    => '2 spheres',
   my $xy_half = zeros(11,11)->ndcoords;
   my $z_half = inner($xy_half, $xy_half);
 
-  plot(points => 1, title  => 'gridded paraboloids', '3d' => 1,
+  plot( globalwith => 'points', title  => 'gridded paraboloids', '3d' => 1,
        {legend => 'zplus'} , {legend=>'zminus'}, $z->cat(-$z),
        {legend => 'zplus2'}, $z*2);
+}
+
+# 3d, variable color, variable pointsize
+{
+ my $pi   = 3.14159;
+ my $theta = zeros(200)->xlinvals(0, 6*$pi);
+ my $z     = zeros(200)->xlinvals(0, 5);
+
+ plot( '3d' => 1, title => 'double helix',
+
+       { with => 'points pointsize variable pointtype 7 palette', tuplesize => 5,
+         legend => 'spiral 1'},
+       { legend => 'spiral 2' },
+
+       # 2 sets of x, y, z:
+       cos($theta)->cat(-cos($theta)),
+       sin($theta)->cat(-sin($theta)),
+       $z,
+
+       # pointsize, color
+       0.5 + abs(cos($theta)), sin(2*$theta) );
+}
+
+# implicit domain heat map
+{
+  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
+  plot(title  => 'Paraboloid heat map', '3d' => 1,
+       extracmds => 'set view 0,0',
+       with => 'image', inner($xy, $xy));
 }
