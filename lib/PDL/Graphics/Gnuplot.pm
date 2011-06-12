@@ -705,7 +705,7 @@ a good idea to have multiple curves with the same label. An example:
        y2   => 1,        $x, $b,
        with => 'lines',  $x, $c );
 
-This plots 3 curves $a vs. $x plotted with points on the main y-axis (this is
+This plots 3 curves: $a vs. $x plotted with points on the main y-axis (this is
 the default), $b vs. $x plotted with points on the secondary y axis, and $c
 vs. $x plotted with lines also on the secondary y axis. All the curve options
 are described below in L</"Curve options">.
