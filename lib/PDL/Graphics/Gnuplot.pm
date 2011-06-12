@@ -366,6 +366,15 @@ sub plot
       if( $nextDataIdx > $argIndex )
       {
         $chunk{options} = parseOptionsArgs($lastOptions, @args[$argIndex..$nextDataIdx-1]);
+
+        # make sure I know what to do with all the options
+        foreach my $option (@{$chunk{options}})
+        {
+          if (my @badKeys = grep {!defined $curveOptionsSet{$_}} keys %$option)
+          {
+            barf "plot() got some unknown curve options: (@badKeys)";
+          }
+        }
       }
       else
       {
@@ -510,15 +519,6 @@ sub plot
         my $dim1 = $data->[$_-1]->dim(0);
         if( $dim0 != $dim1 )
         { barf "plot() was given mismatched tuples to plot. $dim0 vs $dim1"; }
-      }
-
-      # make sure I know what to do with all the options
-      foreach my $option(@{$chunk->{options}})
-      {
-        if(my @badKeys = grep {!defined $curveOptionsSet{$_}} keys %$option)
-        {
-          barf "plot() got some unknown curve options: (@badKeys)";
-        }
       }
 
       # I now make sure I have exactly one set of curve options per curve
