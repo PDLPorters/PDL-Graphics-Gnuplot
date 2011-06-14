@@ -5,7 +5,7 @@ use ExtUtils::MakeMaker;
 
 # make sure we can run gnuplot before continuing
 {
-  unless( open( my $pipe, '|-', 'gnuplfot' ))
+  unless( open( my $pipe, '|-', 'gnuplot' ))
   {
     print STDERR <<EOM;
 
