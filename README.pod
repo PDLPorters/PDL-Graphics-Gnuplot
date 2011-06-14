@@ -30,7 +30,8 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
 
 This module allows PDL data to be plotted using Gnuplot as a backend. As much as
 was possible, this module acts as a passive pass-through to Gnuplot, thus making
-available the full power and flexibility of the Gnuplot backend.
+available the full power and flexibility of the Gnuplot backend. Gnuplot is
+described in great detail at its upstream website: L<http://www.gnuplot.info>.
 
 The main subroutine that C<PDL::Graphics::Gnuplot> exports is C<plot()>. A call
 to C<plot()> looks like
