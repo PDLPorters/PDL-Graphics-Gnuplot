@@ -3,6 +3,24 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+# make sure we can run gnuplot before continuing
+{
+  unless( open( my $pipe, '|-', 'gnuplfot' ))
+  {
+    print STDERR <<EOM;
+
+Error: "$!"
+
+I tried to execute 'gnuplot' and it didn't work. Since this module is an is an
+interface to Gnuplot, it must be installed for the module to be useful. Install
+Gnuplot to continue. Use your package manager, or download the source from
+http://www.gnuplot.info
+EOM
+
+    exit 1;
+  }
+}
+
 
 sub MY::libscan
 {
