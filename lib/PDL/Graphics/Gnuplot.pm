@@ -40,6 +40,11 @@ my %curveOptionsSet;
 foreach(@allCurveOptions) { $curveOptionsSet{$_} = 1; }
 
 
+# get a list of all the -- options that this gnuplot supports
+my %gnuplotFeatures = _getGnuplotFeatures();
+
+
+
 sub new
 {
   my $classname = shift;
@@ -82,8 +87,10 @@ sub new
     return *STDOUT if $dump;
 
 
+    my @options = $gnuplotFeatures{persist} ? qw(--persist) : ();
+
     my $pipe;
-    unless( open $pipe, '|-', "gnuplot --persist" )
+    unless( open $pipe, '|-', 'gnuplot', @options )
     {
       say STDERR "Couldn't launch gnuplot";
       return;
@@ -642,6 +649,20 @@ for my $n (2..20)
 }
 
 
+sub _getGnuplotFeatures
+{
+  open(GNUPLOT, 'gnuplot --help |') or die "Couldn't run gnuplot";
+
+  local $/ = undef;
+  my $in = <GNUPLOT>;
+
+  my @features = $in =~ /--([a-zA-Z0-9_]*)/g;
+
+  my %featureSet;
+  foreach (@features) { $featureSet{$_} = 1; }
+
+  return %featureSet;
+}
 
 1;
 
