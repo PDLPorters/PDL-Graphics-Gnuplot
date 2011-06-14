@@ -70,7 +70,7 @@ sub new
     barf "PDL::Graphics::Gnuplot->new() got option(s) that were NOT a plot option: (@badKeys)";
   }
 
-  my $pipe = startGnuplot( $plotoptions{dump} ) or barf "Couldn't start gnuplot backend";
+  my $pipe = startGnuplot( $plotoptions{dump} );
   print $pipe parseOptions(\%plotoptions);
 
   my $this = {pipe    => $pipe,
@@ -90,11 +90,8 @@ sub new
     my @options = $gnuplotFeatures{persist} ? qw(--persist) : ();
 
     my $pipe;
-    unless( open $pipe, '|-', 'gnuplot', @options )
-    {
-      say STDERR "Couldn't launch gnuplot";
-      return;
-    }
+    open( $pipe, '|-', 'gnuplot', @options) or die "Couldn't run the 'gnuplot' backend";
+
     return $pipe;
   }
 
