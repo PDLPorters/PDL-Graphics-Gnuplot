@@ -7,7 +7,6 @@ use IO::Handle;
 use List::Util qw(first);
 use Storable qw(dclone);
 
-use feature qw(say);
 our $VERSION = 0.01;
 
 $PDL::use_commas = 1;
@@ -271,7 +270,7 @@ sub plot
   { barf "plot() was not given any data"; }
 
 
-  say $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
+  print $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith}) . "\n";
 
   foreach my $chunk(@$chunks)
   {
@@ -632,7 +631,7 @@ sub _wcols_gnuplot
 {
   wcols @_;
   my $pipe = $_[-1];
-  say $pipe 'e';
+  print $pipe "e\n";
 };
 
 # I generate a bunch of PDL definitions such as
