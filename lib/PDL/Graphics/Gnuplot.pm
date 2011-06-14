@@ -652,10 +652,12 @@ sub _getGnuplotFeatures
   local $/ = undef;
   my $in = <GNUPLOT>;
 
-  my @features = $in =~ /--([a-zA-Z0-9_]*)/g;
-
   my %featureSet;
-  foreach (@features) { $featureSet{$_} = 1; }
+  if(defined $in)
+  {
+    my @features = $in =~ /--([a-zA-Z0-9_]*)/g;
+    foreach (@features) { $featureSet{$_} = 1; }
+  }
 
   return %featureSet;
 }
