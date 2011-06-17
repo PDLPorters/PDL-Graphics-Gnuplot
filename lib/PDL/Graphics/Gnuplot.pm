@@ -12,7 +12,7 @@ our $VERSION = 0.01;
 $PDL::use_commas = 1;
 
 use base 'Exporter';
-our @EXPORT_OK = qw(plot);
+our @EXPORT_OK = qw(plot plot3d plotlines plotpoints);
 
 # if I call plot() as a global function I create a new PDL::Graphics::Gnuplot
 # object. I would like the gnuplot process to persist to keep the plot
@@ -629,6 +629,23 @@ sub plot
     }
   }
 }
+
+# these are convenience wrappers for plot()
+sub plot3d
+{
+  plot('3d' => 1, @_);
+}
+
+sub plotlines
+{
+  plot(globalwith => 'lines', @_);
+}
+
+sub plotpoints
+{
+  plot(globalwith => 'points', @_);
+}
+
 
 # subroutine to write the columns of some piddles into a gnuplot stream. This
 # assumes the last argument is a file handle. Generally you should NOT be using
