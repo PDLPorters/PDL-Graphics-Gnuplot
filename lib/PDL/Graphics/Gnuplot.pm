@@ -859,27 +859,10 @@ Due to particulars of the current implementation of PDL::Graphics::Gnuplot, each
 time C<plot()> is called, a new gnuplot process is launched, killing the
 previous one. This results only in the latest plot being interactive. The way to
 resolve this is to use the object-oriented interface to PDL::Graphics::Gnuplot
-(see L</"Exports"> below).
+(see L</"CONSTRUCTORS"> below).
 
 
-=head1 DETAILS
-
-=head2 Exports
-
-Currently there's one importable subroutine: C<plot()>. Each C<plot()> call
-creates a new plot in a new window. There's also an object-oriented interface
-that can be used like so:
-
-  my $plot = PDL::Graphics::Gnuplot->new(title => 'Object-oriented plot');
-  $plot->plot( legend => 'curve', sequence(5) );
-
-The plot options are passed into the constructor; the curve options and the data
-are passed into the method. One advantage of making plots this way is that
-there's a gnuplot process associated with each PDL::Graphics::Gnuplot instance,
-so as long as C<$plot> exists, the plot will be interactive. Also, calling
-C<$plot-E<gt>plot()> multiple times reuses the plot window instead of creating a
-new one.
-
+=head1 OPTIONS
 
 =head2 Plot options
 
@@ -970,6 +953,73 @@ Specifies how many values represent each data point. For 2D plots this defaults
 to 2; for 3D plots this defaults to 3.
 
 =back
+
+=head1 FUNCTIONS
+
+=head2 plot
+
+=for ref
+
+The main plotting routine in PDL::Graphics::Gnuplot.
+
+Each C<plot()> call creates a new plot in a new window.
+
+=for usage
+
+ plot(plot_options,
+      curve_options, data, data, ... ,
+      curve_options, data, data, ... );
+
+Most of the arguments are optional.
+
+=for example
+
+ use PDL::Graphics::Gnuplot qw(plot);
+ my $x = sequence(101) - 50;
+ plot($x**2);
+
+See main POD for PDL::Graphics::Gnuplot for details.
+
+
+=head2 plot3d
+
+=for ref
+
+Generates 3D plots. Shorthand for C<plot('3d' =E<gt> 1, ...)>
+
+=head2 plotlines
+
+=for ref
+
+Generates plots with lines, by default. Shorthand for C<plot(globalwith =E<gt> 'lines', ...)>
+
+=head2 plotpoints
+
+=for ref
+
+Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 'points', ...)>
+
+
+=head1 CONSTRUCTORS
+
+=head2 new
+
+=for ref
+
+Creates a PDL::Graphics::Gnuplot object to make a persistent plot.
+
+=for example
+
+  my $plot = PDL::Graphics::Gnuplot->new(title => 'Object-oriented plot');
+  $plot->plot( legend => 'curve', sequence(5) );
+
+The plot options are passed into the constructor; the curve options and the data
+are passed into the method. One advantage of making plots this way is that
+there's a gnuplot process associated with each PDL::Graphics::Gnuplot instance,
+so as long as C<$plot> exists, the plot will be interactive. Also, calling
+C<$plot-E<gt>plot()> multiple times reuses the plot window instead of creating a
+new one.
+
 
 
 =head1 REPOSITORY
