@@ -786,7 +786,7 @@ plot. An example:
          legend => 'spiral 1' },
        { legend => 'spiral 2' },
 
-       # 2 sets of x, 2 sets of y, single z:
+       # 2 sets of x, 2 sets of y, single z
        PDL::cat( cos($theta), -cos($theta)),
        PDL::cat( sin($theta), -sin($theta)),
        $z,
