@@ -217,33 +217,43 @@ sub plot
 
   my $this;
 
-  if(!defined ref $_[0] || ref $_[0] ne 'PDL::Graphics::Gnuplot')
+  if(defined ref $_[0] && ref $_[0] eq 'PDL::Graphics::Gnuplot')
   {
-    # plot() called as a global function, NOT as a method.  the first argument
-    # can be a hashref of plot options, or it could be the data directly.
+    # I called this as an object-oriented method. First argument is the
+    # object. I already got the plot options in the constructor, so I don't need
+    # to get them again.
+    $this = shift;
+  }
+  else
+  {
+    # plot() called as a global function, NOT as a method. The initial arguments
+    # can be the plot options (hashrefs or inline). I keep trying to parse the
+    # initial arguments as plot options until I run out
     my $plotOptions = {};
 
-    if(defined ref $_[0] && ref $_[0] eq 'HASH')
+    while(1)
     {
-      # first arg is a hash. Is it plot options or curve options?
-      my $NmatchedPlotOptions = grep {defined $plotOptionsSet{$_}} keys %{$_[0]};
-
-      if($NmatchedPlotOptions != 0)
+      if (defined ref $_[0] && ref $_[0] eq 'HASH')
       {
-        if($NmatchedPlotOptions != scalar keys %{$_[0]})
-        {
-          barf "Got an option hash that isn't completely plot options or non-plot options";
-        }
+        # arg is a hash. Is it plot options or curve options?
+        my $NmatchedPlotOptions = grep {defined $plotOptionsSet{$_}} keys %{$_[0]};
 
-        $plotOptions = shift;
+        last if $NmatchedPlotOptions == 0; # not plot options, so done scanning
+
+        if( $NmatchedPlotOptions != scalar keys %{$_[0]} )
+        { barf "Plot option hash has some non-plot options"; }
+
+        # grab all the plot options
+        my $newPlotOptions = shift;
+        foreach my $key (keys %$newPlotOptions)
+        { $plotOptions->{$key} = $newPlotOptions->{$key}; }
       }
-    }
-    else
-    {
-      # first arg is NOT a hashref. It could be an inline hash. I now grab the hash
-      # elements one at a time as long as they're plot options
-      while( @_ >= 2 && $plotOptionsSet{$_[0]} )
+      else
       {
+        # arg is NOT a hashref. It could be an inline hash. I grab a hash pair
+        # if it's plot options
+        last unless @_ >= 2 && $plotOptionsSet{$_[0]};
+
         my $key = shift;
         my $val = shift;
         $plotOptions->{$key} = $val;
@@ -251,10 +261,6 @@ sub plot
     }
 
     $this = $globalPlot = PDL::Graphics::Gnuplot->new($plotOptions);
-  }
-  else
-  {
-    $this = shift;
   }
 
   my $pipe        = $this->{pipe};
