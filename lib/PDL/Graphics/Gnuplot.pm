@@ -312,7 +312,13 @@ sub plot
     $cmd .=
       join(',',
            map
-           { map {"'-' " . optioncmd($_, $globalwith)} @{$_->{options}} }
+           {
+             my $chunk = $_;
+             map
+             {
+               "'-' " . formatcmd($chunk) . ' ' . optioncmd($_, $globalwith)
+             } @{$chunk->{options}}
+           }
            @$chunks);
 
     return $cmd;
@@ -340,6 +346,19 @@ sub plot
       $cmd .= "axes x1y2 "  if $option->{y2};
 
       return $cmd;
+    }
+
+    sub formatcmd
+    {
+      my $chunk = shift;
+
+      my $tupleSize  = $chunk->{tupleSize};
+      my $recordSize = $chunk->{data}[0]->dim(0);
+
+      my $format = "binary record=$recordSize format=\"";
+      $format .= '%float64' x $tupleSize;
+      $format .= '"';
+      return $format;
     }
   }
 
@@ -439,8 +458,8 @@ sub plot
       }
 
       $chunk{data}      = \@dataPiddles;
-
-      $chunk{Ncurves} = countCurvesAndValidate(\%chunk);
+      $chunk{tupleSize} = $tupleSize;
+      $chunk{Ncurves}   = countCurvesAndValidate(\%chunk);
       $Ncurves += $chunk{Ncurves};
 
       push @chunks, \%chunk;
@@ -652,9 +671,9 @@ sub plotpoints
 # this directly at all; it's just used to define the threading-aware routines
 sub _wcols_gnuplot
 {
-  wcols @_;
-  my $pipe = $_[-1];
-  print $pipe "e\n";
+  my $pipe = pop @_;
+  my $strref = cat(@_)->transpose->get_dataref;
+  print $pipe $$strref;
 };
 
 # I generate a bunch of PDL definitions such as
