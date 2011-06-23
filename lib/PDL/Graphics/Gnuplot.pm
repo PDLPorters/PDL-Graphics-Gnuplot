@@ -356,7 +356,7 @@ sub plot
       my $recordSize = $chunk->{data}[0]->dim(0);
 
       my $format = "binary record=$recordSize format=\"";
-      $format .= '%float64' x $tupleSize;
+      $format .= '%double' x $tupleSize;
       $format .= '"';
       return $format;
     }
