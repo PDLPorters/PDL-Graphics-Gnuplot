@@ -940,7 +940,7 @@ string of an arrayref of different commands
 =item dump
 
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
-of writing to a gnuplot process
+of writing to a gnuplot process. Note that this dump will contain binary data
 
 =back
 
