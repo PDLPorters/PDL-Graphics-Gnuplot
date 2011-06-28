@@ -70,15 +70,12 @@ sub new
   }
 
   my $pipes  = startGnuplot( $plotoptions{dump} );
-  my $pipein = $pipes->{in};
-
-  print $pipein parseOptions(\%plotoptions);
-
-
 
   my $this = {pipes    => $pipes,
               options  => \%plotoptions};
   bless($this, $classname);
+
+  _writeToPipe($pipes, parseOptions(\%plotoptions));
 
   return $this;
 
@@ -290,9 +287,6 @@ sub plot
   if( scalar @$chunks == 0)
   { barf "plot() was not given any data"; }
 
-
-  # Any errors happened already?
-  _checkForErrors($pipes);
 
   my $plotcmd = plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
 
@@ -666,8 +660,10 @@ sub plot
     }
   }
 
-  # reads the STDERR from the gnuplot child process to see if errors occurred
-  sub _checkForErrors
+  # syncronizes the child and parent processes. After _checkpoint() returns, I
+  # know that I've read all the data from the child. Any extra data (such as
+  # error messages) is returned
+  sub _checkpoint
   {
     my $pipes   = shift;
     my $pipein  = $pipes->{in};
@@ -689,10 +685,7 @@ sub plot
 
     my $fromerr = '';
     $fromerr .= <$pipeerr> while $fromerr !~ /\s*(.*?)\s*$checkpoint/s;
-
-    my $errorMessage = $1;
-    if (length $errorMessage)
-    { barf "Gnuplot error: \"$errorMessage\""; }
+    return $1;
   }
 }
 
@@ -727,9 +720,19 @@ sub _wcols_gnuplot
 sub _writeToPipe
 {
   my ($pipes, $string) = @_;
+  my $pipein = $pipes->{in};
 
-  my $pipe = $pipes->{in};
-  print $pipe $$string;
+  foreach my $line(split('\s*?\n+\s*?', $string))
+  {
+    next unless $line;
+
+    print $pipein "$line\n";
+
+    if( my $errorMessage = _checkpoint($pipes) )
+    {
+      barf "Gnuplot error: \"$errorMessage\" while sending line \"$line\"";
+    }
+  }
 }
 
 # I generate a bunch of PDL definitions such as
