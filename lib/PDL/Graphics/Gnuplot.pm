@@ -217,7 +217,8 @@ sub DESTROY
 
   if( defined $this->{pipes} && defined $this->{pipes}{pid})
   {
-    kill 'TERM', $this->{pipes}{pid};
+    my $pipein = $this->{pipes}{in};
+    print $pipein "exit\n";
     waitpid( $this->{pipes}{pid}, 0 );
   }
 }
