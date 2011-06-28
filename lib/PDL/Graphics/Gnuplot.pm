@@ -3,9 +3,9 @@ package PDL::Graphics::Gnuplot;
 use strict;
 use warnings;
 use PDL;
-use IO::Handle;
 use List::Util qw(first);
 use Storable qw(dclone);
+use IPC::Open3;
 
 our $VERSION = 0.01;
 
@@ -69,11 +69,15 @@ sub new
     barf "PDL::Graphics::Gnuplot->new() got option(s) that were NOT a plot option: (@badKeys)";
   }
 
-  my $pipe = startGnuplot( $plotoptions{dump} );
-  print $pipe parseOptions(\%plotoptions);
+  my $pipes  = startGnuplot( $plotoptions{dump} );
+  my $pipein = $pipes->{in};
 
-  my $this = {pipe    => $pipe,
-              options => \%plotoptions};
+  print $pipein parseOptions(\%plotoptions);
+
+
+
+  my $this = {pipes    => $pipes,
+              options  => \%plotoptions};
   bless($this, $classname);
 
   return $this;
@@ -81,17 +85,16 @@ sub new
 
   sub startGnuplot
   {
-    # if we're simply dumping the gnuplot commands to stdout, simply return a handle to STDOUT
     my $dump = shift;
-    return *STDOUT if $dump;
-
+    return {in => \*STDOUT} if($dump);
 
     my @options = $gnuplotFeatures{persist} ? qw(--persist) : ();
 
-    my $pipe;
-    open( $pipe, '|-', 'gnuplot', @options) or die "Couldn't run the 'gnuplot' backend. Error: \"$!\"";
+    my $pid =
+      open3(\*IN, undef, \*ERR, 'gnuplot', @options)
+        or die "Couldn't run the 'gnuplot' backend";
 
-    return $pipe;
+    return {in => \*IN, err => \*ERR, pid => $pid};
   }
 
   sub parseOptions
@@ -208,6 +211,17 @@ sub new
   }
 }
 
+sub DESTROY
+{
+  my $this = shift;
+
+  if( defined $this->{pipes} && defined $this->{pipes}{pid})
+  {
+    kill 'TERM', $this->{pipes}{pid};
+    waitpid( $this->{pipes}{pid}, 0 );
+  }
+}
+
 # the main API function to generate a plot. Input arguments are a bunch of
 # piddles optionally preceded by a bunch of options for each curve. See the POD
 # for details
@@ -263,9 +277,9 @@ sub plot
     $this = $globalPlot = PDL::Graphics::Gnuplot->new($plotOptions);
   }
 
-  my $pipe        = $this->{pipe};
+  my $pipes       = $this->{pipes};
   my $plotOptions = $this->{options};
-
+  my $pipein      = $pipes->{in};
 
   # I split my data-to-plot into similarly-styled chunks
   # pieces of data we're plotting. Each chunk has a similar style
@@ -276,16 +290,19 @@ sub plot
   { barf "plot() was not given any data"; }
 
 
-  print $pipe plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith}) . "\n";
+  # Any errors happened already?
+  _checkForErrors($pipes);
+
+  my $plotcmd = plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
+
+  print $pipein "$plotcmd\n";
 
   foreach my $chunk(@$chunks)
   {
     my $data      = $chunk->{data};
     my $tupleSize = scalar @$data;
-    eval( "_writedata_$tupleSize" . '(@$data, $pipe)');
+    eval( "_writedata_$tupleSize" . '(@$data, $pipes)');
   }
-
-  flush $pipe;
 
 
   # generates the gnuplot command to generate the plot. The curve options are parsed here
@@ -647,6 +664,35 @@ sub plot
       return $size;
     }
   }
+
+  # reads the STDERR from the gnuplot child process to see if errors occurred
+  sub _checkForErrors
+  {
+    my $pipes   = shift;
+    my $pipein  = $pipes->{in};
+    my $pipeerr = $pipes->{err};
+
+    # if no error pipe exists, we can't check for errors, so we're done. Usually
+    # happens if($dump)
+    return unless defined $pipeerr;
+
+
+    # I have no way of knowing if the child process has sent its error data
+    # yet. It may be that an error has already occurred, but the message hasn't
+    # yet arrived. I thus print out a checkpoint message and keep reading the
+    # child's STDERR pipe until I get that message back. Any errors would have
+    # been printed before this
+    my $checkpoint = "About to send data if no errors";
+
+    print $pipein "print \"$checkpoint\"\n";
+
+    my $fromerr = '';
+    $fromerr .= <$pipeerr> while $fromerr !~ /\s*(.*?)\s*$checkpoint/s;
+
+    my $errorMessage = $1;
+    if (length $errorMessage)
+    { barf "Gnuplot error: \"$errorMessage\""; }
+  }
 }
 
 # these are convenience wrappers for plot()
@@ -671,10 +717,19 @@ sub plotpoints
 # this directly at all; it's just used to define the threading-aware routines
 sub _wcols_gnuplot
 {
-  my $pipe = pop @_;
-  my $strref = cat(@_)->transpose->get_dataref;
-  print $pipe $$strref;
+  my $pipes  = pop @_;
+  my $pipein = $pipes->{in};
+
+  print $pipein ${ cat(@_)->transpose->get_dataref };
 };
+
+sub _writeToPipe
+{
+  my ($pipes, $string) = @_;
+
+  my $pipe = $pipes->{in};
+  print $pipe $$string;
+}
 
 # I generate a bunch of PDL definitions such as
 # _writedata_2(x1(n), x2(n)), NOtherPars => 1
