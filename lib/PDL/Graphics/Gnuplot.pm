@@ -9,8 +9,6 @@ use IPC::Open3;
 
 our $VERSION = 0.01;
 
-$PDL::use_commas = 1;
-
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d plotlines plotpoints);
 
