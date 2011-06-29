@@ -73,7 +73,7 @@ sub new
               options  => \%plotoptions};
   bless($this, $classname);
 
-  _writeToPipe($pipes, parseOptions(\%plotoptions));
+  _safelyWriteToPipe($pipes, parseOptions(\%plotoptions));
 
   return $this;
 
@@ -715,7 +715,7 @@ sub _wcols_gnuplot
   print $pipein ${ cat(@_)->transpose->get_dataref };
 };
 
-sub _writeToPipe
+sub _safelyWriteToPipe
 {
   my ($pipes, $string) = @_;
   my $pipein = $pipes->{in};
