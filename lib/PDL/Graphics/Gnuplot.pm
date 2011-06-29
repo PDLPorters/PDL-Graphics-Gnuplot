@@ -739,8 +739,17 @@ sub plot
     print $pipein "print \"$checkpoint\"\n";
 
     my $fromerr = '';
-    $fromerr .= <$pipeerr> while $fromerr !~ /\s*(.*?)\s*$checkpoint/s;
-    return $1;
+    $fromerr .= <$pipeerr> until $fromerr =~ /\s*(.*?)\s*$checkpoint/s;
+    $fromerr = $1;
+
+    # I've now read all the data up-to the checkpoint. Strip out all the warnings
+    $fromerr =~ s/^(?:Warning:.*$)\n?//gm;
+
+    # strip out all the leading/trailing whitespace
+    $fromerr =~ s/^\s*//;
+    $fromerr =~ s/\s*$//;
+
+    return $fromerr;
   }
 }
 
