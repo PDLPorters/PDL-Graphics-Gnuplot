@@ -734,7 +734,7 @@ sub plot
     # yet arrived. I thus print out a checkpoint message and keep reading the
     # child's STDERR pipe until I get that message back. Any errors would have
     # been printed before this
-    my $checkpoint = "About to send data if no errors";
+    my $checkpoint = "xxxxxxx About to send data if no errors xxxxxxx";
 
     print $pipein "print \"$checkpoint\"\n";
 
