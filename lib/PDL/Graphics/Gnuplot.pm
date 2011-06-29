@@ -746,7 +746,7 @@ for my $n (2..20)
 
 sub _getGnuplotFeatures
 {
-  open(GNUPLOT, '-|', qw(gnuplot --help)) or die "Couldn't run the 'gnuplot' backend. Error: \"$!\"";
+  open(GNUPLOT, 'gnuplot --help |') or die "Couldn't run the 'gnuplot' backend. Error: \"$!\"";
 
   local $/ = undef;
   my $in = <GNUPLOT>;
