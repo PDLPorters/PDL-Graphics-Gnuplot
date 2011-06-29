@@ -286,8 +286,21 @@ sub plot
   { barf "plot() was not given any data"; }
 
 
-  my $plotcmd = plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
+  # I'm now ready to send the plot command. If the plot command fails, I'll get
+  # an error message; if it succeeds, gnuplot will sit there waiting for data. I
+  # don't want to have a timeout waiting for the error message, so I try to run
+  # the plot command to see if it works. I make a dummy plot into the 'dumb'
+  # terminal, and then _checkpoint() for errors.  To make this quick, the test
+  # plot command contains the minimum number of data points
 
+  # make the plot command and another to test it (minimum point count). Finally,
+  # this tells me how many bytes of dummy data my test plot should receive
+  my ($plotcmd, $plotcmdMinimal, $Ntestbytes) =
+    plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
+
+  testPlotcmd($pipes, $plotcmdMinimal, $Ntestbytes);
+
+  # tests ok. Do it!
   print $pipein "$plotcmd\n";
 
   foreach my $chunk(@$chunks)
@@ -303,8 +316,7 @@ sub plot
   {
     my ($chunks, $is3d, $globalwith) = @_;
 
-    my $cmd = '';
-
+    my $basecmd = '';
 
     # if anything is to be plotted on the y2 axis, set it up
     if( grep {my $chunk = $_; grep {$_->{y2}} @{$chunk->{options}}} @$chunks)
@@ -312,26 +324,38 @@ sub plot
       if ( $is3d )
       { barf "3d plots don't have a y2 axis"; }
 
-      $cmd .= "set ytics nomirror\n";
-      $cmd .= "set y2tics\n";
+      $basecmd .= "set ytics nomirror\n";
+      $basecmd .= "set y2tics\n";
     }
 
-    if($is3d) { $cmd .= 'splot '; }
-    else      { $cmd .= 'plot ' ; }
+    if($is3d) { $basecmd .= 'splot '; }
+    else      { $basecmd .= 'plot ' ; }
 
-    $cmd .=
-      join(',',
-           map
-           {
-             my $chunk = $_;
-             map
-             {
-               "'-' " . formatcmd($chunk) . ' ' . optioncmd($_, $globalwith)
-             } @{$chunk->{options}}
-           }
-           @$chunks);
 
-    return $cmd;
+    my @plotChunkCmd;
+    my @plotChunkCmdMinimal; # same as above, but with a single data point per plot only
+    my $Ntestbytes = 0;
+    foreach my $chunk (@$chunks)
+    {
+      my @optionCmds =
+        map { optioncmd($_, $globalwith) } @{$chunk->{options}};
+
+      # I get 2 formats: one real, and another to test the plot cmd, in case it
+      # fails. The test command is the same, but with a minimal point count. I
+      # also get the number of bytes in a single data point here
+      my ($format, $formatMinimal, $Ntestbytes_here) = formatcmd($chunk);
+
+      push @plotChunkCmd,        map { "'-' $format $_"     }    @optionCmds;
+      push @plotChunkCmdMinimal, map { "'-' $formatMinimal $_" } @optionCmds;
+
+      $Ntestbytes += (scalar @optionCmds) * $Ntestbytes_here;
+    }
+
+    # the command to make the plot and to test the plot
+    my $cmd        = $basecmd . join(',', @plotChunkCmd);
+    my $cmdMinimal = $basecmd . join(',', @plotChunkCmdMinimal);
+
+    return ($cmd, $cmdMinimal, $Ntestbytes);
 
 
 
@@ -360,6 +384,8 @@ sub plot
 
     sub formatcmd
     {
+      # I make 2 formats: one real, and another to test the plot cmd, in case it
+      # fails
       my $chunk = shift;
 
       my $tupleSize  = $chunk->{tupleSize};
@@ -368,7 +394,13 @@ sub plot
       my $format = "binary record=$recordSize format=\"";
       $format .= '%double' x $tupleSize;
       $format .= '"';
-      return $format;
+
+      # to test the plot I plot a single record
+      my $formatTest = $format;
+      $formatTest =~ s/record=\d+/record=1/;
+
+      # assuming sizeof(double)==8 for now
+      return ($format, $formatTest, 8*$tupleSize);
     }
   }
 
@@ -658,9 +690,34 @@ sub plot
     }
   }
 
+  sub testPlotcmd
+  {
+    # I test the plot command by making a dummy plot with the test command.
+    my ($pipes, $plotcmdMinimal, $Ntestbytes) = @_;
+
+    my $pipein = $pipes->{in};
+
+    print $pipein "set terminal push\n";
+    print $pipein "set terminal dumb\n";
+    print $pipein "$plotcmdMinimal\n";
+
+    # now write the data to the minimal test plot. If there was an error, these
+    # are newlines that will simply do nothing. If there was no error, these are
+    # data that will be plotted in some manner. I'm not actually looking at this
+    # plot so I don't care what it is
+    print $pipein "\n" x $Ntestbytes;
+    my $errorMessage = _checkpoint($pipes);
+    if ($errorMessage)
+    {
+      barf "Gnuplot error: \"$errorMessage\" while sending plotcmd \"$plotcmdMinimal\"";
+    }
+
+    print $pipein "set terminal pop\n";
+  }
+
   # syncronizes the child and parent processes. After _checkpoint() returns, I
-  # know that I've read all the data from the child. Any extra data (such as
-  # error messages) is returned
+  # know that I've read all the data from the child. Extra data that represents
+  # errors is returned. Warnings are explicitly stripped out
   sub _checkpoint
   {
     my $pipes   = shift;
