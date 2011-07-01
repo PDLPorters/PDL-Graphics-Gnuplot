@@ -311,8 +311,8 @@ sub plot
   foreach my $chunk(@$chunks)
   {
     my $data      = $chunk->{data};
-    my $tupleSize = scalar @$data;
-    eval( "_writedata_$tupleSize" . '(@$data, $pipes)');
+    my $tuplesize = scalar @$data;
+    eval( "_writedata_$tuplesize" . '(@$data, $pipes)');
   }
 
 
@@ -393,11 +393,11 @@ sub plot
       # fails
       my $chunk = shift;
 
-      my $tupleSize  = $chunk->{tupleSize};
+      my $tuplesize  = $chunk->{tuplesize};
       my $recordSize = $chunk->{data}[0]->dim(0);
 
       my $format = "binary record=$recordSize format=\"";
-      $format .= '%double' x $tupleSize;
+      $format .= '%double' x $tuplesize;
       $format .= '"';
 
       # to test the plot I plot a single record
@@ -405,7 +405,7 @@ sub plot
       $formatTest =~ s/record=\d+/record=1/;
 
       # assuming sizeof(double)==8 for now
-      return ($format, $formatTest, 8*$tupleSize);
+      return ($format, $formatTest, 8*$tuplesize);
     }
   }
 
@@ -462,28 +462,28 @@ sub plot
       my $nextOptionIdx = first {!ref $args[$_] || ref $args[$_] ne 'PDL'} $argIndex..$#args;
       $nextOptionIdx = @args unless defined $nextOptionIdx;
 
-      my $tupleSize    = getTupleSize($is3d, $chunk{options});
+      my $tuplesize    = getTupleSize($is3d, $chunk{options});
       my $NdataPiddles = $nextOptionIdx - $argIndex;
 
-      if($NdataPiddles > $tupleSize)
+      if($NdataPiddles > $tuplesize)
       {
-        $nextOptionIdx = $argIndex + $tupleSize;
-        $NdataPiddles  = $tupleSize;
+        $nextOptionIdx = $argIndex + $tuplesize;
+        $NdataPiddles  = $tuplesize;
       }
 
       my @dataPiddles   = @args[$argIndex..$nextOptionIdx-1];
 
-      if($NdataPiddles < $tupleSize)
+      if($NdataPiddles < $tuplesize)
       {
         # I got fewer data elements than I expected
 
-        if(!$is3d && $NdataPiddles+1 == $tupleSize)
+        if(!$is3d && $NdataPiddles+1 == $tuplesize)
         {
           # A 2D plot is one data element short. Fill in a sequential domain
           # 0,1,2,...
           unshift @dataPiddles, sequence($dataPiddles[0]->dim(0));
         }
-        elsif($is3d && $NdataPiddles+2 == $tupleSize)
+        elsif($is3d && $NdataPiddles+2 == $tuplesize)
         {
           # a 3D plot is 2 elements short. Use a grid as a domain
           my @dims = $dataPiddles[0]->dims();
@@ -501,11 +501,11 @@ sub plot
           { $data = $data->clump(2); }
         }
         else
-        { barf "plot() needed $tupleSize data piddles, but only got $NdataPiddles"; }
+        { barf "plot() needed $tuplesize data piddles, but only got $NdataPiddles"; }
       }
 
       $chunk{data}      = \@dataPiddles;
-      $chunk{tupleSize} = $tupleSize;
+      $chunk{tuplesize} = $tuplesize;
       $chunk{Ncurves}   = countCurvesAndValidate(\%chunk);
       $Ncurves += $chunk{Ncurves};
 
@@ -686,7 +686,7 @@ sub plot
         {
           if($size != $sizehere)
           {
-            barf "plot() tried to change tupleSize in a chunk: $size vs $sizehere";
+            barf "plot() tried to change tuplesize in a chunk: $size vs $sizehere";
           }
         }
       }
