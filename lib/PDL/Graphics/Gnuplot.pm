@@ -6,6 +6,7 @@ use PDL;
 use List::Util qw(first);
 use Storable qw(dclone);
 use IPC::Open3;
+use Symbol qw(gensym);
 
 our $VERSION = 0.01;
 
@@ -85,11 +86,15 @@ sub new
 
     my @options = $gnuplotFeatures{persist} ? qw(--persist) : ();
 
+    my $in  = gensym();
+    my $out = gensym();
+    my $err = gensym();
+
     my $pid =
-      open3(\*IN, undef, \*ERR, 'gnuplot', @options)
+      open3($in, $out, $err, 'gnuplot', @options)
         or die "Couldn't run the 'gnuplot' backend";
 
-    return {in => \*IN, err => \*ERR, pid => $pid};
+    return {in => $in, out => $out, err => $err, pid => $pid};
   }
 
   sub parseOptions
