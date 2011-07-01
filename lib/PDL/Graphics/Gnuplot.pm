@@ -23,7 +23,8 @@ my $globalPlot;
 
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
-my @allPlotOptions = qw(3d dump extracmds hardcopy nogrid square square_xy title
+my @allPlotOptions = qw(3d dump ascii
+                        extracmds hardcopy nogrid square square_xy title
                         globalwith
                         xlabel xmax xmin
                         y2label y2max y2min
@@ -300,10 +301,10 @@ sub plot
 
   # make the plot command and another to test it (minimum point count). Finally,
   # this tells me how many bytes of dummy data my test plot should receive
-  my ($plotcmd, $plotcmdMinimal, $Ntestbytes) =
-    plotcmd($chunks, $plotOptions->{'3d'}, $plotOptions->{globalwith});
+  my ($plotcmd, $testplotcmd_and_data) =
+    plotcmd( $chunks, @{$plotOptions}{qw(3d ascii globalwith)} );
 
-  testPlotcmd($pipes, $plotcmdMinimal, $Ntestbytes);
+  testPlotcmd($pipes, $testplotcmd_and_data);
 
   # tests ok. Do it!
   print $pipein "$plotcmd\n";
@@ -312,14 +313,14 @@ sub plot
   {
     my $data      = $chunk->{data};
     my $tuplesize = scalar @$data;
-    eval( "_writedata_$tuplesize" . '(@$data, $pipes)');
+    eval( "_writedata_$tuplesize" . '(@$data, $pipes, $plotOptions->{ascii})');
   }
 
 
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($chunks, $is3d, $globalwith) = @_;
+    my ($chunks, $is3d, $isascii, $globalwith) = @_;
 
     my $basecmd = '';
 
@@ -339,28 +340,48 @@ sub plot
 
     my @plotChunkCmd;
     my @plotChunkCmdMinimal; # same as above, but with a single data point per plot only
-    my $Ntestbytes = 0;
+    my $testData = '';       # data to make a minimal plot
+
     foreach my $chunk (@$chunks)
     {
       my @optionCmds =
         map { optioncmd($_, $globalwith) } @{$chunk->{options}};
 
-      # I get 2 formats: one real, and another to test the plot cmd, in case it
-      # fails. The test command is the same, but with a minimal point count. I
-      # also get the number of bytes in a single data point here
-      my ($format, $formatMinimal, $Ntestbytes_here) = formatcmd($chunk);
+      if(! $isascii )
+      {
+        # I get 2 formats: one real, and another to test the plot cmd, in case it
+        # fails. The test command is the same, but with a minimal point count. I
+        # also get the number of bytes in a single data point here
+        my ($format, $formatMinimal) = formatcmd($chunk);
+        my $Ntestbytes_here          = getNbytes_tuple($chunk);
 
-      push @plotChunkCmd,        map { "'-' $format $_"     }    @optionCmds;
-      push @plotChunkCmdMinimal, map { "'-' $formatMinimal $_" } @optionCmds;
+        push @plotChunkCmd,        map { "'-' $format $_"     }    @optionCmds;
+        push @plotChunkCmdMinimal, map { "'-' $formatMinimal $_" } @optionCmds;
 
-      $Ntestbytes += (scalar @optionCmds) * $Ntestbytes_here;
+        # If there was an error, these are newlines that will simply do
+        # nothing. If there was no error, these are data that will be plotted in
+        # some manner. I'm not actually looking at this plot so I don't care
+        # what it is
+        $testData .= "\n" x $Ntestbytes_here;
+      }
+      else
+      {
+        # I'm using ascii to talk to gnuplot, so the minimal and "normal" plot
+        # commands are the same (point count is not in the plot command)
+        push @plotChunkCmd, map { "'-' $_" } @optionCmds;
+
+        my $testData_curve = "10 " x $chunk->{tuplesize} . "\n" . "e\n";
+        $testData .= $testData_curve x scalar @optionCmds;
+      }
     }
 
     # the command to make the plot and to test the plot
     my $cmd        = $basecmd . join(',', @plotChunkCmd);
-    my $cmdMinimal = $basecmd . join(',', @plotChunkCmdMinimal);
+    my $cmdMinimal = @plotChunkCmdMinimal ?
+      $basecmd . join(',', @plotChunkCmdMinimal) :
+      $cmd;
 
-    return ($cmd, $cmdMinimal, $Ntestbytes);
+    return ($cmd, "$cmdMinimal\n$testData");
 
 
 
@@ -404,8 +425,14 @@ sub plot
       my $formatTest = $format;
       $formatTest =~ s/record=\d+/record=1/;
 
+      return ($format, $formatTest);
+    }
+
+    sub getNbytes_tuple
+    {
+      my $chunk = shift;
       # assuming sizeof(double)==8 for now
-      return ($format, $formatTest, 8*$tuplesize);
+      return 8 * $chunk->{tuplesize};
     }
   }
 
@@ -698,23 +725,18 @@ sub plot
   sub testPlotcmd
   {
     # I test the plot command by making a dummy plot with the test command.
-    my ($pipes, $plotcmdMinimal, $Ntestbytes) = @_;
+    my ($pipes, $testplotcmd_and_data) = @_;
 
     my $pipein = $pipes->{in};
 
     print $pipein "set terminal push\n";
     print $pipein "set terminal dumb\n";
-    print $pipein "$plotcmdMinimal\n";
+    print $pipein "$testplotcmd_and_data";
 
-    # now write the data to the minimal test plot. If there was an error, these
-    # are newlines that will simply do nothing. If there was no error, these are
-    # data that will be plotted in some manner. I'm not actually looking at this
-    # plot so I don't care what it is
-    print $pipein "\n" x $Ntestbytes;
     my $errorMessage = _checkpoint($pipes);
     if ($errorMessage)
     {
-      barf "Gnuplot error: \"$errorMessage\" while sending plotcmd \"$plotcmdMinimal\"";
+      barf "Gnuplot error: \"$errorMessage\" while sending plotcmd \"$testplotcmd_and_data\"";
     }
 
     print $pipein "set terminal pop\n";
@@ -780,10 +802,19 @@ sub plotpoints
 # this directly at all; it's just used to define the threading-aware routines
 sub _wcols_gnuplot
 {
-  my $pipes  = pop @_;
-  my $pipein = $pipes->{in};
+  my $isascii = pop @_;
+  my $pipes   = pop @_;
+  my $pipein  = $pipes->{in};
 
-  print $pipein ${ cat(@_)->transpose->get_dataref };
+  if(! $isascii)
+  {
+    print $pipein ${ cat(@_)->transpose->get_dataref };
+  }
+  else
+  {
+    wcols @_, $pipein;
+    print $pipein "e\n";
+  }
 };
 
 sub _safelyWriteToPipe
@@ -805,12 +836,13 @@ sub _safelyWriteToPipe
 }
 
 # I generate a bunch of PDL definitions such as
-# _writedata_2(x1(n), x2(n)), NOtherPars => 1
+# _writedata_2(x1(n), x2(n)), NOtherPars => 2
+# The last 2 arguments are (pipe, isascii)
 # 20 tuples per point sounds like plenty. The most complicated plots Gnuplot can
 # handle probably max out at 5 or so
 for my $n (2..20)
 {
-  my $def = "_writedata_$n(" . join( ';', map {"x$_(n)"} 1..$n) . "), NOtherPars => 1";
+  my $def = "_writedata_$n(" . join( ';', map {"x$_(n)"} 1..$n) . "), NOtherPars => 2";
   thread_define $def, over \&_wcols_gnuplot;
 }
 
@@ -1068,7 +1100,14 @@ string of an arrayref of different commands
 =item dump
 
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
-of writing to a gnuplot process. Note that this dump will contain binary data
+of writing to a gnuplot process. Note that this dump will contain binary data,
+unless the 'ascii' option is given (see below)
+
+=item ascii
+
+If given, ASCII data is passed to gnuplot instead of binary data. This is mostly
+for debugging. It will be significantly slower and the error-detection logic in
+PDL::Graphics::Gnuplot will not work as well
 
 =back
 
