@@ -23,7 +23,7 @@ my $globalPlot;
 
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
-my @allPlotOptions = qw(3d dump ascii
+my @allPlotOptions = qw(3d dump binary
                         extracmds hardcopy nogrid square square_xy title
                         globalwith
                         xlabel xmax xmin
@@ -302,7 +302,7 @@ sub plot
   # make the plot command and another to test it (minimum point count). Finally,
   # this tells me how many bytes of dummy data my test plot should receive
   my ($plotcmd, $testplotcmd_and_data) =
-    plotcmd( $chunks, @{$plotOptions}{qw(3d ascii globalwith)} );
+    plotcmd( $chunks, @{$plotOptions}{qw(3d binary globalwith)} );
 
   testPlotcmd($pipes, $testplotcmd_and_data);
 
@@ -313,14 +313,14 @@ sub plot
   {
     my $data      = $chunk->{data};
     my $tuplesize = scalar @$data;
-    eval( "_writedata_$tuplesize" . '(@$data, $pipes, $plotOptions->{ascii})');
+    eval( "_writedata_$tuplesize" . '(@$data, $pipes, $plotOptions->{binary})');
   }
 
 
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($chunks, $is3d, $isascii, $globalwith) = @_;
+    my ($chunks, $is3d, $isbinary, $globalwith) = @_;
 
     my $basecmd = '';
 
@@ -347,7 +347,7 @@ sub plot
       my @optionCmds =
         map { optioncmd($_, $globalwith) } @{$chunk->{options}};
 
-      if(! $isascii )
+      if( $isbinary )
       {
         # I get 2 formats: one real, and another to test the plot cmd, in case it
         # fails. The test command is the same, but with a minimal point count. I
@@ -802,11 +802,11 @@ sub plotpoints
 # this directly at all; it's just used to define the threading-aware routines
 sub _wcols_gnuplot
 {
-  my $isascii = pop @_;
-  my $pipes   = pop @_;
-  my $pipein  = $pipes->{in};
+  my $isbinary = pop @_;
+  my $pipes    = pop @_;
+  my $pipein   = $pipes->{in};
 
-  if(! $isascii)
+  if( $isbinary)
   {
     print $pipein ${ cat(@_)->transpose->get_dataref };
   }
@@ -837,7 +837,7 @@ sub _safelyWriteToPipe
 
 # I generate a bunch of PDL definitions such as
 # _writedata_2(x1(n), x2(n)), NOtherPars => 2
-# The last 2 arguments are (pipe, isascii)
+# The last 2 arguments are (pipe, isbinary)
 # 20 tuples per point sounds like plenty. The most complicated plots Gnuplot can
 # handle probably max out at 5 or so
 for my $n (2..20)
@@ -1103,11 +1103,12 @@ Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
 of writing to a gnuplot process. Note that this dump will contain binary data,
 unless the 'ascii' option is given (see below)
 
-=item ascii
+=item binary
 
-If given, ASCII data is passed to gnuplot instead of binary data. This is mostly
-for debugging. It will be significantly slower and the error-detection logic in
-PDL::Graphics::Gnuplot will not work as well
+If given, binary data is passed to gnuplot instead of ASCII data. Binary is much
+more efficient (and thus faster), but due to some bugs in Gnuplot, it will not
+work for some more complicated plots. These cases will produce gnuplot errors
+detected by PDL::Graphics::Gnuplot.
 
 =back
 
