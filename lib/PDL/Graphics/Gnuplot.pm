@@ -736,7 +736,7 @@ sub plot
     my $errorMessage = _checkpoint($pipes);
     if ($errorMessage)
     {
-      barf "Gnuplot error: \"$errorMessage\" while sending plotcmd \"$testplotcmd_and_data\"";
+      barf "Gnuplot error: \"\n$errorMessage\n\" while sending plotcmd \"$testplotcmd_and_data\"";
     }
 
     print $pipein "set terminal pop\n";
@@ -830,7 +830,7 @@ sub _safelyWriteToPipe
 
     if( my $errorMessage = _checkpoint($pipes) )
     {
-      barf "Gnuplot error: \"$errorMessage\" while sending line \"$line\"";
+      barf "Gnuplot error: \"\n$errorMessage\n\" while sending line \"$line\"";
     }
   }
 }
