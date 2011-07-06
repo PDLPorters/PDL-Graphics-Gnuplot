@@ -751,11 +751,6 @@ sub plot
     my $pipein  = $pipes->{in};
     my $pipeerr = $pipes->{err};
 
-    # if no error pipe exists, we can't check for errors, so we're done. Usually
-    # happens if($dump)
-    return unless defined $pipeerr;
-
-
     # I have no way of knowing if the child process has sent its error data
     # yet. It may be that an error has already occurred, but the message hasn't
     # yet arrived. I thus print out a checkpoint message and keep reading the
@@ -764,6 +759,11 @@ sub plot
     my $checkpoint = "xxxxxxx About to send data if no errors xxxxxxx";
 
     print $pipein "print \"$checkpoint\"\n";
+
+
+    # if no error pipe exists, we can't check for errors, so we're done. Usually
+    # happens if($dump)
+    return unless defined $pipeerr;
 
     my $fromerr = '';
     $fromerr .= <$pipeerr> until $fromerr =~ /\s*(.*?)\s*$checkpoint/s;
