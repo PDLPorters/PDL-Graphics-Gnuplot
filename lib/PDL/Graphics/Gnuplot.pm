@@ -298,13 +298,10 @@ sub plot
   # the plot command to see if it works. I make a dummy plot into the 'dumb'
   # terminal, and then _checkpoint() for errors.  To make this quick, the test
   # plot command contains the minimum number of data points
-
-  # make the plot command and another to test it (minimum point count). Finally,
-  # this tells me how many bytes of dummy data my test plot should receive
-  my ($plotcmd, $testplotcmd_and_data) =
+  my ($plotcmd, $testplotcmd, $testplotdata) =
     plotcmd( $chunks, @{$plotOptions}{qw(3d binary globalwith)} );
 
-  testPlotcmd($pipes, $testplotcmd_and_data);
+  testPlotcmd($pipes, $testplotcmd, $testplotdata);
 
   # tests ok. Do it!
   print $pipein "$plotcmd\n";
@@ -381,7 +378,7 @@ sub plot
       $basecmd . join(',', @plotChunkCmdMinimal) :
       $cmd;
 
-    return ($cmd, "$cmdMinimal\n$testData");
+    return ($cmd, $cmdMinimal, $testData);
 
 
 
@@ -725,18 +722,27 @@ sub plot
   sub testPlotcmd
   {
     # I test the plot command by making a dummy plot with the test command.
-    my ($pipes, $testplotcmd_and_data) = @_;
+    my ($pipes, $testplotcmd, $testplotdata) = @_;
 
     my $pipein = $pipes->{in};
 
     print $pipein "set terminal push\n";
     print $pipein "set terminal dumb\n";
-    print $pipein "$testplotcmd_and_data";
 
-    my $errorMessage = _checkpoint($pipes);
-    if ($errorMessage)
+    # I send a test plot command. Gnuplot implicitly uses && if multiple
+    # commands are present on the same line. Thus if I see the post-plot print
+    # in the output, I know the plot command succeeded
+    my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
+    print $pipein "$testplotcmd; print \"$postTestplotCheckpoint\"\n";
+    print $pipein $testplotdata;
+
+    my $checkpointMessage = _checkpoint($pipes);
+
+    if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
     {
-      barf "Gnuplot error: \"\n$errorMessage\n\" while sending plotcmd \"$testplotcmd_and_data\"";
+      # The checkpoint message does not contain the post-plot checkpoint. This
+      # means gnuplot decided that the plot command failed.
+      barf "Gnuplot error: \"\n$checkpointMessage\n\" while sending plotcmd \"$testplotcmd\"";
     }
 
     print $pipein "set terminal pop\n";
