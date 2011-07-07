@@ -859,6 +859,7 @@ sub _getGnuplotFeatures
 
   local $/ = undef;
   my $in = <GNUPLOT>;
+  close GNUPLOT;
 
   my %featureSet;
   if(defined $in)
