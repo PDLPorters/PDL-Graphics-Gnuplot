@@ -362,7 +362,7 @@ sub plot
         # nothing. If there was no error, these are data that will be plotted in
         # some manner. I'm not actually looking at this plot so I don't care
         # what it is
-        $testData .= "\n" x $Ntestbytes_here;
+        $testData .= "\n" x ($Ntestbytes_here * scalar @optionCmds);
       }
       else
       {
