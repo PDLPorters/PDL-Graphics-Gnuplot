@@ -314,6 +314,11 @@ sub plot
   }
 
 
+
+
+
+
+
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
