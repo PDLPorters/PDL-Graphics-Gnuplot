@@ -845,11 +845,34 @@ sub _safelyWriteToPipe
   {
     next unless $line;
 
+    barfOnDisallowedCommands($line);
+
     print $pipein "$line\n";
 
     if( my $errorMessage = _checkpoint($pipes) )
     {
       barf "Gnuplot error: \"\n$errorMessage\n\" while sending line \"$line\"";
+    }
+  }
+
+  sub barfOnDisallowedCommands
+  {
+    my $line = shift;
+
+    # I use STDERR as the backchannel, so I don't allow any "set print"
+    # commands, since those can disable that
+    if ( $line =~ /^(?: .*;)?       # optionally wait for a semicolon
+                   \s*
+                   set\s+print\b/x )
+    {
+      barf "Please don't 'set print' since I use gnuplot's STDERR for error detection";
+    }
+
+    if ( $line =~ /^(?: .*;)?       # optionally wait for a semicolon
+                   \s*
+                   print\b/x )
+    {
+      barf "Please don't ask gnuplot to 'print' anything since this can confuse my error detection";
     }
   }
 }
