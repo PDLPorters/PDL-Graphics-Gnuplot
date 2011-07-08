@@ -319,6 +319,9 @@ sub plot
     eval( "_writedata_$tuplesize" . '(@data, $pipes, $plotOptions->{binary})');
   }
 
+  # read and report any warnings that happened during the plot
+  _checkpoint($this->{pipes}, 'printwarnings');
+
 
 
 
@@ -770,6 +773,9 @@ sub plot
     my $pipein  = $pipes->{in};
     my $pipeerr = $pipes->{err};
 
+    # string containing various options to this function
+    my $flags = shift;
+
     # I have no way of knowing if the child process has sent its error data
     # yet. It may be that an error has already occurred, but the message hasn't
     # yet arrived. I thus print out a checkpoint message and keep reading the
@@ -788,8 +794,17 @@ sub plot
     $fromerr .= <$pipeerr> until $fromerr =~ /\s*(.*?)\s*$checkpoint/s;
     $fromerr = $1;
 
+    my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
+
+    if(defined $flags && $flags =~ /printwarnings/)
+    {
+      while($fromerr =~ m/$warningre/gm)
+      { print STDERR "Gnuplot warning: $1\n"; }
+    }
+
+
     # I've now read all the data up-to the checkpoint. Strip out all the warnings
-    $fromerr =~ s/^(?:Warning:.*$)\n?//gm;
+    $fromerr =~ s/$warningre//gm;
 
     # strip out all the leading/trailing whitespace
     $fromerr =~ s/^\s*//;
@@ -852,7 +867,7 @@ sub _safelyWriteToPipe
 
     print $pipein "$line\n";
 
-    if( my $errorMessage = _checkpoint($pipes) )
+    if( my $errorMessage = _checkpoint($pipes, 'printwarnings') )
     {
       barf "Gnuplot error: \"\n$errorMessage\n\" while sending line \"$line\"";
     }
