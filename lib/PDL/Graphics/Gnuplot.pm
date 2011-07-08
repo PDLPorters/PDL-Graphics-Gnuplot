@@ -494,6 +494,8 @@ sub plot
       my $tuplesize    = getTupleSize($is3d, $chunk{options});
       my $NdataPiddles = $nextOptionIdx - $argIndex;
 
+      # If I have more data piddles that I need, use only what I need now, and
+      # use the rest for the next curve
       if($NdataPiddles > $tuplesize)
       {
         $nextOptionIdx = $argIndex + $tuplesize;
