@@ -308,9 +308,15 @@ sub plot
 
   foreach my $chunk(@$chunks)
   {
-    my $data      = $chunk->{data};
-    my $tuplesize = scalar @$data;
-    eval( "_writedata_$tuplesize" . '(@$data, $pipes, $plotOptions->{binary})');
+    # In order for the PDL threading to work, I need at least one dimension. Add
+    # it where needed. pdl(5) has 0 dimensions, for instance. I really want
+    # something like "plot(5, pdl(3,4,5,3,4))" to work; It doesn't right
+    # now. This map() makes "plot(pdl(3), pdl(5))" work. This is good for
+    # completeness, but not really all that interesting
+    my @data = map {$_->ndims == 0 ? $_->dummy(0) : $_} @{$chunk->{data}};
+
+    my $tuplesize = scalar @data;
+    eval( "_writedata_$tuplesize" . '(@data, $pipes, $plotOptions->{binary})');
   }
 
 
