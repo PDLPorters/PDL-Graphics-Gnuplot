@@ -439,7 +439,7 @@ sub plot
     sub getNbytes_tuple
     {
       my $chunk = shift;
-      # assuming sizeof(double)==8 for now
+      # assuming sizeof(double)==8
       return 8 * $chunk->{tuplesize};
     }
   }
@@ -827,7 +827,10 @@ sub _wcols_gnuplot
 
   if( $isbinary)
   {
-    print $pipein ${ cat(@_)->transpose->get_dataref };
+    # this is not efficient right now. I should do this in C so that I don't
+    # have to physical-ize the piddles and so that I can keep the original type
+    # instead of converting to double
+    print $pipein ${ cat(@_)->transpose->double->get_dataref };
   }
   else
   {
