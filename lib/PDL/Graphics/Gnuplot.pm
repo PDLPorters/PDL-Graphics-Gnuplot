@@ -1098,10 +1098,13 @@ only 2 piddles (y, color).
 
 =head2 Interactivity
 
-The default backend Gnuplot uses to generate the plots is interactive, allowing
-the user to pan, zoom, rotate and measure the data in the plot window. See the
-Gnuplot documentation for details about how to do this. One thing to note with
-PDL::Graphics::Gnuplot is that the interactivity is only possible if the gnuplot
+The graphical backends of Gnuplot are interactive, allowing the user to pan,
+zoom, rotate and measure the data in the plot window. See the Gnuplot
+documentation for details about how to do this. Some terminals (such as wxt) are
+persistently interactive, and the rest of this section does not apply to
+them. Other terminals (such as x11) have the downside described here.
+
+When using an affected terminal, interactivity is only possible if the gnuplot
 process is running. As long as the perl program calling PDL::Graphics::Gnuplot
 is running, the plots are interactive, but once it exits, the child gnuplot
 process will exit also. This will keep the plot windows up, but the
