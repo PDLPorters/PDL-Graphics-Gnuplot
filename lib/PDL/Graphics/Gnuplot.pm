@@ -72,14 +72,14 @@ sub new
 
   my $pipes  = startGnuplot( $plotoptions{dump} );
 
-  my $this = {pipes    => $pipes,
+  my $this = {%$pipes, # %$this is built on top of %$pipes
               options  => \%plotoptions};
   bless($this, $classname);
 
 
   # the plot options affect all the plots made by this object, so I can set them
   # now
-  _safelyWriteToPipe($pipes, parseOptions(\%plotoptions));
+  _safelyWriteToPipe($this, parseOptions(\%plotoptions));
 
   return $this;
 
@@ -224,19 +224,19 @@ sub DESTROY
 
   # if we're stuck on a checkpoint, "exit" won't work, so I just kill the
   # child gnuplot process
-  if( defined $this->{pipes} && defined $this->{pipes}{pid})
+  if( defined $this->{pid})
   {
-    if( $this->{pipes}{checkpoint_stuck} )
+    if( $this->{checkpoint_stuck} )
     {
-      kill 'TERM', $this->{pipes}{pid};
+      kill 'TERM', $this->{pid};
     }
     else
     {
-      my $pipein = $this->{pipes}{in};
+      my $pipein = $this->{in};
       print $pipein "exit\n";
     }
 
-    waitpid( $this->{pipes}{pid}, 0 ) ;
+    waitpid( $this->{pid}, 0 ) ;
   }
 }
 
@@ -295,9 +295,8 @@ sub plot
     $this = $globalPlot = PDL::Graphics::Gnuplot->new($plotOptions);
   }
 
-  my $pipes       = $this->{pipes};
   my $plotOptions = $this->{options};
-  my $pipein      = $pipes->{in};
+  my $pipein      = $this->{in};
 
   # I split my data-to-plot into similarly-styled chunks
   # pieces of data we're plotting. Each chunk has a similar style
@@ -317,7 +316,7 @@ sub plot
   my ($plotcmd, $testplotcmd, $testplotdata) =
     plotcmd( $chunks, @{$plotOptions}{qw(3d binary globalwith)} );
 
-  testPlotcmd($pipes, $testplotcmd, $testplotdata);
+  testPlotcmd($this, $testplotcmd, $testplotdata);
 
   # tests ok. Do it!
   print $pipein "$plotcmd\n";
@@ -332,11 +331,11 @@ sub plot
     my @data = map {$_->ndims == 0 ? $_->dummy(0) : $_} @{$chunk->{data}};
 
     my $tuplesize = scalar @data;
-    eval( "_writedata_$tuplesize" . '(@data, $pipes, $plotOptions->{binary})');
+    eval( "_writedata_$tuplesize" . '(@data, $this, $plotOptions->{binary})');
   }
 
   # read and report any warnings that happened during the plot
-  _checkpoint($this->{pipes}, 'printwarnings');
+  _checkpoint($this, 'printwarnings');
 
 
 
@@ -767,9 +766,9 @@ sub plot
   sub testPlotcmd
   {
     # I test the plot command by making a dummy plot with the test command.
-    my ($pipes, $testplotcmd, $testplotdata) = @_;
+    my ($this, $testplotcmd, $testplotdata) = @_;
 
-    my $pipein = $pipes->{in};
+    my $pipein = $this->{in};
 
     print $pipein "set terminal push\n";
     print $pipein "set terminal dumb\n";
@@ -781,7 +780,7 @@ sub plot
     print $pipein "$testplotcmd; print \"$postTestplotCheckpoint\"\n";
     print $pipein $testplotdata;
 
-    my $checkpointMessage = _checkpoint($pipes);
+    my $checkpointMessage = _checkpoint($this);
 
     if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
     {
@@ -798,9 +797,9 @@ sub plot
   # errors is returned. Warnings are explicitly stripped out
   sub _checkpoint
   {
-    my $pipes   = shift;
-    my $pipein  = $pipes->{in};
-    my $pipeerr = $pipes->{err};
+    my $this   = shift;
+    my $pipein  = $this->{in};
+    my $pipeerr = $this->{err};
 
     # string containing various options to this function
     my $flags = shift;
@@ -827,7 +826,7 @@ sub plot
       # usually happens if the gnuplot process is not in a command mode, but in
       # a data-receiving mode. I'm careful to avoid this situation, but bugs in
       # this module and/or in gnuplot itself can make this happen
-      if( $pipes->{errSelector}->can_read(5) )
+      if( $this->{errSelector}->can_read(5) )
       {
         # read a byte into the tail of $fromerr. I'd like to read "as many bytes
         # as are available", but I don't know how to this in a very portable way
@@ -840,7 +839,7 @@ sub plot
       }
       else
       {
-        $pipes->{checkpoint_stuck} = 1;
+        $this->{checkpoint_stuck} = 1;
 
         barf <<EOM;
 Gnuplot process no longer responding. This is likely a bug in PDL::Graphics::Gnuplot
@@ -894,8 +893,8 @@ sub plotpoints
 sub _wcols_gnuplot
 {
   my $isbinary = pop @_;
-  my $pipes    = pop @_;
-  my $pipein   = $pipes->{in};
+  my $this     = pop @_;
+  my $pipein   = $this->{in};
 
   if( $isbinary)
   {
@@ -913,8 +912,8 @@ sub _wcols_gnuplot
 
 sub _safelyWriteToPipe
 {
-  my ($pipes, $string) = @_;
-  my $pipein = $pipes->{in};
+  my ($this, $string) = @_;
+  my $pipein = $this->{in};
 
   foreach my $line(split('\s*?\n+\s*?', $string))
   {
@@ -924,7 +923,7 @@ sub _safelyWriteToPipe
 
     print $pipein "$line\n";
 
-    if( my $errorMessage = _checkpoint($pipes, 'printwarnings') )
+    if( my $errorMessage = _checkpoint($this, 'printwarnings') )
     {
       barf "Gnuplot error: \"\n$errorMessage\n\" while sending line \"$line\"";
     }
