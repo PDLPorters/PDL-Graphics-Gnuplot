@@ -25,7 +25,8 @@ my $globalPlot;
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
 my @allPlotOptions = qw(3d dump binary
-                        extracmds hardcopy nogrid square square_xy title
+                        extracmds nogrid square square_xy title
+                        hardcopy terminal output
                         globalwith
                         xlabel xmax xmin
                         y2label y2max y2min
@@ -179,10 +180,22 @@ sub new
       }
     }
 
-    # handle hardcopy output
+    # handle 'hardcopy'. This simply ties in to 'output' and 'terminal', handled
+    # later
     {
-      if ( $options->{hardcopy})
+      if ( defined $options->{hardcopy})
       {
+        # 'hardcopy' is simply a shorthand for 'terminal' and 'output', so they
+        # can't exist together
+        if(defined $options->{terminal} || defined $options->{output} )
+        {
+          barf <<EOM;
+The 'hardcopy' option can't coexist with either 'terminal' or 'output'.  If the
+defaults are acceptable, use 'hardcopy' only, otherwise use 'terminal' and
+'output' to get more control.
+EOM
+        }
+
         my $outputfile = $options->{hardcopy};
         my ($outputfileType) = $outputfile =~ /\.(eps|ps|pdf|png)$/;
         if (!$outputfileType)
@@ -194,8 +207,8 @@ sub new
             pdf  => 'pdfcairo solid color font ",10" size 11in,8.5in',
             png  => 'png size 1280,1024' );
 
-        $cmd .= "set terminal $terminalOpts{$outputfileType}\n";
-        $cmd .= "set output \"$outputfile\"\n";
+        $options->{terminal} = $terminalOpts{$outputfileType};
+        $options->{output}   = $outputfile;
       }
     }
 
@@ -318,7 +331,14 @@ sub plot
 
   testPlotcmd($this, $testplotcmd, $testplotdata);
 
-  # tests ok. Do it!
+  # tests ok. Now set the terminal and actually make the plot!
+  if(defined $this->{options}{terminal})
+  { _safelyWriteToPipe($this, "set terminal $this->{options}{terminal}\n"); }
+
+  if(defined $this->{options}{output})
+  { _safelyWriteToPipe($this, "set output \"$this->{options}{output}\"\n"); }
+
+  # all done. make the plot
   print $pipein "$plotcmd\n";
 
   foreach my $chunk(@$chunks)
@@ -771,6 +791,7 @@ sub plot
     my $pipein = $this->{in};
 
     print $pipein "set terminal push\n";
+    print $pipein "set output\n";
     print $pipein "set terminal dumb\n";
 
     # I send a test plot command. Gnuplot implicitly uses && if multiple
@@ -1209,7 +1230,20 @@ These specify axis labels
 Instead of drawing a plot on screen, plot into a file instead. The output
 filename is the value associated with this key. The output format is inferred
 from the filename. Currently only eps, ps, pdf, png are supported with some
-default sets of options. This may become more configurable later
+default sets of options. This option is simply a shorthand for the C<terminal>
+and C<output> options. If the defaults provided by the C<hardcopy> option are
+insufficient, use C<terminal> and C<output> manually.
+
+=item terminal
+
+Sets the gnuplot terminal (with the gnuplot C<set terminal> command). This
+determines what kind of output Gnuplot generates. See the Gnuplot docs for all
+the details.
+
+=item output
+
+Sets the plot output file (with the gnuplot C<set output> command). You
+generally only need to set this if you're generating a hardcopy, such as a PDF.
 
 =item extracmds
 
