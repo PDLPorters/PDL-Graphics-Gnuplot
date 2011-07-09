@@ -1328,6 +1328,123 @@ new one.
 
 
 
+=head1 RECIPES
+
+Most of these come directly from Gnuplot commands. See the Gnuplot docs for
+details.
+
+=head2 2D plotting
+
+If we're plotting a piddle $y of y-values to be plotted sequentially (implicit
+domain), all you need is
+
+  plot($y);
+
+If we also have a corresponding $x domain, we can plot $y vs. $x with
+
+  plot($x, $y);
+
+=head3 Simple style control
+
+To change line thickness:
+
+  plot(with => 'lines linewidth 4', $x, $y);
+
+To change point size and point type:
+
+  plot(with => 'points pointtype 4 pointsize 8', $x, $y);
+
+=head3 Errorbars
+
+To plot errorbars that show $y +- 1, plotted with an implicit domain
+
+  plot(with => 'yerrorbars', tuplesize => 3,
+       $y, $y->ones);
+
+Same with an explicit $x domain:
+
+  plot(with => 'yerrorbars', tuplesize => 3,
+       $x, $y, $y->ones);
+
+Symmetric errorbars on both x and y. $x +- 1, $y +- 2:
+
+  plot(with => 'xyerrorbars', tuplesize => 4,
+       $x, $y, $x->ones, 2*$y->ones);
+
+To plot asymmetric errorbars that show the range $y-1 to $y+2 (note that here
+you must specify the actual errorbar-end positions, NOT just their deviations
+from the center; this is how Gnuplot does it)
+
+  plot(with => 'yerrorbars', tuplesize => 4,
+       $y, $y - $y->ones, $y + 2*$y->ones);
+
+=head3 More multi-value styles
+
+In Gnuplot 4.4.0, these generally only work in ASCII mode. This is a bug in
+Gnuplot that will hopefully get resolved.
+
+Plotting with variable-size circles (size given in plot units)
+
+  plot(with => 'circles', tuplesize => 3,
+       $x, $y, $radii);
+
+Plotting with an variably-sized arbitrary point type (size given in multiples of
+the "default" point size)
+
+  plot(with => 'points pointtype 7 pointsize variable', tuplesize => 3,
+       $x, $y, $sizes);
+
+Color-coded points
+
+  plot(with => 'points palette', tuplesize => 3,
+       $x, $y, $colors);
+
+Variable-size AND color-coded circles. A Gnuplot (4.4.0) bug make it necessary to
+specify the color range here
+
+  plot(cbmin => $mincolor, cbmax => $maxcolor,
+       with => 'circles palette', tuplesize => 4,
+       $x, $y, $radii, $colors);
+
+=head2 3D plotting
+
+General style control works identically for 3D plots as in 2D plots.
+
+To plot a set of 3d points, with a square aspect ratio:
+
+  plot3d(square => 1, $x, $y, $z);
+
+If $xy is a 2D piddle, we can plot it as a height map on an implicit domain
+
+  plot3d($xy);
+
+Complicated 3D plot with fancy styling:
+
+  my $pi    = 3.14159;
+  my $theta = zeros(200)->xlinvals(0, 6*$pi);
+  my $z     = zeros(200)->xlinvals(0, 5);
+
+  plot3d(title => 'double helix',
+
+         { with => 'points pointsize variable pointtype 7 palette', tuplesize => 5,
+           legend => 'spiral 1' },
+         { legend => 'spiral 2' },
+
+         # 2 sets of x, 2 sets of y, single z
+         PDL::cat( cos($theta), -cos($theta)),
+         PDL::cat( sin($theta), -sin($theta)),
+         $z,
+
+         # pointsize, color
+         0.5 + abs(cos($theta)), sin(2*$theta) );
+
+3D plots can be plotted as a heat map. As of Gnuplot 4.4.0, this doesn't work in binary.
+
+  plot3d( extracmds => 'set view 0,0',
+          with => 'image',
+          $xy );
+
+
 =head1 REPOSITORY
 
 L<https://github.com/dkogan/PDL-Graphics-Gnuplot>
