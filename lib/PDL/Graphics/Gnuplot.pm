@@ -6,6 +6,7 @@ use PDL;
 use List::Util qw(first);
 use Storable qw(dclone);
 use IPC::Open3;
+use IO::Select;
 use Symbol qw(gensym);
 
 our $VERSION = 0.01;
@@ -95,7 +96,11 @@ sub new
       open3($in, $out, $err, 'gnuplot', @options)
         or die "Couldn't run the 'gnuplot' backend";
 
-    return {in => $in, out => $out, err => $err, pid => $pid};
+    return {in          => $in,
+            out         => $out,
+            err         => $err,
+            errSelector => IO::Select->new($err),
+            pid         => $pid};
   }
 
   sub parseOptions
@@ -804,7 +809,25 @@ sub plot
     return unless defined $pipeerr;
 
     my $fromerr = '';
-    $fromerr .= <$pipeerr> until $fromerr =~ /\s*(.*?)\s*$checkpoint/s;
+
+    do
+    {
+      # if no data received in 5 seconds, the gnuplot process is stuck. This
+      # usually happens if the gnuplot process is not in a command mode, but in
+      # a data-receiving mode. I'm careful to avoid this situation, 
+      if( $pipes->{errSelector}->can_read(5) )
+      {
+        $fromerr .= <$pipeerr>;
+      }
+      else
+      {
+        barf <<EOM;
+Gnuplot process no longer responding. This is likely a bug in PDL::Graphics::Gnuplot
+and/or gnuplot itself. Please report this as a PDL::Graphics::Gnuplot bug.
+EOM
+      }
+    } until $fromerr =~ /\s*(.*?)\s*$checkpoint/s;
+
     $fromerr = $1;
 
     my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
