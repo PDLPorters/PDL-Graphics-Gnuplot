@@ -130,3 +130,28 @@ plot3d (globalwith => 'points', title    => 'sphere, ellipse',
          extracmds => 'set view 0,0',
          with => 'image', inner($xy, $xy));
 }
+
+################################
+# testing some error detection
+################################
+
+say STDERR 'should complain about an invalid "with":';
+say STDERR "=================================";
+eval( <<'EOM' );
+plot(with => 'bogusstyle', $x);
+EOM
+print STDERR $@ if $@;
+say STDERR "=================================\n\n";
+
+
+say STDERR 'Gnuplot 4.4.0 get confused about binary input. PDL::Graphics::Gnuplot should detect this and quit after a few seconds';
+say STDERR "=================================";
+eval( <<'EOM' );
+  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
+  plot3d(binary => 1,
+         title  => 'Paraboloid heat map',
+         extracmds => 'set view 0,0',
+         with => 'image', inner($xy, $xy));
+EOM
+print STDERR $@ if $@;
+say STDERR "=================================\n\n";
