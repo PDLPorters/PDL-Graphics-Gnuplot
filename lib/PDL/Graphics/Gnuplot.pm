@@ -369,11 +369,24 @@ sub plot
         push @plotChunkCmd,        map { "'-' $format $_"     }    @optionCmds;
         push @plotChunkCmdMinimal, map { "'-' $formatMinimal $_" } @optionCmds;
 
-        # If there was an error, these are newlines that will simply do
+        # If there was an error, these whitespace commands will simply do
         # nothing. If there was no error, these are data that will be plotted in
         # some manner. I'm not actually looking at this plot so I don't care
-        # what it is
-        $testData .= "\n" x ($Ntestbytes_here * scalar @optionCmds);
+        # what it is. Note that I'm not making assumptions about how long a
+        # newline is (perl docs say it could be 0 bytes). I'm printing as many
+        # spaces as the number of bytes that I need, so I'm potentially doubling
+        # or even tripling the amount of needed data. This is OK, since gnuplot
+        # will simply ignore the tail.
+        #
+        # Some gnuplot commands require more data than they should (due to bugs
+        # in gnuplot). Example (gnuplot 4.4.0):
+        #
+        # splot [0:5][0:5][0:5] "-" binary record=1 format="%double%double%double" notitle with image
+        # should require 24 bytes per point, but it appears to require 32
+        #
+        # I can in theory detect these failures by sending more test data and
+        # looking at the ignored tail. Maybe some day later
+        $testData .= " \n" x ($Ntestbytes_here * scalar @optionCmds);
       }
       else
       {
