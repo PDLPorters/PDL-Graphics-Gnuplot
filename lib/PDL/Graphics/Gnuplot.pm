@@ -76,6 +76,9 @@ sub new
               options  => \%plotoptions};
   bless($this, $classname);
 
+
+  # the plot options affect all the plots made by this object, so I can set them
+  # now
   _safelyWriteToPipe($pipes, parseOptions(\%plotoptions));
 
   return $this;
