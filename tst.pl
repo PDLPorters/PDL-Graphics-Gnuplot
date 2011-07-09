@@ -5,7 +5,7 @@ use lib 'lib';
 
 use PDL;
 use PDL::NiceSlice;
-use PDL::Graphics::Gnuplot qw(plot);
+use PDL::Graphics::Gnuplot qw(plot plot3d);
 
 
 use feature qw(say);
@@ -64,29 +64,29 @@ plot({cbmin => -600, cbmax => 600}, {with => 'points pointtype 7 pointsize varia
 ################################
 
 # plot a sphere
-plot( globalwith => 'points', title  => 'sphere',
-      '3d'   => 1, square => 1,
+plot3d( globalwith => 'points', title  => 'sphere',
+        square => 1,
 
-      {legend => 'sphere'}, $x_3d, $y_3d, $z_3d,
-    );
+        {legend => 'sphere'}, $x_3d, $y_3d, $z_3d,
+      );
 
 # sphere, ellipse together
-plot( globalwith => 'points', title  => 'sphere, ellipse',
-      '3d'   => 1, square => 1,
+plot3d( globalwith => 'points', title  => 'sphere, ellipse',
+        square => 1,
 
-      {legend => 'sphere'}, {legend => 'ellipse'},
-                             $x_3d->cat($x_3d*2),
-                             $y_3d->cat($y_3d*2), $z_3d );
+        {legend => 'sphere'}, {legend => 'ellipse'},
+        $x_3d->cat($x_3d*2),
+        $y_3d->cat($y_3d*2), $z_3d );
 
 
 
 # similar, written to a pdf
-plot (globalwith => 'points', title    => 'sphere, ellipse',
-     '3d'     => 1, square   => 1,
-      hardcopy => 'spheres.pdf',
+plot3d (globalwith => 'points', title    => 'sphere, ellipse',
+        square   => 1,
+        hardcopy => 'spheres.pdf',
 
-     {legend => 'sphere'}, {legend => 'ellipse'},
-     $x_3d->cat($x_3d*2), $y_3d->cat($y_3d*2), $z_3d );
+        {legend => 'sphere'}, {legend => 'ellipse'},
+        $x_3d->cat($x_3d*2), $y_3d->cat($y_3d*2), $z_3d );
 
 
 # some paraboloids plotted on an implicit 2D domain
@@ -97,9 +97,9 @@ plot (globalwith => 'points', title    => 'sphere, ellipse',
   my $xy_half = zeros(11,11)->ndcoords;
   my $z_half = inner($xy_half, $xy_half);
 
-  plot( globalwith => 'points', title  => 'gridded paraboloids', '3d' => 1,
-       {legend => 'zplus'} , {legend=>'zminus'}, $z->cat(-$z),
-       {legend => 'zplus2'}, $z*2);
+  plot3d( globalwith => 'points', title  => 'gridded paraboloids',
+          {legend => 'zplus'} , {legend=>'zminus'}, $z->cat(-$z),
+          {legend => 'zplus2'}, $z*2);
 }
 
 # 3d, variable color, variable pointsize
@@ -108,25 +108,25 @@ plot (globalwith => 'points', title    => 'sphere, ellipse',
  my $theta = zeros(200)->xlinvals(0, 6*$pi);
  my $z     = zeros(200)->xlinvals(0, 5);
 
- plot( '3d' => 1, title => 'double helix',
+ plot3d( title => 'double helix',
 
-       { with => 'points pointsize variable pointtype 7 palette', tuplesize => 5,
-         legend => 'spiral 1'},
-       { legend => 'spiral 2' },
+         { with => 'points pointsize variable pointtype 7 palette', tuplesize => 5,
+           legend => 'spiral 1'},
+         { legend => 'spiral 2' },
 
-       # 2 sets of x, y, z:
-       cos($theta)->cat(-cos($theta)),
-       sin($theta)->cat(-sin($theta)),
-       $z,
+         # 2 sets of x, y, z:
+         cos($theta)->cat(-cos($theta)),
+         sin($theta)->cat(-sin($theta)),
+         $z,
 
-       # pointsize, color
-       0.5 + abs(cos($theta)), sin(2*$theta) );
+         # pointsize, color
+         0.5 + abs(cos($theta)), sin(2*$theta) );
 }
 
 # implicit domain heat map
 {
   my $xy = zeros(21,21)->ndcoords - pdl(10,10);
-  plot(title  => 'Paraboloid heat map', '3d' => 1,
-       extracmds => 'set view 0,0',
-       with => 'image', inner($xy, $xy));
+  plot3d(title  => 'Paraboloid heat map',
+         extracmds => 'set view 0,0',
+         with => 'image', inner($xy, $xy));
 }
