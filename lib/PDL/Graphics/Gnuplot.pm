@@ -210,6 +210,13 @@ EOM
         $options->{terminal} = $terminalOpts{$outputfileType};
         $options->{output}   = $outputfile;
       }
+
+      if( defined $options->{terminal} && !defined $options->{output} )
+      {
+        print STDERR <<EOM;
+Warning: defined gnuplot terminal, but NOT an output file. Is this REALLY what you want?
+EOM
+      }
     }
 
 
