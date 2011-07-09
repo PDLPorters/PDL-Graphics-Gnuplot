@@ -1487,6 +1487,26 @@ Complicated 3D plot with fancy styling:
           with => 'image',
           $xy );
 
+=head2 Hardcopies
+
+To send any plot to a file, instead of to the screen, one can simply do
+
+  plot(hardcopy => 'output.pdf',
+       $x, $y);
+
+The C<hardcopy> option is a shorthand for the C<terminal> and C<output>
+options. If more control is desired, the latter can be used. For example to
+generate a PDF of a particular size with a particular font size for the text,
+one can do
+
+  plot(terminal => 'pdfcairo solid color font ",10" size 11in,8.5in',
+       output   => 'output.pdf',
+       $x, $y);
+
+This command is equivalent to the C<hardcopy> shorthand used previously, but the
+fonts and sizes can be changed.
+
+
 
 =head1 REPOSITORY
 
