@@ -89,15 +89,13 @@ sub new
     my @options = $gnuplotFeatures{persist} ? qw(--persist) : ();
 
     my $in  = gensym();
-    my $out = gensym();
     my $err = gensym();
 
     my $pid =
-      open3($in, $out, $err, 'gnuplot', @options)
+      open3($in, undef, $err, 'gnuplot', @options)
         or die "Couldn't run the 'gnuplot' backend";
 
     return {in          => $in,
-            out         => $out,
             err         => $err,
             errSelector => IO::Select->new($err),
             pid         => $pid};
