@@ -340,10 +340,10 @@ sub plot
 
   # tests ok. Now set the terminal and actually make the plot!
   if(defined $this->{options}{terminal})
-  { _safelyWriteToPipe($this, "set terminal $this->{options}{terminal}\n"); }
+  { _safelyWriteToPipe($this, "set terminal $this->{options}{terminal}\n", 'terminal'); }
 
   if(defined $this->{options}{output})
-  { _safelyWriteToPipe($this, "set output \"$this->{options}{output}\"\n"); }
+  { _safelyWriteToPipe($this, "set output \"$this->{options}{output}\"\n", 'output'); }
 
   # all done. make the plot
   print $pipein "$plotcmd\n";
@@ -940,14 +940,14 @@ sub _wcols_gnuplot
 
 sub _safelyWriteToPipe
 {
-  my ($this, $string) = @_;
+  my ($this, $string, $flags) = @_;
   my $pipein = $this->{in};
 
   foreach my $line(split('\s*?\n+\s*?', $string))
   {
     next unless $line;
 
-    barfOnDisallowedCommands($line);
+    barfOnDisallowedCommands($line, $flags);
 
     print $pipein "$line\n";
 
@@ -959,7 +959,8 @@ sub _safelyWriteToPipe
 
   sub barfOnDisallowedCommands
   {
-    my $line = shift;
+    my $line  = shift;
+    my $flags = shift;
 
     # I use STDERR as the backchannel, so I don't allow any "set print"
     # commands, since those can disable that
@@ -975,6 +976,26 @@ sub _safelyWriteToPipe
                    print\b/x )
     {
       barf "Please don't ask gnuplot to 'print' anything since this can confuse my error detection";
+    }
+
+    if ( $line =~ /^(?: .*;)?       # optionally wait for a semicolon
+                   \s*
+                   set\s+terminal\b/x )
+    {
+      if( !defined $flags || $flags !~ /terminal/ )
+      {
+        barf "Please do not 'set terminal' manually. Use the 'terminal' plot option instead";
+      }
+    }
+
+    if ( $line =~ /^(?: .*;)?       # optionally wait for a semicolon
+                   \s*
+                   set\s+output\b/x )
+    {
+      if( !defined $flags || $flags !~ /output/ )
+      {
+        barf "Please do not 'set output' manually. Use the 'output' plot option instead";
+      }
     }
   }
 }
