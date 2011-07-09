@@ -1,3 +1,17 @@
+=head1 OVERVIEW
+
+This is a Gnuplot-based plotter for PDL. This repository stores the history for
+the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
+page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
+
+=cut
+
+=head1 OVERVIEW
+
+This is a Gnuplot-based plotter for PDL. This repository stores the history for
+the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
+page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
@@ -152,10 +166,13 @@ only 2 piddles (y, color).
 
 =head2 Interactivity
 
-The default backend Gnuplot uses to generate the plots is interactive, allowing
-the user to pan, zoom, rotate and measure the data in the plot window. See the
-Gnuplot documentation for details about how to do this. One thing to note with
-PDL::Graphics::Gnuplot is that the interactivity is only possible if the gnuplot
+The graphical backends of Gnuplot are interactive, allowing the user to pan,
+zoom, rotate and measure the data in the plot window. See the Gnuplot
+documentation for details about how to do this. Some terminals (such as wxt) are
+persistently interactive, and the rest of this section does not apply to
+them. Other terminals (such as x11) have the downside described here.
+
+When using an affected terminal, interactivity is only possible if the gnuplot
 process is running. As long as the perl program calling PDL::Graphics::Gnuplot
 is running, the plots are interactive, but once it exits, the child gnuplot
 process will exit also. This will keep the plot windows up, but the
@@ -228,7 +245,16 @@ string of an arrayref of different commands
 =item dump
 
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
-of writing to a gnuplot process
+of writing to a gnuplot process. Note that this dump will contain binary data,
+unless the 'ascii' option is given (see below)
+
+=item binary
+
+If given, binary data is passed to gnuplot instead of ASCII data. Binary is much
+more efficient (and thus faster), but due to some bugs in Gnuplot, it does not
+work for some more complicated plots (mostly things involving colors). These
+cases will produce gnuplot errors detected by PDL::Graphics::Gnuplot, or will
+produce clearly erroneous plots. Reverting the ASCII makes these plots work.
 
 =back
 
@@ -327,6 +353,123 @@ so as long as C<$plot> exists, the plot will be interactive. Also, calling
 C<$plot-E<gt>plot()> multiple times reuses the plot window instead of creating a
 new one.
 
+
+
+=head1 RECIPES
+
+Most of these come directly from Gnuplot commands. See the Gnuplot docs for
+details.
+
+=head2 2D plotting
+
+If we're plotting a piddle $y of y-values to be plotted sequentially (implicit
+domain), all you need is
+
+  plot($y);
+
+If we also have a corresponding $x domain, we can plot $y vs. $x with
+
+  plot($x, $y);
+
+=head3 Simple style control
+
+To change line thickness:
+
+  plot(with => 'lines linewidth 4', $x, $y);
+
+To change point size and point type:
+
+  plot(with => 'points pointtype 4 pointsize 8', $x, $y);
+
+=head3 Errorbars
+
+To plot errorbars that show $y +- 1, plotted with an implicit domain
+
+  plot(with => 'yerrorbars', tuplesize => 3,
+       $y, $y->ones);
+
+Same with an explicit $x domain:
+
+  plot(with => 'yerrorbars', tuplesize => 3,
+       $x, $y, $y->ones);
+
+Symmetric errorbars on both x and y. $x +- 1, $y +- 2:
+
+  plot(with => 'xyerrorbars', tuplesize => 4,
+       $x, $y, $x->ones, 2*$y->ones);
+
+To plot asymmetric errorbars that show the range $y-1 to $y+2 (note that here
+you must specify the actual errorbar-end positions, NOT just their deviations
+from the center; this is how Gnuplot does it)
+
+  plot(with => 'yerrorbars', tuplesize => 4,
+       $y, $y - $y->ones, $y + 2*$y->ones);
+
+=head3 More multi-value styles
+
+In Gnuplot 4.4.0, these generally only work in ASCII mode. This is a bug in
+Gnuplot that will hopefully get resolved.
+
+Plotting with variable-size circles (size given in plot units)
+
+  plot(with => 'circles', tuplesize => 3,
+       $x, $y, $radii);
+
+Plotting with an variably-sized arbitrary point type (size given in multiples of
+the "default" point size)
+
+  plot(with => 'points pointtype 7 pointsize variable', tuplesize => 3,
+       $x, $y, $sizes);
+
+Color-coded points
+
+  plot(with => 'points palette', tuplesize => 3,
+       $x, $y, $colors);
+
+Variable-size AND color-coded circles. A Gnuplot (4.4.0) bug make it necessary to
+specify the color range here
+
+  plot(cbmin => $mincolor, cbmax => $maxcolor,
+       with => 'circles palette', tuplesize => 4,
+       $x, $y, $radii, $colors);
+
+=head2 3D plotting
+
+General style control works identically for 3D plots as in 2D plots.
+
+To plot a set of 3d points, with a square aspect ratio:
+
+  plot3d(square => 1, $x, $y, $z);
+
+If $xy is a 2D piddle, we can plot it as a height map on an implicit domain
+
+  plot3d($xy);
+
+Complicated 3D plot with fancy styling:
+
+  my $pi    = 3.14159;
+  my $theta = zeros(200)->xlinvals(0, 6*$pi);
+  my $z     = zeros(200)->xlinvals(0, 5);
+
+  plot3d(title => 'double helix',
+
+         { with => 'points pointsize variable pointtype 7 palette', tuplesize => 5,
+           legend => 'spiral 1' },
+         { legend => 'spiral 2' },
+
+         # 2 sets of x, 2 sets of y, single z
+         PDL::cat( cos($theta), -cos($theta)),
+         PDL::cat( sin($theta), -sin($theta)),
+         $z,
+
+         # pointsize, color
+         0.5 + abs(cos($theta)), sin(2*$theta) );
+
+3D plots can be plotted as a heat map. As of Gnuplot 4.4.0, this doesn't work in binary.
+
+  plot3d( extracmds => 'set view 0,0',
+          with => 'image',
+          $xy );
 
 
 =head1 REPOSITORY
