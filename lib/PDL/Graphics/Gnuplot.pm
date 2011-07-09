@@ -814,10 +814,18 @@ sub plot
     {
       # if no data received in 5 seconds, the gnuplot process is stuck. This
       # usually happens if the gnuplot process is not in a command mode, but in
-      # a data-receiving mode. I'm careful to avoid this situation, 
+      # a data-receiving mode. I'm careful to avoid this situation, but bugs in
+      # this module and/or in gnuplot itself can make this happen
       if( $pipes->{errSelector}->can_read(5) )
       {
-        $fromerr .= <$pipeerr>;
+        # read a byte into the tail of $fromerr. I'd like to read "as many bytes
+        # as are available", but I don't know how to this in a very portable way
+        # (I just know there will be windows users complaining if I simply do a
+        # non-blocking read). Very little data will be coming in anyway, so
+        # doing this a byte at a time is an irrelevant inefficiency
+        my $byte;
+        sysread $pipeerr, $byte, 1;
+        $fromerr .= $byte
       }
       else
       {
@@ -828,7 +836,7 @@ Gnuplot process no longer responding. This is likely a bug in PDL::Graphics::Gnu
 and/or gnuplot itself. Please report this as a PDL::Graphics::Gnuplot bug.
 EOM
       }
-    } until $fromerr =~ /\s*(.*?)\s*$checkpoint/s;
+    } until $fromerr =~ /\s*(.*?)\s*$checkpoint.*$/ms;
 
     $fromerr = $1;
 
