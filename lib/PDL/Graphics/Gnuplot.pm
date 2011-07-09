@@ -219,11 +219,13 @@ sub DESTROY
 {
   my $this = shift;
 
-  if( defined $this->{pipes} && defined $this->{pipes}{pid})
+  # if we're stuck on a checkpoint, "exit" won't work, so I just let the OS
+  # harvest the child gnuplot process later
+  if( defined $this->{pipes} && defined $this->{pipes}{pid} && !$this->{pipes}{checkpoint_stuck})
   {
     my $pipein = $this->{pipes}{in};
     print $pipein "exit\n";
-    waitpid( $this->{pipes}{pid}, 0 );
+    waitpid( $this->{pipes}{pid}, 0 ) ;
   }
 }
 
@@ -819,6 +821,8 @@ sub plot
       }
       else
       {
+        $pipes->{checkpoint_stuck} = 1;
+
         barf <<EOM;
 Gnuplot process no longer responding. This is likely a bug in PDL::Graphics::Gnuplot
 and/or gnuplot itself. Please report this as a PDL::Graphics::Gnuplot bug.
