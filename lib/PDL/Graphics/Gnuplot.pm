@@ -219,12 +219,20 @@ sub DESTROY
 {
   my $this = shift;
 
-  # if we're stuck on a checkpoint, "exit" won't work, so I just let the OS
-  # harvest the child gnuplot process later
-  if( defined $this->{pipes} && defined $this->{pipes}{pid} && !$this->{pipes}{checkpoint_stuck})
+  # if we're stuck on a checkpoint, "exit" won't work, so I just kill the
+  # child gnuplot process
+  if( defined $this->{pipes} && defined $this->{pipes}{pid})
   {
-    my $pipein = $this->{pipes}{in};
-    print $pipein "exit\n";
+    if( $this->{pipes}{checkpoint_stuck} )
+    {
+      kill 'TERM', $this->{pipes}{pid};
+    }
+    else
+    {
+      my $pipein = $this->{pipes}{in};
+      print $pipein "exit\n";
+    }
+
     waitpid( $this->{pipes}{pid}, 0 ) ;
   }
 }
