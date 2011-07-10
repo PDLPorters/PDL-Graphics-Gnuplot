@@ -144,7 +144,7 @@ print STDERR $@ if $@;
 say STDERR "=================================\n\n";
 
 
-say STDERR 'Gnuplot 4.4.0 get confused about binary input. PDL::Graphics::Gnuplot should detect this and quit after a few seconds';
+say STDERR 'Gnuplot 4.4.0 gets confused about binary input. PDL::Graphics::Gnuplot should detect this and quit after a few seconds:';
 say STDERR "=================================";
 eval( <<'EOM' );
   my $xy = zeros(21,21)->ndcoords - pdl(10,10);
