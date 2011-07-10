@@ -14,6 +14,9 @@ our $VERSION = 0.01;
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d plotlines plotpoints);
 
+# when testing plots with ASCII i/o, this is the unit of test data
+my $testdataunit_ascii = "10 ";
+
 # if I call plot() as a global function I create a new PDL::Graphics::Gnuplot
 # object. I would like the gnuplot process to persist to keep the plot
 # interactive at least while the perl program is running. This global variable
@@ -436,7 +439,7 @@ sub plot
         # commands are the same (point count is not in the plot command)
         push @plotChunkCmd, map { "'-' $_" } @optionCmds;
 
-        my $testData_curve = "10 " x $chunk->{tuplesize} . "\n" . "e\n";
+        my $testData_curve = $testdataunit_ascii x $chunk->{tuplesize} . "\n" . "e\n";
         $testData .= $testData_curve x scalar @optionCmds;
       }
     }
@@ -804,14 +807,18 @@ sub plot
     # I send a test plot command. Gnuplot implicitly uses && if multiple
     # commands are present on the same line. Thus if I see the post-plot print
     # in the output, I know the plot command succeeded
-    my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
-    print $pipein "$testplotcmd; print \"$postTestplotCheckpoint\"\n";
+    my $postTestplotCheckpoint   = 'xxxxxxx Plot succeeded xxxxxxx';
+    my $print_postTestCheckpoint = "; print \"$postTestplotCheckpoint\"";
+    print $pipein "$testplotcmd$print_postTestCheckpoint\n";
     print $pipein $testplotdata;
 
-    my $checkpointMessage = _checkpoint($this);
+    my $checkpointMessage = _checkpoint($this, 'ignore_invalidcommand');
 
     if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
     {
+      # don't actually print out the checkpoint message
+      $checkpointMessage =~ s/$print_postTestCheckpoint//;
+
       # The checkpoint message does not contain the post-plot checkpoint. This
       # means gnuplot decided that the plot command failed.
       barf "Gnuplot error: \"\n$checkpointMessage\n\" while sending plotcmd \"$testplotcmd\"";
@@ -889,6 +896,17 @@ EOM
 
     # I've now read all the data up-to the checkpoint. Strip out all the warnings
     $fromerr =~ s/$warningre//gm;
+
+    # if asked, get rid of all the "invalid command" errors. This is useful if
+    # I'm testing a plot command and I want to ignore the errors caused by the
+    # test data bein sent to gnuplot as a command. The plot command itself will
+    # never be invalid, so this doesn't actually mask out any errors
+    if(defined $flags && $flags =~ /ignore_invalidcommand/)
+    {
+      $fromerr =~ s/^gnuplot>\s*(?:$testdataunit_ascii|e\b).*$ # report of the actual invalid command
+                    \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
+                    \n^.*invalid\s+command.*$//xmg;            # actual 'invalid command' complaint
+    }
 
     # strip out all the leading/trailing whitespace
     $fromerr =~ s/^\s*//;
