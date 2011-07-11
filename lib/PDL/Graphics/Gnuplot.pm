@@ -207,7 +207,7 @@ EOM
         my %terminalOpts =
           ( eps  => 'postscript solid color enhanced eps',
             ps   => 'postscript solid color landscape 10',
-            pdf  => 'pdfcairo solid color font ",10" size 11in,8.5in',
+            pdf  => 'pdf solid color font ",10" size 11in,8.5in',
             png  => 'png size 1280,1024' );
 
         $options->{terminal} = $terminalOpts{$outputfileType};
