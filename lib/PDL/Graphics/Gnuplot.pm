@@ -1281,7 +1281,8 @@ If no valid 'with' curve option is given, use this as a default
 =item square, square_xy
 
 If true, these request a square aspect ratio. For 3D plots, square_xy plots with
-a square aspect ratio in x and y, but scales z
+a square aspect ratio in x and y, but scales z. Using either of these in 3D
+requires Gnuplot >= 4.4
 
 =item xmin, xmax, ymin, ymax, zmin, zmax, y2min, y2max, cbmin, cbmax
 
@@ -1488,7 +1489,7 @@ from the center; this is how Gnuplot does it)
 In Gnuplot 4.4.0, these generally only work in ASCII mode. This is a bug in
 Gnuplot that will hopefully get resolved.
 
-Plotting with variable-size circles (size given in plot units)
+Plotting with variable-size circles (size given in plot units, requires Gnuplot >= 4.4)
 
   plot(with => 'circles', tuplesize => 3,
        $x, $y, $radii);
@@ -1515,7 +1516,8 @@ specify the color range here
 
 General style control works identically for 3D plots as in 2D plots.
 
-To plot a set of 3d points, with a square aspect ratio:
+To plot a set of 3d points, with a square aspect ratio (squareness requires
+Gnuplot >= 4.4):
 
   plot3d(square => 1, $x, $y, $z);
 
