@@ -1051,7 +1051,7 @@ sub _getGnuplotFeatures
 
     if (defined $in)
     {
-      my @features = $in =~ /--([a-zA-Z0-9_]*)/g;
+      my @features = $in =~ /--([a-zA-Z0-9_]+)/g;
       foreach (@features)
       { $featureSet{$_} = 1; }
     }
