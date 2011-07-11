@@ -1083,7 +1083,7 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
 
 =head1 SYNOPSIS
 
- use PDL::Graphics::Gnuplot qw(plot);
+ use PDL::Graphics::Gnuplot qw(plot plot3d);
 
  my $x = sequence(101) - 50;
  plot($x**2);
@@ -1096,13 +1096,12 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
  my $z = inner($xy, $xy);
  plot(title  => 'Heat map', '3d' => 1,
       extracmds => 'set view 0,0',
-      {with => 'image',tuplesize => 3}, $z*2);
+      with => 'image', tuplesize => 3, $z*2);
 
  my $pi    = 3.14159;
  my $theta = zeros(200)->xlinvals(0, 6*$pi);
  my $z     = zeros(200)->xlinvals(0, 5);
- plot( '3d' => 1,
-       cos($theta), sin($theta), $z);
+ plot3d(cos($theta), sin($theta), $z);
 
 
 =head1 DESCRIPTION
