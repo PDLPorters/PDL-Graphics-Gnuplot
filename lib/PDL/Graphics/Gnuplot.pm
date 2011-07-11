@@ -122,6 +122,13 @@ sub new
       {
         if ( defined $options->{y2min} || defined $options->{y2max} )
         { barf "'3d' does not make sense with 'y2'...\n"; }
+
+        if ( !$gnuplotFeatures{equal_3d} && (defined $options->{square_xy} || defined $options->{square} ) )
+        {
+          warn "Your gnuplot doesn't support square aspect ratios for 3D plots, so I'm ignoring that";
+          delete $options->{square_xy};
+          delete $options->{square};
+        }
       }
       else
       {
@@ -1032,17 +1039,33 @@ for my $n (2..20)
 
 sub _getGnuplotFeatures
 {
-  open(GNUPLOT, 'gnuplot --help |') or die "Couldn't run the 'gnuplot' backend. Error: \"$!\"";
-
-  local $/ = undef;
-  my $in = <GNUPLOT>;
-  close GNUPLOT;
-
   my %featureSet;
-  if(defined $in)
+
+  # first, I run 'gnuplot --help' to extract all the cmdline options as features
   {
-    my @features = $in =~ /--([a-zA-Z0-9_]*)/g;
-    foreach (@features) { $featureSet{$_} = 1; }
+    open(GNUPLOT, 'gnuplot --help |') or die "Couldn't run the 'gnuplot' backend. Error: \"$!\"";
+
+    local $/ = undef;
+    my $in = <GNUPLOT>;
+    close GNUPLOT;
+
+    if (defined $in)
+    {
+      my @features = $in =~ /--([a-zA-Z0-9_]*)/g;
+      foreach (@features)
+      { $featureSet{$_} = 1; }
+    }
+  }
+
+  # then I try to set a square aspect ratio for 3D to see if it works
+  {
+    # no output if works; some output if error
+    my $squareTry = `echo set view equal | gnuplot 2>&1`;
+
+    if( ! $squareTry)
+    {
+      $featureSet{equal_3d} = 1;
+    }
   }
 
   return %featureSet;
