@@ -80,10 +80,10 @@ plot3d( globalwith => 'points', title  => 'sphere, ellipse',
 
 
 
-# similar, written to a pdf
+# similar, written to a png
 plot3d (globalwith => 'points', title    => 'sphere, ellipse',
         square   => 1,
-        hardcopy => 'spheres.pdf',
+        hardcopy => 'spheres.png',
 
         {legend => 'sphere'}, {legend => 'ellipse'},
         $x_3d->cat($x_3d*2), $y_3d->cat($y_3d*2), $z_3d );
