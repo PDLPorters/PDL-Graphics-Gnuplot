@@ -53,9 +53,7 @@ plot(-$x,
               $x, PDL::cat($x**3, $x**3 - 100) );
 }
 
-# 2 different ways to control the point size
-plot({cbmin => -600, cbmax => 600}, {with => 'circles palette', tuplesize => 4},
-     $x**2, abs($x)/10, $x*50);
+# a way to control the point size
 plot({cbmin => -600, cbmax => 600}, {with => 'points pointtype 7 pointsize variable palette', tuplesize => 4},
      $x**2, abs($x)/2, $x*50);
 
