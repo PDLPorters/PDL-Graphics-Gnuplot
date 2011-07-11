@@ -133,7 +133,9 @@ plot3d (globalwith => 'points', title    => 'sphere, ellipse',
 # testing some error detection
 ################################
 
-say STDERR 'should complain about an invalid "with":';
+say STDERR "\n\n\n";
+say STDERR "==== Testing error detection ====";
+say STDERR 'I should complain about an invalid "with":';
 say STDERR "=================================";
 eval( <<'EOM' );
 plot(with => 'bogusstyle', $x);
