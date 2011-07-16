@@ -262,8 +262,7 @@ sub DESTROY
     }
     else
     {
-      my $pipein = $this->{in};
-      print $pipein "exit\n";
+      _printGnuplotPipe( $this, "exit\n" );
     }
 
     waitpid( $this->{pid}, 0 ) ;
@@ -326,7 +325,6 @@ sub plot
   }
 
   my $plotOptions = $this->{options};
-  my $pipein      = $this->{in};
 
   # I split my data-to-plot into similarly-styled chunks
   # pieces of data we're plotting. Each chunk has a similar style
@@ -356,7 +354,7 @@ sub plot
   { _safelyWriteToPipe($this, "set output \"$this->{options}{output}\"\n", 'output'); }
 
   # all done. make the plot
-  print $pipein "$plotcmd\n";
+  _printGnuplotPipe( $this, "$plotcmd\n");
 
   foreach my $chunk(@$chunks)
   {
@@ -805,19 +803,17 @@ sub plot
     # I test the plot command by making a dummy plot with the test command.
     my ($this, $testplotcmd, $testplotdata) = @_;
 
-    my $pipein = $this->{in};
-
-    print $pipein "set terminal push\n";
-    print $pipein "set output\n";
-    print $pipein "set terminal dumb\n";
+    _printGnuplotPipe( $this, "set terminal push\n" );
+    _printGnuplotPipe( $this, "set output\n" );
+    _printGnuplotPipe( $this, "set terminal dumb\n" );
 
     # I send a test plot command. Gnuplot implicitly uses && if multiple
     # commands are present on the same line. Thus if I see the post-plot print
     # in the output, I know the plot command succeeded
     my $postTestplotCheckpoint   = 'xxxxxxx Plot succeeded xxxxxxx';
     my $print_postTestCheckpoint = "; print \"$postTestplotCheckpoint\"";
-    print $pipein "$testplotcmd$print_postTestCheckpoint\n";
-    print $pipein $testplotdata;
+    _printGnuplotPipe( $this, "$testplotcmd$print_postTestCheckpoint\n" );
+    _printGnuplotPipe( $this, $testplotdata );
 
     my $checkpointMessage = _checkpoint($this, 'ignore_invalidcommand');
 
@@ -831,7 +827,7 @@ sub plot
       barf "Gnuplot error: \"\n$checkpointMessage\n\" while sending plotcmd \"$testplotcmd\"";
     }
 
-    print $pipein "set terminal pop\n";
+    _printGnuplotPipe( $this, "set terminal pop\n" );
   }
 
   # syncronizes the child and parent processes. After _checkpoint() returns, I
@@ -840,7 +836,6 @@ sub plot
   sub _checkpoint
   {
     my $this   = shift;
-    my $pipein  = $this->{in};
     my $pipeerr = $this->{err};
 
     # string containing various options to this function
@@ -853,7 +848,7 @@ sub plot
     # been printed before this
     my $checkpoint = "xxxxxxx Syncronizing gnuplot i/o xxxxxxx";
 
-    print $pipein "print \"$checkpoint\"\n";
+    _printGnuplotPipe( $this, "print \"$checkpoint\"\n" );
 
 
     # if no error pipe exists, we can't check for errors, so we're done. Usually
@@ -947,26 +942,42 @@ sub _wcols_gnuplot
 {
   my $isbinary = pop @_;
   my $this     = pop @_;
-  my $pipein   = $this->{in};
 
   if( $isbinary)
   {
     # this is not efficient right now. I should do this in C so that I don't
     # have to physical-ize the piddles and so that I can keep the original type
     # instead of converting to double
-    print $pipein ${ cat(@_)->transpose->double->get_dataref };
+    _printGnuplotPipe( $this, ${ cat(@_)->transpose->double->get_dataref } );
   }
   else
   {
-    wcols @_, $pipein;
-    print $pipein "e\n";
+    _wcolsGnuplotPipe( $this, @_ );
+    _printGnuplotPipe( $this, "e\n" );
   }
 };
+
+
+sub _printGnuplotPipe
+{
+  my $this   = shift;
+  my $string = shift;
+
+  my $pipein = $this->{in};
+  print $pipein $string;
+}
+
+sub _wcolsGnuplotPipe
+{
+  my $this   = shift;
+
+  my $pipein = $this->{in};
+  wcols @_, $pipein;
+}
 
 sub _safelyWriteToPipe
 {
   my ($this, $string, $flags) = @_;
-  my $pipein = $this->{in};
 
   foreach my $line(split('\s*?\n+\s*?', $string))
   {
@@ -974,7 +985,7 @@ sub _safelyWriteToPipe
 
     barfOnDisallowedCommands($line, $flags);
 
-    print $pipein "$line\n";
+    _printGnuplotPipe( $this, "$line\n" );
 
     if( my $errorMessage = _checkpoint($this, 'printwarnings') )
     {
