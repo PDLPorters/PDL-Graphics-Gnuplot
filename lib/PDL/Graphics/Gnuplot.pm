@@ -1335,7 +1335,7 @@ string of an arrayref of different commands
 
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
 of writing to a gnuplot process. Note that this dump will contain binary data,
-unless the 'ascii' option is given (see below)
+if the 'binary' option is given (see below)
 
 =item binary
 
