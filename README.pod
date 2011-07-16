@@ -1,3 +1,17 @@
+=head1 OVERVIEW
+
+This is a Gnuplot-based plotter for PDL. This repository stores the history for
+the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
+page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
+
+=cut
+
+=head1 OVERVIEW
+
+This is a Gnuplot-based plotter for PDL. This repository stores the history for
+the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
+page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
@@ -245,7 +259,13 @@ string of an arrayref of different commands
 
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
 of writing to a gnuplot process. Note that this dump will contain binary data,
-unless the 'ascii' option is given (see below)
+if the 'binary' option is given (see below)
+
+=item log
+
+Used for debugging. If true, writes out the gnuplot commands to STDERR in
+addition to of writing to a gnuplot process. Note that this log will contain
+binary data, if the 'binary' option is given (see below)
 
 =item binary
 
