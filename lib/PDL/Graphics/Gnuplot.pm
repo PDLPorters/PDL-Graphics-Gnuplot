@@ -27,7 +27,7 @@ my $globalPlot;
 
 # I make a list of all the options. I can use this list to determine if an
 # options hash I encounter is for the plot, or for a curve
-my @allPlotOptions = qw(3d dump binary
+my @allPlotOptions = qw(3d dump binary log
                         extracmds nogrid square square_xy title
                         hardcopy terminal output
                         globalwith
@@ -965,6 +965,13 @@ sub _printGnuplotPipe
 
   my $pipein = $this->{in};
   print $pipein $string;
+
+  if( $this->{options}{log} )
+  {
+    print STDERR "To gnuplot $this->{pid}: =========================================\n";
+    print STDERR $string;
+    print STDERR "To gnuplot $this->{pid} done: ====================================\n";
+  }
 }
 
 sub _wcolsGnuplotPipe
@@ -973,6 +980,13 @@ sub _wcolsGnuplotPipe
 
   my $pipein = $this->{in};
   wcols @_, $pipein;
+
+  if( $this->{options}{log} )
+  {
+    print STDERR "To gnuplot $this->{pid}: =========================================\n";
+    wcols @_, \*STDERR;
+    print STDERR "To gnuplot $this->{pid} done: ====================================\n";
+  }
 }
 
 sub _safelyWriteToPipe
@@ -1336,6 +1350,12 @@ string of an arrayref of different commands
 Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
 of writing to a gnuplot process. Note that this dump will contain binary data,
 if the 'binary' option is given (see below)
+
+=item log
+
+Used for debugging. If true, writes out the gnuplot commands to STDERR in
+addition to of writing to a gnuplot process. Note that this log will contain
+binary data, if the 'binary' option is given (see below)
 
 =item binary
 
