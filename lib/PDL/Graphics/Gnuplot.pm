@@ -1630,6 +1630,12 @@ fonts and sizes can be changed.
 
 
 
+=head1 COMPATIBILITY
+
+Everything should work on all platforms that support Gnuplot and Perl. That
+said, C<ONLY> Debian GNU/Linux has been tested to work. Please report successes
+or failures on other platforms to the author.
+
 =head1 REPOSITORY
 
 L<https://github.com/dkogan/PDL-Graphics-Gnuplot>
