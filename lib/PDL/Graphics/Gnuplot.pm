@@ -872,7 +872,7 @@ sub plot
         # doing this a byte at a time is an irrelevant inefficiency
         my $byte;
         sysread $pipeerr, $byte, 1;
-        $fromerr .= $byte
+        $fromerr .= $byte;
       }
       else
       {
