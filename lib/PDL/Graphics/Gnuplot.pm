@@ -1347,15 +1347,17 @@ string of an arrayref of different commands
 
 =item dump
 
-Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
-of writing to a gnuplot process. Note that this dump will contain binary data,
-if the 'binary' option is given (see below)
+Used for debugging. If true, writes out the gnuplot commands to STDOUT
+I<instead> of writing to a gnuplot process. Useful to see what commands would be
+sent to gnuplot. This is a dry run. Note that this dump will contain binary
+data, if the 'binary' option is given (see below)
 
 =item log
 
-Used for debugging. If true, writes out the gnuplot commands to STDERR in
-addition to of writing to a gnuplot process. Note that this log will contain
-binary data, if the 'binary' option is given (see below)
+Used for debugging. If true, writes out the gnuplot commands to STDERR I<in
+addition> to writing to a gnuplot process. This is I<not> a dry run: data is
+sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
+this log will contain binary data, if the 'binary' option is given (see below)
 
 =item binary
 
