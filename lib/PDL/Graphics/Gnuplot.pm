@@ -8,6 +8,7 @@ use Storable qw(dclone);
 use IPC::Open3;
 use IO::Select;
 use Symbol qw(gensym);
+use Time::HiRes qw(gettimeofday tv_interval);
 
 our $VERSION = 0.01;
 
@@ -77,8 +78,11 @@ sub new
   my $pipes  = startGnuplot( $plotoptions{dump} );
 
   my $this = {%$pipes, # %$this is built on top of %$pipes
-              options  => \%plotoptions};
+              options  => \%plotoptions,
+              t0       => [gettimeofday]};
   bless($this, $classname);
+
+  _logEvent($this, "startGnuplot() finished") if $this->{options}{log};
 
 
   # the plot options affect all the plots made by this object, so I can set them
@@ -863,6 +867,9 @@ sub plot
       # usually happens if the gnuplot process is not in a command mode, but in
       # a data-receiving mode. I'm careful to avoid this situation, but bugs in
       # this module and/or in gnuplot itself can make this happen
+
+      _logEvent($this, "Trying to read from gnuplot") if $this->{options}{log};
+
       if( $this->{errSelector}->can_read(5) )
       {
         # read a byte into the tail of $fromerr. I'd like to read "as many bytes
@@ -873,9 +880,13 @@ sub plot
         my $byte;
         sysread $pipeerr, $byte, 1;
         $fromerr .= $byte;
+
+        _logEvent($this, "Read byte '$byte' (0x" . unpack("H2", $byte) . ") from gnuplot child process") if $this->{options}{log};
       }
       else
       {
+        _logEvent($this, "Gnuplot read timed out") if $this->{options}{log};
+
         $this->{checkpoint_stuck} = 1;
 
         barf <<EOM;
@@ -968,9 +979,8 @@ sub _printGnuplotPipe
 
   if( $this->{options}{log} )
   {
-    print STDERR "To gnuplot $this->{pid}: =========================================\n";
-    print STDERR $string;
-    print STDERR "To gnuplot $this->{pid} done: ====================================\n";
+    _logEvent($this,
+              "Sent to child process ==========\n" . $string . "\n=========================" );
   }
 }
 
@@ -983,9 +993,16 @@ sub _wcolsGnuplotPipe
 
   if( $this->{options}{log} )
   {
-    print STDERR "To gnuplot $this->{pid}: =========================================\n";
-    wcols @_, \*STDERR;
-    print STDERR "To gnuplot $this->{pid} done: ====================================\n";
+    my $string;
+    open FH, '>', \$string or barf "Couldn't open filehandle into string";
+    wcols @_, *FH;
+    close FH;
+
+    if ( $this->{options}{log} )
+    {
+      _logEvent($this,
+                "Sent to child process ==========\n" . $string . "\n=========================" );
+    }
   }
 }
 
@@ -1094,6 +1111,15 @@ sub _getGnuplotFeatures
   }
 
   return %featureSet;
+}
+
+sub _logEvent
+{
+  my $this  = shift;
+  my $event = shift;
+
+  my $t1 = tv_interval( $this->{t0}, [gettimeofday] );
+  printf STDERR "==== PDL::Graphics::Gnuplot PID $this->{pid} at t=%.4f: $event\n", $t1;
 }
 
 1;
