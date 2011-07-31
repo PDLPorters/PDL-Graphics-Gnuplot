@@ -52,11 +52,23 @@ WriteMakefile(
 
 # reroute the main POD into a separate README.pod if requested. This is here
 # purely to generate a README.pod for the github front page
+my $POD_header = <<EOF;
+=head1 OVERVIEW
+
+This is a Gnuplot-based plotter for PDL. This repository stores the history for
+the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
+page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
+
+=cut
+
+EOF
 
 if(exists $ARGV[0] && $ARGV[0] eq 'README.pod')
 {
   open MOD, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open main module";
   open README, '>README.pod'              or die "Couldn't open README.pod";
+
+  print README $POD_header;
 
   while (<MOD>)
   {
