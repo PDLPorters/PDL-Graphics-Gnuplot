@@ -6,6 +6,7 @@ use PDL;
 use List::Util qw(first);
 use Storable qw(dclone);
 use IPC::Open3;
+use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
@@ -1081,34 +1082,43 @@ for my $n (2..20)
 
 sub _getGnuplotFeatures
 {
+  # I could use qx{} to talk to gnuplot here, but I don't want to use a
+  # tty. gnuplot messes with the tty settings where it should NOT. For example
+  # it turns on the local echo
+
   my %featureSet;
 
   # first, I run 'gnuplot --help' to extract all the cmdline options as features
   {
-    open(GNUPLOT, 'gnuplot --help |') or die "Couldn't run the 'gnuplot' backend. Error: \"$!\"";
+    my $in  = '';
+    my $out = '';
+    my $err = '';
+    eval{ IPC::Run::run([qw(gnuplot --help)], \$in, \$out, \$err) };
+    barf $@ if $@;
 
-    local $/ = undef;
-    my $in = <GNUPLOT>;
-    close GNUPLOT;
-
-    if (defined $in)
+    foreach ( "$out\n$err\n" =~ /--([a-zA-Z0-9_]+)/g )
     {
-      my @features = $in =~ /--([a-zA-Z0-9_]+)/g;
-      foreach (@features)
-      { $featureSet{$_} = 1; }
+      $featureSet{$_} = 1;
     }
   }
 
   # then I try to set a square aspect ratio for 3D to see if it works
   {
-    # no output if works; some output if error
-    my $squareTry = `echo set view equal | gnuplot 2>&1`;
+    my $in = <<EOM;
+set view equal
+exit
+EOM
+    my $out = '';
+    my $err = '';
 
-    if( ! $squareTry)
-    {
-      $featureSet{equal_3d} = 1;
-    }
+
+    eval{ IPC::Run::run(['gnuplot'], \$in, \$out, \$err) };
+    barf $@ if $@;
+
+    # no output if works; some output if error
+    $featureSet{equal_3d} = 1 unless ($out || $err);
   }
+
 
   return %featureSet;
 }
