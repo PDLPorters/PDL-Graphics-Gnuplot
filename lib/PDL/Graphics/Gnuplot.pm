@@ -1644,7 +1644,8 @@ fonts and sizes can be changed.
 
 Everything should work on all platforms that support Gnuplot and Perl. That
 said, C<ONLY> Debian GNU/Linux has been tested to work. Please report successes
-or failures on other platforms to the author.
+or failures on other platforms to the author. A transcript of a failed run with
+{log => 1} would be most helpful.
 
 =head1 REPOSITORY
 
