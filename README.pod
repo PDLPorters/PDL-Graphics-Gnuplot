@@ -6,12 +6,6 @@ page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/G
 
 =cut
 
-=head1 OVERVIEW
-
-This is a Gnuplot-based plotter for PDL. This repository stores the history for
-the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
-page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
-
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotter for PDL
@@ -257,15 +251,17 @@ string of an arrayref of different commands
 
 =item dump
 
-Used for debugging. If true, writes out the gnuplot commands to STDOUT instead
-of writing to a gnuplot process. Note that this dump will contain binary data,
-if the 'binary' option is given (see below)
+Used for debugging. If true, writes out the gnuplot commands to STDOUT
+I<instead> of writing to a gnuplot process. Useful to see what commands would be
+sent to gnuplot. This is a dry run. Note that this dump will contain binary
+data, if the 'binary' option is given (see below)
 
 =item log
 
-Used for debugging. If true, writes out the gnuplot commands to STDERR in
-addition to of writing to a gnuplot process. Note that this log will contain
-binary data, if the 'binary' option is given (see below)
+Used for debugging. If true, writes out the gnuplot commands to STDERR I<in
+addition> to writing to a gnuplot process. This is I<not> a dry run: data is
+sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
+this log will contain binary data, if the 'binary' option is given (see below)
 
 =item binary
 
@@ -511,6 +507,13 @@ This command is equivalent to the C<hardcopy> shorthand used previously, but the
 fonts and sizes can be changed.
 
 
+
+=head1 COMPATIBILITY
+
+Everything should work on all platforms that support Gnuplot and Perl. That
+said, C<ONLY> Debian GNU/Linux has been tested to work. Please report successes
+or failures on other platforms to the author. A transcript of a failed run with
+{log => 1} would be most helpful.
 
 =head1 REPOSITORY
 
