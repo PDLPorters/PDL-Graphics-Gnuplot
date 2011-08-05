@@ -17,7 +17,7 @@ Gnuplot to continue. Use your package manager, or download the source from
 http://www.gnuplot.info
 EOM
 
-    exit 1;
+    exit 0;
   }
 }
 
