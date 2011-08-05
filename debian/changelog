@@ -1,3 +1,9 @@
+libpdl-graphics-gnuplot-perl (0.02-1) unstable; urgency=low
+
+  * If gnuplot isn't found by Makefile.PL I now successfully exit without making a Makefile. This lets CPAN testers know that this wasn't necessarily a failure
+
+ -- Dima Kogan <dima@secretsauce.net>  Fri, 05 Aug 2011 01:02:59 -0700
+
 libpdl-graphics-gnuplot-perl (0.01-1) unstable; urgency=low
 
   * Initial Release.
