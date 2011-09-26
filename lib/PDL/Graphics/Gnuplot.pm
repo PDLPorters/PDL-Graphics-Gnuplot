@@ -83,7 +83,7 @@ sub new
               t0       => [gettimeofday]};
   bless($this, $classname);
 
-  _logEvent($this, "startGnuplot() finished") if $this->{options}{log};
+  _logEvent($this, "startGnuplot() finished");
 
 
   # the plot options affect all the plots made by this object, so I can set them
@@ -869,7 +869,7 @@ sub plot
       # a data-receiving mode. I'm careful to avoid this situation, but bugs in
       # this module and/or in gnuplot itself can make this happen
 
-      _logEvent($this, "Trying to read from gnuplot") if $this->{options}{log};
+      _logEvent($this, "Trying to read from gnuplot");
 
       if( $this->{errSelector}->can_read(5) )
       {
@@ -882,11 +882,11 @@ sub plot
         sysread $pipeerr, $byte, 1;
         $fromerr .= $byte;
 
-        _logEvent($this, "Read byte '$byte' (0x" . unpack("H2", $byte) . ") from gnuplot child process") if $this->{options}{log};
+        _logEvent($this, "Read byte '$byte' (0x" . unpack("H2", $byte) . ") from gnuplot child process");
       }
       else
       {
-        _logEvent($this, "Gnuplot read timed out") if $this->{options}{log};
+        _logEvent($this, "Gnuplot read timed out");
 
         $this->{checkpoint_stuck} = 1;
 
@@ -978,11 +978,8 @@ sub _printGnuplotPipe
   my $pipein = $this->{in};
   print $pipein $string;
 
-  if( $this->{options}{log} )
-  {
-    _logEvent($this,
-              "Sent to child process ==========\n" . $string . "\n=========================" );
-  }
+  _logEvent($this,
+            "Sent to child process ==========\n" . $string . "\n=========================" );
 }
 
 sub _wcolsGnuplotPipe
@@ -999,11 +996,8 @@ sub _wcolsGnuplotPipe
     wcols @_, *FH;
     close FH;
 
-    if ( $this->{options}{log} )
-    {
-      _logEvent($this,
-                "Sent to child process ==========\n" . $string . "\n=========================" );
-    }
+    _logEvent($this,
+              "Sent to child process ==========\n" . $string . "\n=========================" );
   }
 }
 
@@ -1127,6 +1121,8 @@ sub _logEvent
 {
   my $this  = shift;
   my $event = shift;
+
+  return unless $this->{options}{log}; # only log when asked
 
   my $t1 = tv_interval( $this->{t0}, [gettimeofday] );
   printf STDERR "==== PDL::Graphics::Gnuplot PID $this->{pid} at t=%.4f: $event\n", $t1;
