@@ -33,12 +33,15 @@ my $x = sequence(5);
 
 
   eval{ plot ( terminal => 'dumb 79 24', output => $testoutput, $x); };
-  ok(! $@,           'basic plotting succeeded without error' );
-  ok(-e $testoutput, 'basic plotting created an output file' );
+  ok(! $@,           'basic plotting succeeded without error' )
+    or diag "plot() died with '$@'";
+  ok(-e $testoutput, 'basic plotting created an output file' )
+    or diag "plot() didn't create an output file";
 
   # call the output good if it's at least 80% of the nominal size
   my @filestats = stat $testoutput;
-  ok($filestats[7] > 79*24*0.8, 'basic plotting created a reasonably-sized file');
+  ok($filestats[7] > 79*24*0.8, 'basic plotting created a reasonably-sized file')
+    or diag "resulting output file should be ascii 79x24, but only contains $filestats[7] bytes";
 
   unlink $testoutput;
 }
@@ -50,6 +53,7 @@ my $x = sequence(5);
   my (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
   eval{ plot ( terminal => 'dumb 79 24', output => $testoutput, with => 'bogus', $x); };
   ok($@ && $@ =~ /gnuplot>.*bogus.*expecting/s,  'error detection works' );
+    or diag "plot() produced no error";
 
   unlink $testoutput;
 }
