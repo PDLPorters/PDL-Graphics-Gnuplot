@@ -4,7 +4,7 @@ Priority: optional
 Build-Depends: debhelper (>= 7)
 Build-Depends-Indep: perl
 Maintainer: Dima Kogan <dkogan@cds.caltech.edu>
-Standards-Version: 3.9.1
+Standards-Version: 3.9.2
 Homepage: http://search.cpan.org/dist/PDL-Graphics-Gnuplot/
 
 Package: libpdl-graphics-gnuplot-perl
