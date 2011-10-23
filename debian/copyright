@@ -2,21 +2,13 @@ Format-Specification: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&
 Maintainer: Dima Kogan, <dima@secretsauce.net>
 Source: http://search.cpan.org/dist/PDL-Graphics-Gnuplot/
 Name: PDL-Graphics-Gnuplot
-DISCLAIMER: This copyright info was automatically extracted 
- from the perl module. It may not be accurate, so you better 
- check the module sources in order to ensure the module for its 
- inclusion in Debian or for general legal information. Please, 
- if licensing information is incorrectly generated, file a bug 
- on dh-make-perl.
- NOTE: Don't forget to remove this disclaimer once you are happy
- with this file.
 
 Files: *
 Copyright: Dima Kogan, <dima@secretsauce.net>
-License: 
+License: Artistic or GPL-1+
 
 Files: debian/*
-Copyright: 2011, Dima Kogan <dkogan@cds.caltech.edu>
+Copyright: 2011, Dima Kogan <dima@secretsauce.net>
 License: Artistic or GPL-1+
 
 License: Artistic
