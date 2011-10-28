@@ -1274,7 +1274,7 @@ confused about when to use implicit domains. For example, C<plot($a,$b)> is
 interpreted as plotting $b vs $a, I<not> $a vs an implicit domain and $b vs an
 implicit domain. If 2 implicit plots are desired, add a separator:
 C<plot($a,{},$b)>. Here C<{}> is an empty curve options hash. If C<$a> and C<$b>
-have the same dimensions, one can also do C<plot($a->cat($b))>, taking advantage
+have the same dimensions, one can also do C<plot($a-E<gt>cat($b))>, taking advantage
 of PDL threading.
 
 Note that the C<tuplesize> curve option is independent of implicit domains. This
