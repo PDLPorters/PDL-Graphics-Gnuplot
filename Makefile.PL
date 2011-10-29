@@ -7,11 +7,11 @@ sub parseversion
 {
 # grab the version number from the debian changelog file. I look for lines line
 #
-# libpackage-perl (0.02-1) unstable; urgency=low
+# libpackage-perl (0.03) unstable; urgency=low
 #
-# I parse out the 0.02 part
+# I parse out the 0.03 part
   open DCH, 'debian/changelog' or die "Couldn't open debian/changelog";
-  my ($version) = <DCH> =~ /^\S+ \s* \( ([0-9\.]+) - \w+ \)/x
+  my ($version) = <DCH> =~ /^\S+ \s* \( ([0-9\.]+) .*? \)/x
     or die "Couldn't parse version from debian/changelog";
   close DCH;
 
