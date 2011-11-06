@@ -1123,7 +1123,10 @@ sub _logEvent
   return unless $this->{options}{log}; # only log when asked
 
   my $t1 = tv_interval( $this->{t0}, [gettimeofday] );
-  printf STDERR "==== PDL::Graphics::Gnuplot PID $this->{pid} at t=%.4f: $event\n", $t1;
+
+  # $event can have '%', so I don't printf it
+  my $logline = sprintf "==== PDL::Graphics::Gnuplot PID $this->{pid} at t=%.4f:", $t1;
+  print STDERR "$logline $event\n";
 }
 
 1;
