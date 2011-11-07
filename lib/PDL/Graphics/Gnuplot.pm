@@ -976,8 +976,9 @@ sub _printGnuplotPipe
   my $pipein = $this->{in};
   print $pipein $string;
 
+  my $len = length $string;
   _logEvent($this,
-            "Sent to child process ==========\n" . $string . "\n=========================" );
+            "Sent to child process $len bytes ==========\n" . $string . "\n=========================" );
 }
 
 sub _wcolsGnuplotPipe
