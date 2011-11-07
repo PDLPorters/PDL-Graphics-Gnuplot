@@ -144,14 +144,12 @@ print STDERR $@ if $@;
 say STDERR "=================================\n\n";
 
 
-say STDERR 'Gnuplot 4.4.0 gets confused about binary input. PDL::Graphics::Gnuplot should detect this and quit after a few seconds:';
+say STDERR 'PDL::Graphics::Gnuplot can detect I/O hanges. Here I ask for a delay, so I should detect this and quit after a few seconds:';
 say STDERR "=================================";
 eval( <<'EOM' );
   my $xy = zeros(21,21)->ndcoords - pdl(10,10);
-  plot3d(binary => 1,
-         title  => 'Paraboloid heat map',
-         extracmds => 'set view 0,0',
-         with => 'image', inner($xy, $xy));
+  plot( extracmds => 'pause 10',
+        sequence(5));
 EOM
 print STDERR $@ if $@;
 say STDERR "=================================\n\n";
