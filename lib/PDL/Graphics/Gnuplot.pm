@@ -592,8 +592,8 @@ sub plot
         {
           # a 3D plot is 2 elements short. Use a grid as a domain
           my @dims = $dataPiddles[0]->dims();
-          if(@dims < 2)
-          { barf "plot() tried to build a 2D implicit domain, but not the first data piddle is too small"; }
+          if(@dims < 1)
+          { barf "plot() tried to build a 2D implicit domain, but the first data piddle is too small"; }
 
           # grab the first 2 dimensions to build the x-y domain
           splice @dims, 2;
