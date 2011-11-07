@@ -498,6 +498,14 @@ sub plot
       $format .= '%double' x $tuplesize;
       $format .= '"';
 
+      # When plotting in binary, gnuplot gets confused if I don't explicitly
+      # tell it the tuplesize. It's got its own implicit-tuples logic that I
+      # don't want kicking in. As an example, the following simple plot doesn't
+      # work in binary without this extra line:
+      # plot3d(binary => 1,
+      #        with => 'image', sequence(5,5));
+      $format .= ' using ' . join(':', 1..$tuplesize);
+
       # to test the plot I plot a single record
       my $formatTest = $format;
       $formatTest =~ s/record=\d+/record=1/;
