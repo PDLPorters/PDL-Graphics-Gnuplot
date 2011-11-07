@@ -1395,10 +1395,10 @@ this log will contain binary data, if the 'binary' option is given (see below)
 =item binary
 
 If given, binary data is passed to gnuplot instead of ASCII data. Binary is much
-more efficient (and thus faster), but due to some bugs in Gnuplot, it does not
-work for some more complicated plots (mostly things involving colors). These
-cases will produce gnuplot errors detected by PDL::Graphics::Gnuplot, or will
-produce clearly erroneous plots. Reverting the ASCII makes these plots work.
+more efficient (and thus faster). Binary input works for most plots, but not for
+all of them. An example where binary plotting doesn't work is 'with labels'.
+ASCII plotting is generally better tested so ASCII is the default. This will
+change at some point in the near future
 
 =back
 
