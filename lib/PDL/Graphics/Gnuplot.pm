@@ -416,7 +416,7 @@ sub plot
         # I get 2 formats: one real, and another to test the plot cmd, in case it
         # fails. The test command is the same, but with a minimal point count. I
         # also get the number of bytes in a single data point here
-        my ($format, $formatMinimal) = formatcmd($chunk);
+        my ($format, $formatMinimal) = binaryFormatcmd($chunk);
         my $Ntestbytes_here          = getNbytes_tuple($chunk);
 
         push @plotChunkCmd,        map { "'-' $format $_"     }    @optionCmds;
@@ -485,7 +485,7 @@ sub plot
       return $cmd;
     }
 
-    sub formatcmd
+    sub binaryFormatcmd
     {
       # I make 2 formats: one real, and another to test the plot cmd, in case it
       # fails
