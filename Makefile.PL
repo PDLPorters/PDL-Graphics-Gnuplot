@@ -3,6 +3,21 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
+sub parseversion
+{
+# grab the version number from the debian changelog file. I look for lines line
+#
+# libpackage-perl (0.03) unstable; urgency=low
+#
+# I parse out the 0.03 part
+  open DCH, 'debian/changelog' or die "Couldn't open debian/changelog";
+  my ($version) = <DCH> =~ /^\S+ \s* \( ([0-9\.]+) .*? \)/x
+    or die "Couldn't parse version from debian/changelog";
+  close DCH;
+
+  return $version;
+}
+
 # make sure we can run gnuplot before continuing
 {
   unless( open( my $pipe, '|-', 'gnuplot' ))
@@ -37,7 +52,7 @@ sub MY::libscan
 WriteMakefile(
     NAME                => 'PDL::Graphics::Gnuplot',
     AUTHOR              => q{Dima Kogan <dima@secretsauce.net>},
-    VERSION_FROM        => 'lib/PDL/Graphics/Gnuplot.pm',
+    VERSION             => parseversion(),
     ABSTRACT_FROM       => 'lib/PDL/Graphics/Gnuplot.pm',
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
       ? ('LICENSE'=> 'perl')

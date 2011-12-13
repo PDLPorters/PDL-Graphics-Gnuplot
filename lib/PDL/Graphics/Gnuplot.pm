@@ -171,7 +171,7 @@ confused about when to use implicit domains. For example, C<plot($a,$b)> is
 interpreted as plotting $b vs $a, I<not> $a vs an implicit domain and $b vs an
 implicit domain. If 2 implicit plots are desired, add a separator:
 C<plot($a,{},$b)>. Here C<{}> is an empty curve options hash. If C<$a> and C<$b>
-have the same dimensions, one can also do C<plot($a->cat($b))>, taking advantage
+have the same dimensions, one can also do C<plot($a-E<gt>cat($b))>, taking advantage
 of PDL threading.
 
 =head2 Images
@@ -838,9 +838,12 @@ C<locale> is used to control date stamp creation.  See the gnuplot manual.
 C<decimalsign>  accepts a character to use in lieu of a "." for the decimalsign.
 (e.g. in European countries use C<decimalsign=>','>).
 
-=head2 Miscellany: globalwith, timestamp, zero, fontpath, binary
+=head2 Miscellany: globalwith, timestamp, zero, fontpath
 
-If no valid 'with' curve option is given, use this as a default
+C<globalwith> is used as a default plot style if no valid 'with' curve option is present for
+a given curve.
+
+TBD - timestamp, zero, fontpath
 
 =head2 Advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, log
 
@@ -859,7 +862,7 @@ gnuplot.
 
 Most plotting is done with binary data transfer to Gnuplot; however, due to 
 some bugs in Gnuplot binary handling, certain types of plot data are sent in ASCII.
-In particular, time series data require transmission in ASCII (as of Gnuplot 4.4). 
+In particular, time series and label data require transmission in ASCII (as of Gnuplot 4.4). 
 You can force ASCII transmission of all but image data by explicitly setting the
 C<binary=>0> option.
 
@@ -4120,8 +4123,9 @@ sub _printGnuplotPipe
 
   if( $this->{options}{log} )
   {
+    my $len = length $string;
     _logEvent($this,
-              "Sent to child process (suffix $suffix)==========\n" . $string . "\n=========================" );
+              "Sent to child process (suffix $suffix) $len bytes==========\n" . $string . "\n=========================" );
   }
 }
 
@@ -4281,7 +4285,7 @@ sub _logEvent
   return unless($this->{options}->{log}); # only log when asked.
 
   my $t1 = tv_interval( $this->{t0}, [gettimeofday] );
-  printf STDERR "==== PDL::Graphics::Gnuplot PID $this->{pid} at t=%.4f: $event\n", $t1;
+  printf STDERR "==== PDL::Graphics::Gnuplot PID %d at t=%.4f: %s\n", $this->{pid},$t1,$event;
 }
 
 1;
