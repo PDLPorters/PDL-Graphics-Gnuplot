@@ -1,4 +1,4 @@
-libpdl-graphics-gnuplot-perl (0.03) unstable; urgency=low
+libpdl-graphics-gnuplot-perl (0.11ced) unstable; urgency=low
 
   * debian packaging cleanup
   * updated email address

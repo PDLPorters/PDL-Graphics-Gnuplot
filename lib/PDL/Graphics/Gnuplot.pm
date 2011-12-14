@@ -856,7 +856,12 @@ C<decimalsign>  accepts a character to use in lieu of a "." for the decimalsign.
 C<globalwith> is used as a default plot style if no valid 'with' curve option is present for
 a given curve.
 
-TBD - timestamp, zero, fontpath
+If set to a nonzero value, C<timestamp> causes a time stamp to be
+placed on the side of the plot, e.g. for keeping track of drafts.
+
+C<zero> sets the approximation threshold for zero values within gnuplot.  Its default is 1e-8.
+
+C<fontpath> sets a font search path for gnuplot.  It accepts a collection of file names as a list ref.
 
 =head2 Advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, log
 
@@ -920,6 +925,10 @@ Specifies how many values represent each data point. For 2D plots this defaults
 to 2; for 3D plots this defaults to 3.
 
 =back
+
+=head1 PLOT STYLES
+
+
 
 =head1 RECIPES
 
@@ -1075,7 +1084,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '0.10ced';
+our $VERSION = '0.11ced';
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo);
