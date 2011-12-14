@@ -1791,8 +1791,6 @@ sub plot
 		    );
 	    } else {
 		# It's a collection of list ref data only.  Assemble strings.
-		use PDL::IO::Dumper;
-		print "chunk data is\n\n".sdump($chunk->{data})."\n\n";
 		my $data = $chunk->{data};
 		my $last = $#{$chunk->{data}->[0]};
 		my $s = "";
@@ -1933,7 +1931,6 @@ sub plot
 					(ref $args[$_]) !~ m/^(PDL|ARRAY)$/} $argIndex..$#args;
 	    $nextOptionIdx = @args unless defined $nextOptionIdx;
 
-	    print "nextDataIdx = $nextDataIdx; nextOptionIdx = $nextOptionIdx\n";
 	    # Make sure we know our "with" style...
 	    unless($chunk{options}{'with'}) {
 		$chunk{options}{'with'} = [$this->{options}->{'globalwith'} || "lines"];
@@ -2115,7 +2112,6 @@ sub plot
 		$ncurves = 1;
 		$chunk{data} = \@dataPiddles;
 		$chunk{imgFlag} = 0;
-		print "non-image ASCII case -- new chunk is\n\n".sdump(\%chunk)."\n";
 		push @chunks, \%chunk;
 	    }
 
