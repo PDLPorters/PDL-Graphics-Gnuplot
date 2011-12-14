@@ -84,6 +84,19 @@ You select a plot style with the "with" curve option, as in
        with=>"yerrorbars", legend=>"data", $x, $y+(random($y)-0.5)*2*$y/20, pdl($y/20),
        with=>"lines",      legend=>"fit",  $x, $y);
 
+Normal threading rules apply across the arguments to a given plot.
+
+At least the first data column in a tuple is required to be a PDL.
+Subsequent data columns can be delivered as string data if desired, in a
+Perl list ref.  If you use a list ref as a data column, then normal
+threading is disabled and all arguments must be 1-D and contain the 
+same number of elements.  For example:
+
+ $x = xvals(5);
+ $y = xvals(5)**2;
+ $labels = ['one','two','three','four','five'];
+ gplot(with=>'labels',$x,$y,$labels);
+
 See below for supported plot styles.
 
 =head2 Options arguments
@@ -1498,6 +1511,15 @@ sub plot
 
     my ($cbmin,$cbmax) = (undef, undef);
     for my $i(0..$#$chunks) {
+
+	# Figure out, per-curve, whether to use binary or ASCII for that curve.
+	# Some 'with' formats require either binary or ASCII, and these
+	# are set in the chunks by parseArgs.  Others don't care; for
+	# those we use the global $binary_mode.  
+	$chunks->[$i]->{binaryCurveFlag} = $chunks->[$i]->{binaryWith} // $binary_mode;
+
+
+	# Everything else is an image fix
 	next if( !($chunks->[$i]->{imgFlag}) );
 	
 	# Fix up gnuplot ranging bug for images
@@ -1540,6 +1562,8 @@ sub plot
 	    $cbmin = $cmin if( !defined($cbmin)   or    $cbmin > $cmin );
 	    $cbmax = $cmax if( !defined($cbmax)   or    $cbmax < $cmax );
 	}
+
+
     }
 
     # This is the cbrange kludge.  We use the same localization trick
@@ -1586,7 +1610,7 @@ sub plot
     }
 
     ##########
-    # Second: generate the plot command with the fences in it
+    # Second: generate the plot command with the fences in it. (fences are emitted in _emitOpts)
     my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
 	join( ", ", 
 	      map { 
@@ -1619,7 +1643,7 @@ sub plot
 	my($pchunk, $tchunk);
 	
 	if( $chunks->[$i]->{imgFlag} ) {
-	    # It's an image -- use a binary matrix to push the image out.
+	    # It's an image -- always use a binary matrix to push the image out.
 
 	    unless( $binary_mode ) {
 		print STDERR "WARNING: images are generally too large for ASCII.  Using binary instead.\n";
@@ -1639,9 +1663,12 @@ sub plot
 	    $chunks->[$i]->{testdata} = "." x ($chunks->[$i]->{tuplesize} * 8);
 
 	} else {
-	    # It's a normal plot -- use binary format to push the data.
+	    # It's a non-image plot.  Calculate whether binary or ASCII output.
+	    # First, check the per-chunk flag (if set).  If it's not, then 
+	    # use the global flag.
 
-	    if( $binary_mode ) {
+
+	    if( $chunks->[$i]->{binaryCurveFlag} ) {
 		my $fstr = "%double" x $chunks->[$i]->{tuplesize};
 		
 		# The specifiers are identical, except that one gets a length of 1 and the other gets
@@ -1658,8 +1685,7 @@ sub plot
 		# test data is a string containing the data to send -- just garbage. Use '.' to aid 
 		# byte counting in the test string.
 		$chunks->[$i]->{testdata} = $testdataunit_binary x ($chunks->[$i]->{tuplesize});
-	    } else {
-		
+	    } else {		
 		# ASCII transfer has been specified - plot command is easier, but the data are in ASCII.
 		$pchunk = $tchunk =   " '-' ".$plotcmds[$i];
 
@@ -1735,6 +1761,7 @@ sub plot
 
     _printGnuplotPipe( $this, "main", $plotcmd);
 
+
     for my $chunk(@$chunks){
 	my $p;
 	if($chunk->{imgFlag}) {
@@ -1742,8 +1769,9 @@ sub plot
 	    $p = $chunk->{data}->[0]->double->copy;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
 
-	} elsif( $binary_mode  ) {
-	    # If it's not an image, send in binary anyway if we're in binary mode
+	} elsif( $chunk->{binaryCurveFlag}  ) {
+	    # Send in binary if the binary flag is set.
+
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
 
@@ -1751,14 +1779,40 @@ sub plot
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
 	    # a line with just "e".
 
-	    $p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
-	    $p = $p->mv(-1,0);                         # tuple dim first, rows second
+	    if(ref $chunk->{data}->[0] eq 'PDL') {
+		# It's a collection of PDL data only.
+		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
+		$p = $p->mv(-1,0);                         # tuple dim first, rows second
 
-	    # Emit $p as a collection of " " separated lines, followed by "e".
-	    _printGnuplotPipe($this,
-			      "main",
-			      join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n"
-		);
+		# Emit $p as a collection of " " separated lines, followed by "e".
+		_printGnuplotPipe($this,
+				  "main",
+				  join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n"
+		    );
+	    } else {
+		# It's a collection of list ref data only.  Assemble strings.
+		use PDL::IO::Dumper;
+		print "chunk data is\n\n".sdump($chunk->{data})."\n\n";
+		my $data = $chunk->{data};
+		my $last = $#{$chunk->{data}->[0]};
+		my $s = "";
+
+		for my $i(0..$last) {
+		    for my $j(0..$#$data){
+			my $elem = $data->[$j]->[$i];
+			if($elem =~ m/[\s\"]/) {    # element contains whitespace or quotes
+			    $elem =~ s/\"/\\\"/g;   # Escape quotes
+			    $elem =~ s/[\n\r]/ /g;  # Remove any newlines or returns
+			    $elem = "\"$elem\"";    # quote the element
+			}
+			$s .= "$elem ";             # append the element to the output string.
+		    }
+		    $s .= "\n";                     # add newline
+		}
+		$s .= "e\n";                        # end the command
+
+		_printGnuplotPipe($this, "main", $s);
+	    }
 	}
     }
 	
@@ -1857,9 +1911,11 @@ sub plot
 	while($argIndex <= $#args)
 	{
 	    # First, I find and parse the options in this chunk
-	    my $nextDataIdx = first {ref $args[$_] && ref $args[$_] eq 'PDL'} $argIndex..$#args;
+	    # Array refs are allowed in some curve options, but only as values of key/value
+	    # pairs -- so any list refs glommed in with a bunch of PDLs are data.
+	    my $nextDataIdx = first { (ref $args[$_] ) and 
+				      (ref($args[$_]) =~ m/^PDL$/)} $argIndex..$#args;
 	    last if !defined $nextDataIdx; # no more data. done.
-
 	    
 	    # I do not reuse the curve legend, since this would result in multiple
 	    # curves with the same name.
@@ -1873,9 +1929,11 @@ sub plot
 
 	    # Find the data for this chunk...
 	    $argIndex         = $nextDataIdx;
-	    my $nextOptionIdx = first {!ref $args[$_] || ref $args[$_] ne 'PDL'} $argIndex..$#args;
+	    my $nextOptionIdx = first { (!(ref $args[$_])) or 
+					(ref $args[$_]) !~ m/^(PDL|ARRAY)$/} $argIndex..$#args;
 	    $nextOptionIdx = @args unless defined $nextOptionIdx;
 
+	    print "nextDataIdx = $nextDataIdx; nextOptionIdx = $nextOptionIdx\n";
 	    # Make sure we know our "with" style...
 	    unless($chunk{options}{'with'}) {
 		$chunk{options}{'with'} = [$this->{options}->{'globalwith'} || "lines"];
@@ -1902,6 +1960,8 @@ sub plot
 	    # Image flag and base tuplesizes allowed for this plot style...
 	    my $imgFlag    = $plotStyleProps->{$with[0]}->[ 2 ];
 	    my $tupleSizes = $plotStyleProps->{$with[0]}->[ !!$is3d ];
+	   
+	    $chunk{binaryWith} = $plotStyleProps->{$with[0]}->[ 3 ];
 	    
 	    # Reject disallowed plot styles
 	    unless(ref $tupleSizes) {
@@ -2010,12 +2070,12 @@ sub plot
 		$chunk{imgFlag} = 1;
 		push @chunks, \%chunk;
 
-	    } else {
+	    } elsif( (ref $dataPiddles[0]) eq 'PDL' ) {
 		# Non-image case: check that the legend count agrees with the
 		# number of curves we found, and break up compound chunks (with multiple 
 		# curves) into separate chunks of one curve each.
 
-	        $ncurves = $dataPiddles[0]->slice("(0)")->nelem;
+		$ncurves = $dataPiddles[0]->slice("(0)")->nelem;
 
 		if($chunk{options}->{legend} and 
 		   @{$chunk{options}->{legend}} and 
@@ -2049,6 +2109,14 @@ sub plot
 			push(@chunks, $chk);
 		    }
 		}
+	    } else {
+		# Non-image case, with array refs instead of PDLs -- we required the chunk to be
+		# simple in matchDims, so just push it.
+		$ncurves = 1;
+		$chunk{data} = \@dataPiddles;
+		$chunk{imgFlag} = 0;
+		print "non-image ASCII case -- new chunk is\n\n".sdump(\%chunk)."\n";
+		push @chunks, \%chunk;
 	    }
 
 	    $Ncurves += $ncurves;
@@ -2066,66 +2134,109 @@ sub plot
     sub matchDims
     {
 	my @data = @_;
-	
-	# Make sure the domain and ranges describe the same number of data points,
-	# and that all PDLs have at least one dim.
-	#
-	# ( This is complicated by the need/desire to preserve threading rules.  Here, 
-	# we accumulate thread dimensions manually and then match 'em using dummy
-	# dimensions...  --CED )
-	my @data_dims = (1);  # ensure at least 1 dim with at least 1 element
-	
-	# Assemble the thread-rules dim list
-	for my $i(0..$#data) {
-	    my @ddims = $data[$i]->dims;
-	    for my $i(0..$#ddims) {
-		if( (!defined($data_dims[$i])) || ($data_dims[$i] <= 1) ) {
-		    $data_dims[$i] = $ddims[$i];
-		} 
-		elsif( ( $ddims[$i]>1) && ($ddims[$i] != $data_dims[$i] )) {
-		    barf "plot(): mismatched arguments in tuple (position $i)\n";
-		}
-	    }
-	}
-	
-	# Now pad each data element out, by slicing, to match the full dim list.  If the
-	# dim matches, mark a ':'; if not, put in the correct dummy dim to make it match.
-	# Don't bother slicing unless at least one dummy dim is needed.
-	for my $i(0..$#data) {
-	    my @ddims = $data[$i]->dims;
-	    my @s = ();
-	    my $slice_needed = 0;
-	    
-	    for my $id(0..$#data_dims) {
-		if((!defined($ddims[$id])) || !$ddims[$id]) {
-		    push(@s,"*$data_dims[$id]");
-		    $slice_needed = 1;
-		} 
-		elsif($data_dims[$id] == $ddims[$id]) {
-		    push(@s,":");
-		} 
-		elsif( $ddims[$id]==1 ) {
-		    push(@s,"(0), *$data_dims[$id]");
-		    $slice_needed = 1;
-		} else {
-		    # should never happen
-		    barf "plot(): problem with dim assignments. This is a bug."; # no newline
-		}
-	    }
-	    
-	    if($slice_needed) {
-		my $s = join(",",@s);
-		$data[$i] = $data[$i]->slice( join(",",@s) );
-	    }
-	}
 
-	# flatten everything down if need be.  (no image threading allowed)
-	if($data[0]->ndims <= 2){
-	    return @data;
+	my $nonPDLCount = 0;
+	map { $nonPDLCount++ unless(ref $_ eq 'PDL') } @data;
+
+	# In the case where all data are PDLs, we match dimensions.
+	unless($nonPDLCount) {
+	    # Make sure the domain and ranges describe the same number of data points,
+	    # and that all PDLs have at least one dim.
+	    #
+	    # ( This is complicated by the need/desire to preserve threading rules.  Here, 
+	    # we accumulate thread dimensions manually and then match 'em using dummy
+	    # dimensions...  --CED )
+	    my @data_dims = (1);  # ensure at least 1 dim with at least 1 element
+	    
+	    # Assemble the thread-rules dim list
+	    for my $i(0..$#data) {
+		my @ddims = $data[$i]->dims;
+		for my $i(0..$#ddims) {
+		    if( (!defined($data_dims[$i])) || ($data_dims[$i] <= 1) ) {
+			$data_dims[$i] = $ddims[$i];
+		    } 
+		    elsif( ( $ddims[$i]>1) && ($ddims[$i] != $data_dims[$i] )) {
+			barf "plot(): mismatched arguments in tuple (position $i)\n";
+		    }
+		}
+	    }
+	    
+	    # Now pad each data element out, by slicing, to match the full dim list.  If the
+	    # dim matches, mark a ':'; if not, put in the correct dummy dim to make it match.
+	    # Don't bother slicing unless at least one dummy dim is needed.
+	    for my $i(0..$#data) {
+		my @ddims = $data[$i]->dims;
+		my @s = ();
+		my $slice_needed = 0;
+		
+		for my $id(0..$#data_dims) {
+		    if((!defined($ddims[$id])) || !$ddims[$id]) {
+			push(@s,"*$data_dims[$id]");
+			$slice_needed = 1;
+		    } 
+		    elsif($data_dims[$id] == $ddims[$id]) {
+			push(@s,":");
+		    } 
+		    elsif( $ddims[$id]==1 ) {
+			push(@s,"(0), *$data_dims[$id]");
+			$slice_needed = 1;
+		    } else {
+			# should never happen
+			barf "plot(): problem with dim assignments. This is a bug."; # no newline
+		    }
+		}
+		
+		if($slice_needed) {
+		    my $s = join(",",@s);
+		    $data[$i] = $data[$i]->slice( join(",",@s) );
+		}
+	    }
+	    
+	    # flatten everything down if need be.  (no image threading allowed)
+	    if($data[0]->ndims <= 2){
+		return @data;
+	    } else {
+		return map { $_->mv(0,-1)->clump(-2)->mv(-1,0)->sever } @data;
+	    }
 	} else {
-	    return map { $_->mv(0,-1)->clump(-2)->mv(-1,0)->sever } @data;
-	}
+	    # At least one of the data columns is a non-PDL.  Force them to be simple columns, and
+	    # require exact dimensional match.
+	    #
+	    # Also, convert any contained PDLs to list refs.
 
+	    my $nelem;
+	    my @out = ();
+
+	    for(@data) {
+		barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
+		    if( (ref $_ eq 'PDL') and $_->ndims > 1 );
+
+		if((ref $_) eq 'ARRAY') {
+		    barf "plot(): row count disagreement:  ".(0+@$_)." != $nelem\n"
+			if( (defined $nelem) and (@$_ != $nelem) );
+		    $nelem = @$_;
+
+		    for (@$_) {
+			barf "plot(): nested references not allowed in list data\n"
+			    if( ref($_) );
+		    }
+
+		    push(@out, $_);
+
+		} elsif((ref $_) eq 'PDL') {
+		    barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
+			if( (defined $nelem) and ($_->nelem != $nelem) );
+		    $nelem = $_->nelem;
+
+		    push(@out, [ $_->list ]);
+
+		} else {
+		    barf "plot(): problem with dim checking.  This should never happen.";
+		}
+	    }
+	    
+	    return @out;
+	}
     } # end of matchDims (nested in plot)
 }  # end of plot
 
@@ -2985,40 +3096,42 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 #   2:  img    This is a flag indicating whether it is an image format plot (which accepts
 #              2-D matrix data in each "column").  If false, the column is a 1-D collection
 #              of values.
+# 
+#   3:  bin   0/1/undef - 0: ASCII data required for this plot type; 1: binary data required.
 #
 
 
 our $plotStyleProps ={
-##  key                ts         3dts img
-    boxerrorbars   => [ [3,4,5],  0,      0 ],
-    boxes          => [ [2,3],    0,      0 ],
-    boxxyerrorbars => [ [4,6],    0,      0 ],
-    candlesticks   => [ [5],      0,      0 ],
-    circles        => [ [3],      0,      0 ],
-    dots           => [ [-1,2],   [3],    0 ],
-    filledcurves   => [ [-2,3],   0,      0 ],
-    financebars    => [ [5],      0,      0 ],
-    fsteps         => [ [-1,2],   0,      0 ],
-    histeps        => [ [-1,2],   0,      0 ],
-    histogram      => [ [2,3],    0,      0 ],
-    newhistogram   => [ [2,3],    0,      0 ],
-    image          => [ [-1,3],   [-1,4], 1 ],
-    impulses       => [ [-1,2,3], [3,4],  0 ],
-#   labels         => [ [3],      [4],    0 ], # special case: prob. won't work with PDL data (labels)
-    lines          => [ [-1,2],   [-1,3], 0 ],
-    linespoints    => [ [-1,2],   [-1,3], 0 ],
-    points         => [ [-1,2],   [-1,3], 0 ],
-    rgbalpha       => [ [-4,6],   [7],    1 ],
-    rgbimage       => [ [-3,5],   [6],    1 ],
-    steps          => [ [-1,2],   0,      0 ],
-    vectors        => [ [4],      [6],    0 ],
-    xerrorbars     => [ [-2,3,4], 0,      0 ],
-    xyerrorbars    => [ [-3,4,6], 0,      0 ],
-    yerrorbars     => [ [-2,3,4], 0,      0 ],
-    xerrorlines    => [ [-3,4],   0,      0 ],
-    xyerrorlines   => [ [-4,6],   0,      0 ],
-    yerrorlines    => [ [-3,4],   0,      0 ],
-    pm3d           => [ 0,        [-1,4], 1 ]
+### key                ts         3dts  img  bin
+    boxerrorbars   => [ [3,4,5],  0,      0, undef ],
+    boxes          => [ [2,3],    0,      0, undef ],
+    boxxyerrorbars => [ [4,6],    0,      0, undef ],
+    candlesticks   => [ [5],      0,      0, undef ],
+    circles        => [ [3],      0,      0, undef ],
+    dots           => [ [-1,2],   [3],    0, undef ],
+    filledcurves   => [ [-2,3],   0,      0, undef ],
+    financebars    => [ [5],      0,      0, undef ],
+    fsteps         => [ [-1,2],   0,      0, undef ],
+    histeps        => [ [-1,2],   0,      0, undef ],
+    histogram      => [ [2,3],    0,      0, undef ],
+    newhistogram   => [ [2,3],    0,      0, undef ],
+    image          => [ [-1,3],   [-1,4], 1, 1     ],
+    impulses       => [ [-1,2,3], [3,4],  0, undef ],
+    labels         => [ [3],      [4],    0, 0     ], 
+    lines          => [ [-1,2],   [-1,3], 0, undef ],
+    linespoints    => [ [-1,2],   [-1,3], 0, undef ],
+    points         => [ [-1,2],   [-1,3], 0, undef ],
+    rgbalpha       => [ [-4,6],   [7],    1, 1     ],
+    rgbimage       => [ [-3,5],   [6],    1, 1     ],
+    steps          => [ [-1,2],   0,      0, undef ],
+    vectors        => [ [4],      [6],    0, undef ],
+    xerrorbars     => [ [-2,3,4], 0,      0, undef ],
+    xyerrorbars    => [ [-3,4,6], 0,      0, undef ],
+    yerrorbars     => [ [-2,3,4], 0,      0, undef ],
+    xerrorlines    => [ [-3,4],   0,      0, undef ],
+    xyerrorlines   => [ [-4,6],   0,      0, undef ],
+    yerrorlines    => [ [-3,4],   0,      0, undef ],
+    pm3d           => [ 0,        [-1,4], 1, 1 ]
 };
 
 ##############################
@@ -3155,6 +3268,15 @@ sub _parseOptHash {
     return $options;
 }
 
+##############################
+#
+# Parse table 
+#
+# $_pOHInputs describes input parsing from argument lists.  Each key
+# is a code for a particular type of input; the value is a subroutine
+# that accepts ($old_value, $new_input, $options_hash) and returns the
+# parsed new value.
+
 $_pOHInputs = {
     ## Simple cases - boolean, number, scalar
     'b' => sub { ( (defined $_[1]) ? ($_[1] ? 1 : 0) : undef ); },
@@ -3252,6 +3374,8 @@ $_pOHInputs = {
     }
 };
 
+
+
 ##############################
 # _emitOpts 
 #
@@ -3322,8 +3446,18 @@ sub _emitOpts {
     return $s;
 }
 
-# emission codes for individual output types.  Each sub gets the option keyword, value, and hash, and emits a string.
-# with trailing newline.
+##############################
+# 
+# Emission table
+#
+# $_OptionEmitters describes how to emit stored parameters.  Each
+# key is a code for a particular type of output; the value is a subroutine
+# that returns the outputted parameter as a string.
+#
+# Different codes emit whole lines (e.g. for setting plot options) or
+# space-delimited words (e.g. for setting curve options).  Curve
+# option emitters have codes that start with 'c'.
+
 our $_OptionEmitters = {
     #### Default output -- a collection of terms with spaces between them as a plot option
     ' ' => sub { my($k,$v,$h) = @_; 
