@@ -1525,7 +1525,10 @@ sub plot
 	# Some 'with' formats require either binary or ASCII, and these
 	# are set in the chunks by parseArgs.  Others don't care; for
 	# those we use the global $binary_mode.  
-	$chunks->[$i]->{binaryCurveFlag} = $chunks->[$i]->{binaryWith} // $binary_mode;
+	#
+	# This line would be clearer with //, but ternary operator is used to 
+	# make it work with 5.8.8.
+	$chunks->[$i]->{binaryCurveFlag} = (defined $chunks->[$i]->{binaryWith}) ? $chunks->[$i]->{binaryWith} : $binary_mode;
 
 
 	# Everything else is an image fix
@@ -1903,7 +1906,7 @@ sub plot
 
 	my @args = @_;
 	
-	my $is3d = $this->{options}->{'3d'} // 0;
+	my $is3d = (defined $this->{options}->{'3d'}) ? $this->{options}->{'3d'} : 0;
 	my $ND = (('2D','3D')[!!$is3d]);  # mainly for error messages
 	my $spec_legends = 0;
 	
@@ -3102,9 +3105,16 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 #              2-D matrix data in each "column").  If false, the column is a 1-D collection
 #              of values.
 # 
-#   3:  bin   0/1/undef - 0: ASCII data required for this plot type; 1: binary data required.
+#   3:  bin    0/1/undef - 0: ASCII data required for this plot type; 1: binary data required.
 #
-
+#   4:  frob   if present, pointer to a prefrobnication routine to prepare the data.
+#              Currently, fits images are handled that way because of gnuplot's problem
+#              dealing with proper coordinate grids -- the fits image is sampled into 
+#              scientific coordinates using PDL::Transform.  The prefrobnicator should accept
+#              the name of the 'with' option, the main plot object (for access to plot options) 
+#              and plot chunk (for access to curve options), followed by all the data passed in for that curve.
+#              It should return a list with: ($additional_plot_option_string, $new_with, @new_data).
+#              The $additional_plot_option_string, if defined, is emitted just before the plot command.
 
 our $plotStyleProps ={
 ### key                ts         3dts  img  bin
@@ -3120,6 +3130,7 @@ our $plotStyleProps ={
     histeps        => [ [-1,2],   0,      0, undef ],
     histogram      => [ [2,3],    0,      0, undef ],
     newhistogram   => [ [2,3],    0,      0, undef ],
+    fits           => [ [-1],     [-1],   1, 1     , \&_with_fits_prefrobnicator ],
     image          => [ [-1,3],   [-1,4], 1, 1     ],
     impulses       => [ [-1,2,3], [3,4],  0, undef ],
     labels         => [ [3],      [4],    0, 0     ], 
@@ -3404,7 +3415,7 @@ sub _emitOpts {
     # Keys that are supposed to be at bottom (if any in future) can be 
     # placed there by the expedient of assigning them sort values in excess of 1,000.
     #
-    my @keys = sort { (($table->{$a}->[3] // 999) <=> ($table->{$b}->[3] // 999)) || 
+    my @keys = sort { ((defined $table->{$a}->[3])?($table->{$a}->[3]): 999) <=> ((defined $table->{$b}->[3])?($table->{$b}->[3]):999) or  
 			  ($a cmp $b) 
                     } keys %$options;
 
@@ -3468,7 +3479,7 @@ our $_OptionEmitters = {
     ' ' => sub { my($k,$v,$h) = @_; 
 		 return "" unless(defined($v));
 		 if(ref $v eq 'ARRAY') {
-		     return join(" ",("set",$k,map {$_ // "" } @$v))."\n";
+		     return join(" ",("set",$k,map { (defined $_)?$_:"" } @$v))."\n";
 		 } elsif(ref $v eq 'HASH') {
 		     return join(" ",("set",$k,%$v))."\n";
 		 } else {
@@ -3746,13 +3757,13 @@ our $_OptionEmitters = {
 		     }
 		     # If we got here, the first element has no ':'.  Treat the first two elements as numbers and make a range 
 		     # specifier out of 'em, then emit.
-		     return sprintf("set %s [%s:%s] %s\n", $k, $v->[0] // "", $v->[1] // "", join(" ",@{$v}[2..$#$v]));
+		     return sprintf("set %s [%s:%s] %s\n", $k, ((defined $v->[0])?$v->[0]:""), ((defined $v->[1])?$v->[1]:""), join(" ",@{$v}[2..$#$v]));
     },
 
     "crange" => sub { my($k,$v,$h) = @_;
 		      return "" unless(defined $v);
 		      return "$v" if(ref $v ne 'ARRAY');
-		      return sprintf(" [%s:%s] ",$v->[0] // "", $v->[1] // "");
+		      return sprintf(" [%s:%s] ",((defined $v->[0])?$v->[0]:""), ((defined $v->[1])?$v->[1]:""));
     },
 
 };
@@ -4445,6 +4456,13 @@ sub _obj_or_global {
 	$this = $globalPlot;
     }
     return $this;
+}
+
+##############################
+# Prefrobnicators - preprocess data before plotting, for custom plot styles
+
+sub _with_fits_prefrobnicator {
+    #FIXME
 }
 
 
