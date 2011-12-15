@@ -1090,9 +1090,8 @@ use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo);
 our @EXPORT = qw(gpwin gplot);
 
-
 our $check_syntax = 0;
-
+our $gnuplot_req_v = 4.4;
 
 # when testing plots with ASCII i/o, this is the unit of test data
 my $testdataunit_ascii = "10 ";       # for ascii I/O - not around any more...
@@ -1508,14 +1507,25 @@ sub plot
     # Currently, we 
     my $binary_mode = $this->{options}->{binary};
     unless(defined $binary_mode) {
-	my $using_times = 0;
-	for my $k( qw/x x2 y y2 z cb/ ) {
-	    if($this->{options}->{$k."data"} and $this->{options}->{$k."data"} =~ m/time/) {
-		$using_times = 1;
-		last;
+
+	# The user didn't explicitly set binary or non-binary mode.  Try to guess.
+	if($this->{early_gnuplot}) {
+	    # Early gnuplot - ASCII mode only (by default)
+	    $binary_mode = 0;
+	} else {
+
+	    # Late-model gnuplot - binary for non time format plots, ASCII for time plots.
+	    # (Note: some transfer formats force binary transfer)
+
+	    my $using_times = 0;
+	    for my $k( qw/x x2 y y2 z cb/ ) {
+		if($this->{options}->{$k."data"} and $this->{options}->{$k."data"} =~ m/time/) {
+		    $using_times = 1;
+		    last;
+		}
 	    }
+	    $binary_mode = !$using_times;
 	}
-	$binary_mode = !$using_times;
     }
 
     my ($cbmin,$cbmax) = (undef, undef);
@@ -1529,7 +1539,6 @@ sub plot
 	# This line would be clearer with //, but ternary operator is used to 
 	# make it work with 5.8.8.
 	$chunks->[$i]->{binaryCurveFlag} = (defined $chunks->[$i]->{binaryWith}) ? $chunks->[$i]->{binaryWith} : $binary_mode;
-
 
 	# Everything else is an image fix
 	next if( !($chunks->[$i]->{imgFlag}) );
@@ -1687,7 +1696,7 @@ sub plot
 		# the correct length.   The map statement ensures the main and test cmd get identical 
 		# sprintf templates.
 		($pchunk, $tchunk) = map {
-		    sprintf(" '-' binary %s=(%d) format=\"%s\" %s",
+		    sprintf(" '/tmp/foo' binary %s=(%d) format=\"%s\" %s",
 			    $chunks->[$i]->{ArrayRec},
 			    $_, 
 			    $fstr, 
@@ -1770,12 +1779,12 @@ sub plot
     ##############################
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
-
     _printGnuplotPipe( $this, "main", $plotcmd);
 
-
+    my $chunkno = 0;
     for my $chunk(@$chunks){
 	my $p;
+
 	if($chunk->{imgFlag}) {
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}->[0]->double->copy;
@@ -1785,6 +1794,7 @@ sub plot
 	    # Send in binary if the binary flag is set.
 
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
+
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
 
 	} else {
@@ -1820,7 +1830,6 @@ sub plot
 		    $s .= "\n";                     # add newline
 		}
 		$s .= "e\n";                        # end the command
-
 		_printGnuplotPipe($this, "main", $s);
 	    }
 	}
@@ -4215,14 +4224,48 @@ sub _startGnuplot
     
     my $in  = gensym();
     my $err = gensym();
-    
-    my $pid = open3($in,undef,$err,"gnuplot", @gnuplot_options)
+
+    my $pid = open3($in,$err,$err,"gnuplot", @gnuplot_options)
 	or barf "Couldn't run the 'gnuplot' backend (is gnuplot in your path?)";
-    
+
+    my $errSelector;
     $this->{"in-$suffix"}  = $in;
     $this->{"err-$suffix"} = $err;
-    $this->{"errSelector-$suffix"} = IO::Select->new($err);
+    $this->{"errSelector-$suffix"} = $errSelector = IO::Select->new($err);
     $this->{"pid-$suffix"} = $pid;
+
+    ## Find Gnuplot version and do some binary/ASCII magic.
+    ## This uses the same chintzy read-one-byte-at-a-time logic as checkpoint --
+    ## it's more or less cut-and-pasted from there
+    my $s = "";
+    print $in "show version\n";
+    do {
+	if($errSelector->can_read(5)) {
+	    my $byte;
+	    sysread $err, $byte, 1;
+	    $s .= $byte;
+	} else {
+	    print STDERR <<"EOM"
+WARNING: Hmmm,  gnuplot didn't respond for 5 seconds.  I was expecting to read 
+   a version number.  Ah, well, I'm returning the object anyway -- but don't 
+   be surprised if it doesn't work.
+EOM
+;
+	    return $this;
+	}
+    } until($s =~ m/Version (.*) patchlevel/i);
+    
+    my $version = $1;
+
+    if($version < $gnuplot_req_v) {
+	print STDERR <<"EOM"
+WARNING: Gnuplot version ($version) is earlier than recommended ($gnuplot_req_v).
+    Proceed with caution.  (data xfer is now ASCII by default; this will slow things
+    down a bit.  Images may not work.  Some plot styles may not work.)
+EOM
+			    ;
+	$this->{early_gnuplot} = 1;
+    }
 
     $this;
 }
@@ -4298,9 +4341,9 @@ sub _checkpoint {
     # yet arrived. I thus print out a checkpoint message and keep reading the
     # child's STDERR pipe until I get that message back. Any errors would have
     # been printed before this
-    my $checkpoint = "xxxxxxx Syncronizing gnuplot i/o xxxxxxx";
+    my $checkpoint = "xxxxxxx Synchronizing gnuplot i/o xxxxxxx";
     
-    _printGnuplotPipe( $this, $suffix, "print \"$checkpoint\"\n" );
+    _printGnuplotPipe( $this, $suffix, "\n\nprint \"$checkpoint\"\n" );
     
     
     # if no error pipe exists, we can't check for errors, so we're done. Usually
@@ -4355,7 +4398,7 @@ EOM
     
     if(defined $flags && $flags =~ /printwarnings/)
     {
-	while($fromerr =~ m/$warningre/gm)
+	while($fromerr =~ s/$warningre//gm)
 	{ print STDERR "Gnuplot warning: $1\n"; }
     }
     
@@ -4363,22 +4406,27 @@ EOM
     # I've now read all the data up-to the checkpoint. Strip out all the warnings
     $fromerr =~ s/$warningre//gm;
     
-    # if asked, get rid of all the "invalid command" errors. This is useful if
-    # I'm testing a plot command and I want to ignore the errors caused by the
-    # test data bein sent to gnuplot as a command. The plot command itself will
-    # never be invalid, so this doesn't actually mask out any errors
-
-    if(defined $flags && $flags =~ /ignore_invalidcommand/)
-    {
-	$fromerr =~ s/^(gnu|multi)plot>\s*(?:$testdataunit_binary|e\b).*$ # report of the actual invalid command
-                    \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
-                    \n^.*invalid\s+command.*$//xmg;            # actual 'invalid command' complaint
+    # Grab everything after the first prompt
+    if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
+	$fromerr = $1;
     }
-    
-    # strip out all the leading/trailing whitespace
-    $fromerr =~ s/^\s*//;
-    $fromerr =~ s/\s*$//;
-    
+
+    if($fromerr =~ m/^\s+\^\s*$/m) {
+	if($this->{early_gnuplot}) {
+	    print STDERR "WARNING the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n";
+	} else {
+	    print STDERR "WARNING: the gnuplot backend issued an error:\n";
+	}
+	print STDERR $fromerr."\n";
+	if($this->{early_gnuplot}) {
+	    print STDERR "Please try this command with gnuplot >= v$gnuplot_req_v before griping about it.\n";
+	}
+    }
+		       
+    # strip whitespace
+    $fromerr =~ s/^\s*//s;
+    $fromerr =~ s/\s*$//s;
+
     return $fromerr;
 }
 
