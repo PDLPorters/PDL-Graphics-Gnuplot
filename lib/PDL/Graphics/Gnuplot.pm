@@ -1630,8 +1630,31 @@ sub plot
 	$testOptionsString = _emitOpts($this->{options}, $pOpt);
     }
 
+    #######
+    # Second: add topcmds and extracmds, if necessary
+    { 
+	my $ec = $this->{options}->{extracmds};
+	if(defined($ec)) {
+	    $plotOptionsString .= (   ((ref $ec) eq 'ARRAY') ? 
+			   join("\n",@$ec,"") :
+			    $ec."\n"
+		);
+      }
+    }
+
+
+    { 
+	my $tc = $this->{options}->{topcmds};
+	if(defined($tc)) {
+	    $plotOptionsString = (   ((ref $tc) eq 'ARRAY') ? 
+			   join("\n",@$tc,$plotOptionsString) : 
+			   $tc."\n".$plotOptionsString
+		);
+	}
+    }
+
     ##########
-    # Second: generate the plot command with the fences in it. (fences are emitted in _emitOpts)
+    # Third: generate the plot command with the fences in it. (fences are emitted in _emitOpts)
     my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
 	join( ", ", 
 	      map { 
@@ -1640,14 +1663,14 @@ sub plot
 	);
 
     ##########
-    # Third:  Break up the plot command so we can insert data specifiers in each location
+    # Fourth:  Break up the plot command so we can insert data specifiers in each location
     my @plotcmds = split /$cmdFence/, $plotcmd;
     if(@plotcmds != @$chunks+1) {
 	barf "This should never happen, but it did.  That's odd.  I give up.";
     }
 
     ##########
-    # Fourth: rebuild the plot command by inserting the format string and data spec for each piece,
+    # Fifth: rebuild the plot command by inserting the format string and data spec for each piece,
     # instead of the placeholder fence strings.
     #
     # Image-style formats use binary matrix format rather than ordinary binary format and must
@@ -1688,7 +1711,6 @@ sub plot
 	    # First, check the per-chunk flag (if set).  If it's not, then 
 	    # use the global flag.
 
-
 	    if( $chunks->[$i]->{binaryCurveFlag} ) {
 		my $fstr = "%double" x $chunks->[$i]->{tuplesize};
 		
@@ -1696,7 +1718,7 @@ sub plot
 		# the correct length.   The map statement ensures the main and test cmd get identical 
 		# sprintf templates.
 		($pchunk, $tchunk) = map {
-		    sprintf(" '/tmp/foo' binary %s=(%d) format=\"%s\" %s",
+		    sprintf(" '-' binary %s=(%d) format=\"%s\" %s",
 			    $chunks->[$i]->{ArrayRec},
 			    $_, 
 			    $fstr, 
@@ -1721,46 +1743,21 @@ sub plot
 	
     $plotcmd .= "\n";
 
-
-    { 
-	my $tc = $this->{options}->{topcmds};
-	if(defined($tc)) {
-	    $plotcmd = (   ((ref $tc) eq 'ARRAY') ? 
-			   join("\n",@$tc,$plotcmd) : 
-			   $tc."\n".$plotcmd
-		);
-	}
-    }
-
     my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
     my $print_checkpoint = "; print \"$postTestplotCheckpoint\"";
     $testcmd .= "$print_checkpoint\n";
 
 
-    #######
-    # Fifth: add extracmds, if necessary
-    { 
-	my $ec = $this->{options}->{extracmds};
-	if(defined($ec)) {
-	    $plotcmd .= (   ((ref $ec) eq 'ARRAY') ? 
-			   join("\n",@$ec,"") :
-			    $ec."\n"
-		);
-      }
-    }
-
     ##########
     # Sixth: put data and final checkpointing on the test command
     $testcmd .= join("", map { $_->{testdata} } @$chunks);
 
-    $PDL::Graphics::Gnuplot::last_plotcmd = $plotcmd;
-    $PDL::Graphics::Gnuplot::last_testcmd = $testcmd;
-
+    our $last_plotcmd = $plotcmd;
+    our $last_testcmd = $testcmd;
 
     if($PDL::Graphics::Gnuplot::DEBUG) {
 	print "plot command is:\n$plotcmd\n";
     }
-
 
     #######
     # Seventh: the commands are assembled.  Now test 'em by sending the test command down the pipe.
@@ -1788,6 +1785,7 @@ sub plot
 	if($chunk->{imgFlag}) {
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}->[0]->double->copy;
+	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
 
 	} elsif( $chunk->{binaryCurveFlag}  ) {
@@ -1795,6 +1793,7 @@ sub plot
 
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
 
+	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
 
 	} else {
@@ -1806,6 +1805,7 @@ sub plot
 		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
 
+		$last_plotcmd .= " [ ".$p->dim(1)." lines of ASCII data ]\n";
 		# Emit $p as a collection of " " separated lines, followed by "e".
 		_printGnuplotPipe($this,
 				  "main",
@@ -4267,6 +4267,8 @@ EOM
 	$this->{early_gnuplot} = 1;
     }
 
+    _checkpoint($this, "main");
+
     $this;
 }
 
@@ -4310,9 +4312,17 @@ sub _printGnuplotPipe
   my $string = shift;
 
   my $pipein = $this->{"in-$suffix"};
-  print $pipein $string;
-  print "_printGnuplotPipe-$suffix: $string" if($this->{debug});
+#  print $pipein $string;
+  syswrite($pipein,$string);
 
+  if($this->{debug}) {
+      my $ss = $string;
+
+      # Replace non-printable ASCII characters with '?'
+      $ss =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
+      
+      print "_printGnuplotPipe-$suffix: ".length($string)." chars: '$ss'\n";
+  }
 
   if( $this->{options}{log} )
   {
@@ -4410,6 +4420,9 @@ EOM
     if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
 	$fromerr = $1;
     }
+
+    # Replace non-printable ASCII characters with '?'
+    $fromerr =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
 
     if($fromerr =~ m/^\s+\^\s*$/m) {
 	if($this->{early_gnuplot}) {
