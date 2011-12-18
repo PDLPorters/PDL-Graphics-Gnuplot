@@ -253,7 +253,7 @@ Nearly all the underlying Gnuplot plot options are supported, as well
 as some additional options that are parsed by the module itself for
 convenience.
 
-=head2 Output: terminal, termoption, output, device, hardcopy
+=head2 POs for Output: terminal, termoption, output, device, hardcopy
 
 C<terminal> sets the output device type for Gnuplot, and C<output> sets the 
 actual output file or window number.  
@@ -276,7 +276,7 @@ availale terminals or, if you pass in a terminal name, options accepted
 by that terminal.
 
 
-=head2 Titles: title, (x|x2|y|y2|z|cb)label, key
+=head2 POs for Titles: title, (x|x2|y|y2|z|cb)label, key
 
 Gnuplot supports "enhanced" text escapes on most terminals; see "text",
 below.
@@ -336,7 +336,7 @@ containing (x,y): C<key=>[at=>[0.5,0.5]]>) is an exact location to place the key
 
 =back
 
-=head2 axis, grid, and border control: grid, (x|x2|y|y2|z)zeroaxis, border
+=head2 POs for axes, grids, & borders: grid, (x|x2|y|y2|z)zeroaxis, border
 
 Normally, tick marks and labels are applied to the border of a plot,
 and no extra axes (e.g. the y=0 line) nor coordinate grids are shown.  You can
@@ -389,7 +389,7 @@ control, feed in a list ref with zero or more of the following parameters, in or
 
 These keywords indicate whether gridlines should be drawn on axis tics (see below) for each axis.  Each one takes the form of either "no" or "m" or "", followed by an axis name and "tics" -- e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws (horizontal) Y gridlines on Y axis major and minor tics, while C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both vertical (X) and horizontal (Y) grid lines on major tics.
 
-=head2 Axis ranging and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
+=head2 POs for axis ranging: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
 accepts a list ref with (min, max).  If either min or max is missing, then
@@ -432,7 +432,7 @@ the axes to scale logarithmically, and the second of which is the base
 of the logarithm: C<logscale=>[xy=>10]>.  You can also leave off the
 base if you want base-10 logs: C<logscale=>['xy']>.
 
-=head2 Axis tick marks - [m](x|x2|y|y2|z|cb)tics
+=head2 POs for Axis tick marks - [m](x|x2|y|y2|z|cb)tics
 
 Label tick marks are called "tics" within Gnuplot, and they are extensively
 controllable via the "<axis>tics" options.  In particular, major and minor
@@ -488,7 +488,7 @@ For example, to turn on inward mirrored X axis ticks with diagonal Arial 9 text,
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
-=head2 Time/date values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
+=head2 POs for Time/date values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
 
 Gnuplot contains support for plotting time, date, or elapsed time on
 any of its axes.  There are three main methods, which are mutually exclusive
@@ -526,7 +526,7 @@ December, so C<xdtics=>1, xrange=>[0,4]> will include Christmas through Easter.
 
 =back
 
-=head2 Plot location and size - (t|b|l|r)margin, offsets, origin, size, justify, clip
+=head2 POs for location/size - (t|b|l|r)margin, offsets, origin, size, justify, clip
 
 Adjusting the size, location, and margins of the plot on the plotting
 surface is something of a null operation for most single plots -- but
@@ -568,7 +568,7 @@ C<clip> controls the border between the plotted data and the border of the plot.
 There are three clip types supported:   points, one, and two.  You can set them 
 independently by passing in booleans with their names: C<clip=>[points=>1,two=>0]>.
 
-=head2 Color: colorbox, palette, clut
+=head2 POs for Color: colorbox, palette, clut
 
 Color plots are supported via RGB and pseudocolor.  Plots that use pseudcolor or
 grayscale can have a "color box" that shows the photometric meaning of the color.
@@ -606,7 +606,7 @@ maps.  (from "Color Look Up Table").  A few existing color maps are:
 "wheel".  To see a complete list, specify an invalid table,
 e.g. "clut=>'xxx'".  (This should be improved in a future version).
 
-=head2 3-D: trid, view, pm3d, hidden3d, dgrid3d, surface, xyplane, mapping
+=head2 POs for 3D: trid, view, pm3d, hidden3d, dgrid3d, surface, xyplane, mapping
 
 If C<trid> or its synonym C<3d> is true, Gnuplot renders a 3-D plot.
 This changes the default tuple size from 2 to 3.  This
@@ -643,7 +643,7 @@ C<mapping> takes a single string: "cartesian", "spherical", or
 "cylindrical".  It determines the interpretation of data coordinates
 in 3-space. (Compare to the C<polar> option in 2-D).
 
-=head2 Contour plots - contour, cntrparam
+=head2 POs for Contour plots - contour, cntrparam
 
 Contour plots are only implemented in 3D.  To make a normal 2D contour
 plot, use 3-D mode, but set the view to "map" - which projects the 3-D
@@ -658,7 +658,7 @@ accepts a list ref with a collection of Gnuplot parameters that are
 issued one per line; refer to the Gnuplot manual for how to operate
 it.
 
-=head2 Polar plots - polar, angles, mapping
+=head2 POs for Polar plots - polar, angles, mapping
 
 You can make 2-D polar plots by setting C<polar> to a true value.  The 
 ordinate is then plotted as angle, and the abscissa is radius on the plot.
@@ -670,7 +670,7 @@ C<angles> takes either "degrees" or "radians" (default is radians).
 C<mapping> is used to set 3-D polar plots, either cylindrical or spherical 
 (see the section on 3-D plotting, above).
 
-=head2 Markup - label, arrow, object
+=head2 POs for Markup - label, arrow, object
 
 You specify plot markup in advance of the plot command, with plot
 options.  The options give you access to a collection of (separately)
@@ -840,18 +840,18 @@ C<from=>$pos1,rto=>$diff1,rto=>$diff2,...rto=>$diffn>.
 
 =back
 
-=head2 Appearance tweaks - bars, boxwidth, isosamples, pointsize, style
+=head2 POs for appearance tweaks - bars, boxwidth, isosamples, pointsize, style
 
 TBD - more to come.
 
-=head2 Locale/internationalization - locale, decimalsign
+=head2 POs for locale/internationalization - locale, decimalsign
 
 C<locale> is used to control date stamp creation.  See the gnuplot manual.
 
 C<decimalsign>  accepts a character to use in lieu of a "." for the decimalsign.
 (e.g. in European countries use C<decimalsign=>','>).
 
-=head2 Miscellany: globalwith, timestamp, zero, fontpath
+=head2 PO Miscellany: globalwith, timestamp, zero, fontpath
 
 C<globalwith> is used as a default plot style if no valid 'with' curve option is present for
 a given curve.
@@ -1303,7 +1303,6 @@ sub new
 sub DESTROY
 {
   my $this = shift;
-
   _killGnuplot($this);
 }
 
@@ -2819,19 +2818,19 @@ our $pOptionsTable =
     # multiplot: this is not emitted as part of any plot command, only by the special multiplot method.
     'multiplot' => [sub { die "multiplot: use the 'multiplot' method, don't set this directly\n" },sub { ""},undef,undef,undef]
     ,
-    'mxtics'    => ['s','s',undef,undef,
+    'mxtics'    => ['s','l',undef,undef,
 		    'set and control minor ticks on the X axis: mxtics=><freq>'
     ],
-    'mx2tics'   => ['s','s',undef,undef,
+    'mx2tics'   => ['s','l',undef,undef,
 		    'set and control minor ticks on the X2 axis: mx2tics=><freq>'
     ],
-    'mytics'    => ['s','s',undef,undef,
+    'mytics'    => ['s','l',undef,undef,
 		    'set and control minor ticks on the Y axis: mytics=><freq>'
     ],
-    'my2tics'   => ['s','s',undef,undef,
+    'my2tics'   => ['s','l',undef,undef,
 		    'set and control minor ticks on the Y2 axis: my2tics=><freq>'
     ],
-    'mztics'    => ['s','s',undef,undef,
+    'mztics'    => ['s','l',undef,undef,
 		    'set and control minor ticks on the Z axis: mztics=><freq>'
     ],
     'object'    => ['N','N',undef,undef,
@@ -4277,8 +4276,9 @@ sub _killGnuplot {
     my $suffix = shift;
 
     unless(defined($suffix)) {
-	for (grep(m/^pid\-(.*)$/,keys %$this)) {
-	    _killGnuplot($this,$1) if($1);
+	for my $k(keys %$this) {
+	    next unless $k =~ m/^pid\-(.*)$/;
+	    _killGnuplot($this,$1);
 	}
 	return;
     }
