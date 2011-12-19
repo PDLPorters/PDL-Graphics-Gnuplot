@@ -2833,7 +2833,7 @@ our $pOptionsTable =
     'mztics'    => ['s','l',undef,undef,
 		    'set and control minor ticks on the Z axis: mztics=><freq>'
     ],
-    'object'    => ['N','N',undef,undef,
+    'object'    => ['N','NO',undef,undef,
 		    'define objects to be overlain on plot (numeric index; see docs)'
     ],
     'offsets'   => ['l','l',undef,undef,
@@ -3363,6 +3363,7 @@ $_pOHInputs = {
                 },
 		
     ## number-indexed list
+    ## 
     'N' => sub { my($old,$new,$h) = @_;
 		 return undef unless(defined $new);
 		 my $out = (ref($old) eq 'ARRAY') ? $old : [];
@@ -3699,6 +3700,38 @@ our $_OptionEmitters = {
 		     );
                  },
 
+    #### A collection of numbered specifiers for "object" types - requires a special case for
+    #### "set object polygon"
+    "NO" => sub { my($k,$v,$h) = @_;
+		 return "" unless(defined $v);
+		 if(ref $v ne 'ARRAY') {
+		     barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed";
+		 }
+		 my $s = join ("", map { my $l;
+					if(defined($v->[$_])) {
+					    $l = "set   $k $_ ";
+					    if(ref $v->[$_] eq 'ARRAY') {
+						$l .= join(" ",@{$v->[$_]});
+					    } elsif(ref $v->[$_] eq 'HASH') {
+						$l .= join(" ",(%{$v->[$_]}));
+					    } else {
+						$l .= $v->[$_];
+					    }
+					    $l .= "\n";
+					} else {
+					    $l = "unset $k $_\n";
+					}
+					$l;
+			      } (1..$#$v)
+		     );
+		  #Split polygon lines after the polygon spec
+		  if($s =~ s/((set +\w+ +\d+) +p(o(l(y(g(o(n)?)?)?)?)?)? +from +-?\d+(\.\d+)?([eE]?\-?\d+)?\,-?\d+(\.\d+)?([eE]?\-?\d+)?( +to +-?\d+(\.\d+)?([eE]?\-?\d+)?\,-?\d+(\.\d+)?([eE]?\-?\d+)?)+ +)//) {
+		      return $1."\n".$2." ".$s;
+		  } else {
+		      return $s;
+		  }
+                 },
+    #### A collection of numbered specifiers, the first word of which is quoted (for labels).
     "NL" => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined $v);
 		 if(ref $v ne 'ARRAY') {
@@ -3800,9 +3833,9 @@ our $lConv = {
     pt   => 72,
     point=> 72,
     points=>72,
-    px   => 72,
-    pixel=> 72,
-    pixels=>72,
+    px   => 100,
+    pixel=> 100,
+    pixels=>100,
     mm   => 25.4,
     cm   => 2.54
 };
