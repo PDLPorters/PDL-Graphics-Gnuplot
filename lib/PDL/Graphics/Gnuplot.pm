@@ -3724,12 +3724,14 @@ our $_OptionEmitters = {
 					$l;
 			      } (1..$#$v)
 		     );
-		  #Split polygon lines after the polygon spec
-		  if($s =~ s/((set +\w+ +\d+) +p(o(l(y(g(o(n)?)?)?)?)?)? +from +-?\d+(\.\d+)?([eE]?\-?\d+)?\,-?\d+(\.\d+)?([eE]?\-?\d+)?( +to +-?\d+(\.\d+)?([eE]?\-?\d+)?\,-?\d+(\.\d+)?([eE]?\-?\d+)?)+ +)//) {
-		      return $1."\n".$2." ".$s;
-		  } else {
-		      return $s;
+		  #Split polygon lines after the polygon spec - yuck.
+		  my @s = split ("\n",$s);
+		  for my $i(0..$#s){
+		      if($s[$i] =~ s/((set +\w+ +\d+) +p(o(l(y(g(o(n)?)?)?)?)?)? +from +-?\d+(\.\d+)?([eE]?\-?\d+)?\,-?\d+(\.\d+)?([eE]?\-?\d+)?( +to +-?\d+(\.\d+)?([eE]?\-?\d+)?\,-?\d+(\.\d+)?([eE]?\-?\d+)?)+ +)//) {
+		      $s[$i] =  $1."\n".$2." ".$s[$i];
+		      }
 		  }
+		  return join("\n",@s,"");
                  },
     #### A collection of numbered specifiers, the first word of which is quoted (for labels).
     "NL" => sub { my($k,$v,$h) = @_;
