@@ -1596,7 +1596,7 @@ sub plot
     } else {
 	$this->{options}->{cbrange} = $o;
     }
-
+    
     # Since we accept ranges as curve options, but they are only allowed in the first curve of
     # a multiplot, we don't allow ranges in later curves to be emitted.  This is a hack, 
     # since the alternatives are (a) disallowing all curve option ranges (inconvenient), 
@@ -1623,12 +1623,12 @@ sub plot
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = _emitOpts($this->{options}, $pOpt);
     my $testOptionsString;
-    {
+    if($check_syntax){
 	local($this->{options}->{terminal}) = "dumb";
 	local($this->{options}->{output}) = ' ';
 	$testOptionsString = _emitOpts($this->{options}, $pOpt);
     }
-
+    
     #######
     # Second: add topcmds and extracmds, if necessary
     { 
@@ -1679,7 +1679,7 @@ sub plot
     {
 	my $fl = shift @plotcmds;
 	$plotcmd =  $plotOptionsString . $fl;
-	$testcmd =  $testOptionsString . $fl;
+	$testcmd =  $testOptionsString . $fl if($check_syntax);
     }
 
     for my $i(0..$#plotcmds){
@@ -1736,7 +1736,7 @@ sub plot
 	}
 	    
 	$plotcmd .= $pchunk;
-	$testcmd .= $tchunk;
+	$testcmd .= $tchunk if($check_syntax);
 
     }
 	
@@ -1744,15 +1744,15 @@ sub plot
 
     my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
     my $print_checkpoint = "; print \"$postTestplotCheckpoint\"";
-    $testcmd .= "$print_checkpoint\n";
+    $testcmd .= "$print_checkpoint\n" if($check_syntax);
 
 
     ##########
     # Sixth: put data and final checkpointing on the test command
-    $testcmd .= join("", map { $_->{testdata} } @$chunks);
+    $testcmd .= join("", map { $_->{testdata} } @$chunks) if($check_syntax);
 
     our $last_plotcmd = $plotcmd;
-    our $last_testcmd = $testcmd;
+    our $last_testcmd = $testcmd if($check_syntax);
 
     if($PDL::Graphics::Gnuplot::DEBUG) {
 	print "plot command is:\n$plotcmd\n";
@@ -2839,11 +2839,11 @@ our $pOptionsTable =
     'offsets'   => ['l','l',undef,undef,
 		    'define inside-axis blank margin (science units): [<l>,<r>,<t>,<b>]'
     ],
-    'origin'    => ['l','l',undef,undef,
+    'origin'    => ['l',',',undef,undef,
 		    'set 2-D origin of the plotting surface in relative screen coordinates'
     ],
     'output'    => [sub { barf("Don't set output as a plot option; use the constructor\n"); },
-		    'q',undef,3,
+		    'qnm',undef,3,
 		    'set output file or label for plot (see "terminal", "device")'
     ],
     'parametric'=> ['b','b',undef,undef,
@@ -2879,10 +2879,11 @@ our $pOptionsTable =
     'table'     => [sub { die "table not supported - use Perl's 'print' instead\n" }
     ],
     'terminal'  => [sub { "Don't set terminal as a plot option; use the constructor\n" },
-		    undef,undef,1,
+		    'nomulti',
+		    undef,1,
 		    'Set the output device type and device dependent options (see docs)\n'
     ],
-    'termoption'=> ['H','H',undef,2,
+    'termoption'=> ['H','HNM',undef,2,
 		    'Set certain options for the terminal driver, by keyword'
     ],
     'tics'      => ['l','l',undef,undef,
@@ -3496,12 +3497,31 @@ our $_OptionEmitters = {
 		 }
                 },
 
+    #### nomulti -- a default style plot option that is ignored in multiplot mode
+    'nomulti' => sub { my($k,$v,$h) = @_; 
+		 return "" unless((defined($v)) and !($h->{multiplot}));
+		 if(ref $v eq 'ARRAY') {
+		     return join(" ",("set",$k,map { (defined $_)?$_:"" } @$v))."\n";
+		 } elsif(ref $v eq 'HASH') {
+		     return join(" ",("set",$k,%$v))."\n";
+		 } else {
+		     return join(" ",("set",$k,$v))."\n";
+		 }
+                },
+
     #### Empty output - return nothing.
     '-' => sub { "" },
 
     #### A quoted scalar value as a plot option
     'q' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
+		 return "unset $k\n" unless(length($v));
+		 return "set $k \"$v\"\n";
+                },
+
+    #### A quoted scalar value as a plot option, not emitted in multiplot mode
+    'qnm' => sub { my($k,$v,$h) = @_;
+		 return "" unless((defined($v) and !($h->{multiplot})));
 		 return "unset $k\n" unless(length($v));
 		 return "set $k \"$v\"\n";
                 },
@@ -3674,6 +3694,33 @@ our $_OptionEmitters = {
 		     barf "scalar value '$v' not allowed for hash option '$k'";
 		 }
                 },
+
+    "HNM" => sub { my($k,$v,$h) = @_;
+		   return "" unless((defined $v) and !($h->{multiplot}));
+		   if(ref $v eq 'ARRAY') {
+		       barf "array value found for hash option '$k' -- not allowed";
+		   } elsif(ref($v) eq 'HASH') {
+		       return "set $k\n" unless(keys(%$v));
+		       return join("", map { my $l = "";
+					     if(defined($v->{$_})) {
+						 unless($v->{$_}) {
+						     $l = "unset $k $_\n";
+						 } elsif(ref $v->{$_} eq 'ARRAY') {
+						     $l = "set $k $_ ".join(" ",@{$v->{$_}})."\n";
+						 } elsif(ref $v->{$_} eq 'HASH') {
+						     barf "Nested hashes not allowed in hash option '$k'";
+						 } else {
+						     $l = "set $k $_ $v->{$_}\n";
+						 }
+					     }
+					     $l;
+				   } 
+				   sort keys %$v
+			   );
+		   } else {
+		       barf "scalar value '$v' not allowed for hash option '$k'";
+		   }
+    },
 
     #### A collection of numbered specifiers (e.g. "arrow"), each with a collection of terms
     "N" => sub { my($k,$v,$h) = @_;
