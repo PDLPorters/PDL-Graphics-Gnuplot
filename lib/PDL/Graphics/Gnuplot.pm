@@ -1371,8 +1371,9 @@ sub restart {
 =for ref
 
 Clears all plot option state from the underlying object.  All plot
-options except "terminal" and "output" are cleared.  This is similar to 
-the "reset" command supported by gnuplot itself.  
+options except "terminal", "termoptions", "output", and "multiplot"
+are cleared.  This is similar to the "reset" command supported by
+gnuplot itself.
 
 
 =cut
@@ -1380,7 +1381,7 @@ the "reset" command supported by gnuplot itself.
 sub reset {
     my $this = _obj_or_global(\@_);
      for my $k(keys %{$this->{options}}) {
-	unless ( $k =~ m/(terminal|output)/ ) {
+	unless ( $k =~ m/(terminal|output|termoptions|multiplot)/ ) {
 	    delete $this->{options}->{$k};
 	}
     }
