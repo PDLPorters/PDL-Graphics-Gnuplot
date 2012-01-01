@@ -2818,19 +2818,19 @@ our $pOptionsTable =
     # multiplot: this is not emitted as part of any plot command, only by the special multiplot method.
     'multiplot' => [sub { die "multiplot: use the 'multiplot' method, don't set this directly\n" },sub { ""},undef,undef,undef]
     ,
-    'mxtics'    => ['s','l',undef,undef,
+    'mxtics'    => ['l','l',undef,undef,
 		    'set and control minor ticks on the X axis: mxtics=><freq>'
     ],
-    'mx2tics'   => ['s','l',undef,undef,
+    'mx2tics'   => ['l','l',undef,undef,
 		    'set and control minor ticks on the X2 axis: mx2tics=><freq>'
     ],
-    'mytics'    => ['s','l',undef,undef,
+    'mytics'    => ['l','l',undef,undef,
 		    'set and control minor ticks on the Y axis: mytics=><freq>'
     ],
-    'my2tics'   => ['s','l',undef,undef,
+    'my2tics'   => ['l','l',undef,undef,
 		    'set and control minor ticks on the Y2 axis: my2tics=><freq>'
     ],
-    'mztics'    => ['s','l',undef,undef,
+    'mztics'    => ['l','l',undef,undef,
 		    'set and control minor ticks on the Z axis: mztics=><freq>'
     ],
     'object'    => ['N','NO',undef,undef,
