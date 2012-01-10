@@ -2677,7 +2677,7 @@ our $pOptionsTable =
 		     '[pseudo] extra gnuplot commands after all plot commands'
     ],
 
-    'globalwith'=> ['s', sub { "" }, undef, undef,
+    'globalwith'=> ['l', sub { "" }, undef, undef,
 		    '[pseudo] default plot style (overridden by "with" in curve options)'
     ],
 
@@ -2761,6 +2761,13 @@ our $pOptionsTable =
     'cbmtics'   => ['b','b',    ['colorbox'], undef,
 		    'cbmtics=>1 to use months-of-year tick labels on the color box axis'
     ],
+    'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of cbrange'
+    ],
+    'cbmax'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of cbrange'
+    ],
+
     'cbrange'   => ['l','range',['colorbox'], undef,
 		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'
     ],
@@ -2967,6 +2974,12 @@ our $pOptionsTable =
     'x2mtics'   => ['b','b',undef,undef,
 		    'x2mtics=>1 to use months-of-year tick labels on the X2 axis'
     ],
+    'x2min'      => [sub { my($o,$n,$h)=@_; $h->{x2range}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of x2range'
+    ],
+    'x2max'      => [sub { my($o,$n,$h)=@_; $h->{x2range}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of x2range'
+    ],
     'x2range'   => ['l','range',undef,undef,
 		    'set range of X2 axis: x2range=>[<min>,<max>]'
     ],
@@ -2987,6 +3000,12 @@ our $pOptionsTable =
     ],
     'xmtics'    => ['b','b',undef,undef,
 		    'xmtics=>1 to use months-of-year tick labels on the X axis'
+    ],
+    'xmin'      => [sub { my($o,$n,$h)=@_; $h->{xrange}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of xrange'
+    ],
+    'xmax'      => [sub { my($o,$n,$h)=@_; $h->{xrange}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of xrange'
     ],
     'xrange'    => ['l','range',undef,undef,
 		    'set range of X axis: xrange=>[<min>,<max>]'
@@ -3012,6 +3031,12 @@ our $pOptionsTable =
     'y2mtics'   => ['b','b',undef,undef,
 		    'y2mtics=>1 to use months-of-year tick labels on Y2 axis'
     ],
+    'y2min'      => [sub { my($o,$n,$h)=@_; $h->{y2range}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of y2range'
+    ],
+    'y2max'      => [sub { my($o,$n,$h)=@_; $h->{y2range}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of y2range'
+    ],
     'y2range'   => ['l','range',undef,undef,
 		    'set range of Y2 axis: y2range=>[<min>,<max>]'
     ],
@@ -3036,6 +3061,12 @@ our $pOptionsTable =
     'ymtics'    => ['b','b',undef,undef,
 		    'ymticks=>1 to use months-of-year tick labels on Y axis'
     ],
+    'ymin'      => [sub { my($o,$n,$h)=@_; $h->{yrange}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of yrange'
+    ],
+    'ymax'      => [sub { my($o,$n,$h)=@_; $h->{yrange}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of yrange'
+    ],
     'yrange'    => ['l','range',undef,undef,
 		    'set range of Y axis: yrange=>[<min>,<max>]'
     ],
@@ -3053,6 +3084,12 @@ our $pOptionsTable =
     ],
     'zmtics'    => ['b','b',undef,undef,
 		    'zmtics=>1 to use months-of-year tick labels on Z axis'
+    ],
+    'zmin'      => [sub { my($o,$n,$h)=@_; $h->{zrange}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of zrange'
+    ],
+    'zmax'      => [sub { my($o,$n,$h)=@_; $h->{zrange}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of zrange'
     ],
     'zrange'    => ['l','range',undef,undef,
 		    'set range of Z axis: zrange=>[<min>,<max>]'
