@@ -2515,14 +2515,16 @@ sub _gen_abbrev_list {
     my @keys = @_;
     my $hash = {};
     for my $k(@keys) {
-	for my $i(0..length($k)-1) {
+	for my $i(0..length($k)-2) {
 	    my $s = substr($k,0,$i+1);
 	    if(exists($hash->{$s})) {
-		push(@{$hash->{$s}},$k);
+		push(@{$hash->{$s}},$k) 
+		    unless($hash->{$s}->[0] eq $s);  # exact matches override abbrevs
 	    } else {
 		$hash->{$s} = [$k];
 	    }
 	}
+	$hash->{$k}=[$k];  # exact match always matches only the exact match
     }
     return $hash;
 }
