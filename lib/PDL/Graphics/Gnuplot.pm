@@ -387,7 +387,13 @@ control, feed in a list ref with zero or more of the following parameters, in or
 
 =item tics specifications
 
-These keywords indicate whether gridlines should be drawn on axis tics (see below) for each axis.  Each one takes the form of either "no" or "m" or "", followed by an axis name and "tics" -- e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws (horizontal) Y gridlines on Y axis major and minor tics, while C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both vertical (X) and horizontal (Y) grid lines on major tics.
+These keywords indicate whether gridlines should be drawn on axis tics
+(see below) for each axis.  Each one takes the form of either "no" or
+"m" or "", followed by an axis name and "tics" --
+e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws
+(horizontal) Y gridlines on Y axis major and minor tics, while
+C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both
+vertical (X) and horizontal (Y) grid lines on major tics.
 
 =head2 POs for axis ranging: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
@@ -450,41 +456,61 @@ If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
 of a unit).
 
-Each tics option can accept a list ref containing options to pass
-directly to Gnuplot (they are not parsed further -- though a future
-version of PDL::Graphics::Gnuplot may accept a hash ref and parse it
-into an options string).  You can interpolate all the words into a
-single string, provided it is contained in a list ref.  The keywords
-are all optional, but must appear in the order given here, and may not
-be abbreviated.  They are:
+Each tics option can accept a list or hash ref containing options to
+pass to Gnuplot.  If you want PDL::Graphics::Gnuplot to parse your options
+for you (inserting commas and quotes, for example, where the gnuplot backend 
+wants them), then you must pass in a hash ref.  
+
+If you are comfortable with the Gnuplot backend's syntax, then you can 
+pass in a scalar string or a list ref that is interpolated into a single
+space-separated string to be passed to the gnuplot backend.  
+
+The keywords accepted by the hash are:
 
 =over 2
 
-=item * ( axis | border ) - are tics on the axis, or on the plot border?
+=item * axis - set this to 1 to place tics on the axis (the default)
 
-=item * ( nomirror | mirror ) - place mirrored tics on the opposite axis/border?
+=item * border - set this to 1 to place tics on the border (not the default)
 
-=item * ( in | out ) - controls tic direction relative to the plot
+=item * mirror - set this to 1 to place mirrored tics on the opposite axis/border?
 
-=item * scale ( default | <major>[,<minor>] ) - multiplier on tic length
+=item * in - set this to 1 to draw tics inward from the axis/border
 
-=item * ( norotate | rotate [by <ang>] ) - turn label text by 90deg or specified angle
+=item * out - set this to 1 to draw tics outward from the axis/border
 
-=item * ( nooffset | offset <x>,<y>[,<z>] ) - offset label text from default position
+=item * scale - multiplier on tic length.  
 
-=item * (autofreq | <incr> | <start>,<incr>[,<end>] | <label-list>) - set tic locations
+If you pass in undef, tics get the default length.  If you pass in a scalar, major tics get scaled.  You can pass in a list ref to scale minor tics too.
 
-=item * format "<formatstring>" - printf-style formatting for tic labels
+=item * rotate - turn label text by the given angle (in degrees)
 
-=item * font "<font>[,<size>]" - set font name and size (system font name)
+=item * offset - offset label text from default position, (units: characters; requires list ref containing x,y)
 
-=item * rangelimited - limit tics to the range of values actually present in the plot
+=item * locations - sets tic locations.  list ref: [incr], [start, incr], or [start, incr, stop].
 
-=item * textcolor <colorspec> - set the color of the ticks (see "color specs" below)
+=item * labels - sets tic locations explicitly, with text labels for each. 
+
+The labels should be a nested list ref that is a collection of duals
+or triplets.  Each dual or triplet should contain
+[label, position, minorflag], as in
+C<labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]]>.
+
+=item * format - printf-style formatting for tic labels
+
+=item * font - set font name and size (system font name)
+
+=item * rangelimited - set to 1 to limit tics to the range of values actually present in the plot
+
+=item * textcolor - set the color of the ticks (see "color specs" below)
 
 =back
 
 For example, to turn on inward mirrored X axis ticks with diagonal Arial 9 text, use:
+
+ xtics => {axis=>1,mirror=>1,in=>1,rotate=>45,font=>'Arial,9'}
+
+or
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
@@ -2773,7 +2799,7 @@ our $pOptionsTable =
     'cbrange'   => ['l','range',['colorbox'], undef,
 		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'
     ],
-    'cbtics'    => ['l','l',  ['colorbox'], undef,
+    'cbtics'    => ['lt','l',  ['colorbox'], undef,
 		    'controls major (labelled) ticks on the color box axis (see docs)'
     ],
     'clabel'    => ['s','q',undef,undef,
@@ -2985,7 +3011,7 @@ our $pOptionsTable =
     'x2range'   => ['l','range',undef,undef,
 		    'set range of X2 axis: x2range=>[<min>,<max>]'
     ],
-    'x2tics'    => ['l','l',undef,undef,
+    'x2tics'    => ['lt','l',undef,undef,
 		    'Control tick mark formatting (X2 axis; see docs)'
     ],
     'x2zeroaxis'=> ['l','l',undef,undef,
@@ -3012,7 +3038,7 @@ our $pOptionsTable =
     'xrange'    => ['l','range',undef,undef,
 		    'set range of X axis: xrange=>[<min>,<max>]'
     ],
-    'xtics'     => ['l','l',undef,undef,
+    'xtics'     => ['lt','l',undef,undef,
 		    'Control tick mark formatting (X axis; see docs)'
     ],
     'xyplane'   => ['l','l',undef,undef,
@@ -3042,7 +3068,7 @@ our $pOptionsTable =
     'y2range'   => ['l','range',undef,undef,
 		    'set range of Y2 axis: y2range=>[<min>,<max>]'
     ],
-    'y2tics'    => ['l','l',undef,undef,
+    'y2tics'    => ['lt','l',undef,undef,
 		    'Control tick mark formatting (Y2 axis; see docs)'
     ],
     'y2zeroaxis'=> ['l','l',undef,undef,
@@ -3054,7 +3080,7 @@ our $pOptionsTable =
     'ydtics'    => ['b','b',undef,undef,
 		    'ydtics=>1 to use days-of-week tick labels on Y axis'
     ],
-    'ytics'     => ['l','l',undef,undef,
+    'ytics'     => ['lt','l',undef,undef,
 		    'Control tick mark formatting (Y axis; see docs)'
     ],
     'ylabel'    => ['l','ql',undef,undef,
@@ -3102,7 +3128,7 @@ our $pOptionsTable =
     'zero'      => ['s','s',undef,undef,
 		    'Sets the default threshold for values approaching 0.0'
     ],
-    'ztics'     => ['l','l',undef,undef,
+    'ztics'     => ['lt','l',undef,undef,
 		    'Control tick mark formatting (Z axis; see docs)'
     ]
 
@@ -3457,8 +3483,132 @@ $_pOHInputs = {
 		     }
 		 }
 		 return $out;
+    },
+    
+    ## <foo>tics option list
+    ## 
+    'lt' => sub { my($old, $new, $h) = @_;
+		  return undef unless(defined $new);
+		  my $ok = {};
+		  for( qw/axis border mirror in out scale rotate offset autofreq locations labels format font rangelimited textcolor/ ) {
+		      $ok->{$_} = 1;
+		  }
+
+		  my @list = ();
+
+		  if(ref($new) eq 'HASH') {
+		      ### Check for extraneous keys...
+		      my @notok = ();
+		      for(keys %$new) {
+			  push(@notok, $_) unless($ok->{$_});
+		      }
+		      if(@notok) {
+			  barf "<foo>tics option: unknown keyword(s): '".join("', '",@notok)."'";
+		      }
+
+		      ### All is OK -- proceed to parse...
+		      my @list = ();
+		      my $bs  = sub { map { push @list, $_ if($new->{$_}) } @_ };
+
+		      &$bs("axis", "border");
+		      push(@list, $new->{mirror} ? "mirror" : "nomirror") if( defined($new->{mirror}) );
+		      &$bs("in","out");
+		      if(defined $new->{scale}) {
+			  if(ref $new->{scale} eq 'ARRAY') {
+			      push @list, "scale ".join(",",@{$new->{scale}});
+			  } else {
+			      push(@list, "scale $new->{scale}");
+			  }
+		      } else {
+			  push(@list, "scale default");
+		      }
+		      if(defined $new->{rotate}) {
+			  unless($new->{rotate}) {
+			      push(@list, "norotate");
+			  } else {
+			      push(@list, "rotate by ".$new->{rotate});
+			  }
+		      }
+		      if(defined $new->{offset}) {
+			  unless($new->{offset}) {
+			      push(@list, "nooffset");
+			  } else {
+			      unless(ref($new->{offset}) eq 'ARRAY') {
+				  barf "<foo>tics option: 'offset' suboption must have a list ref value or be zero";
+			      } else {
+				  push(@list, "offset ".join(",",@{$new->{offset}}));
+			      }
+			  }
+		      }
+		      if(defined $new->{locations}) {
+			  unless(ref($new->{locations}) eq 'ARRAY') {
+			      barf "<foo>tics option: 'locations' suboption must contain a list ref";
+			  } else {
+			      push(@list, join(",",@{$new->{locations}}));
+			  }
+		      } 
+		      if(defined $new->{labels}) {
+			  unless(ref($new->{labels}) eq 'ARRAY') {
+			      barf "<foo>tics labels option: must contain a list ref";
+			  } else {
+			      push(@list, "(", join(", ",
+					       map {
+						   barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
+						   sprintf('"%s" %s %s',map { $_ || "" } @$_[0..2]);
+					       
+					       } @{$new->{labels}}
+					       ),
+				   ")"
+				  );
+			  }
+		      }
+		      if(defined $new->{format}) {
+			  push(@list, 'format', "\"$new->{format}\"");
+		      }
+		      if(defined $new->{font}) {
+			  if(ref $new->{font} eq 'ARRAY') {
+			      push(@list, "font", '"'.join(',',@{$new->{font}}).'"');
+			  } else {
+			      push(@list, "font",'"'.$new->{font}.'"');
+			  }
+		      }
+		      &$bs('rangelimited');
+		      if(defined $new->{textcolor}) {
+			  # parse a colorspec -- probably needs to be broken out to a routine...
+			  my ($s, $ss);
+			  if(ref($new->{textcolor}) eq 'ARRAY') {
+			      $s = shift @{$new->{textcolor}};
+			      $ss = join(" ",@{$new->{textcolor}});
+			  } else {
+			      $s = $new->{textcolor};
+			      $s =~ s/^\s*//;
+			      $s =~ s/\s(.*)// && ($ss = $1);
+			  }
+			  if($s =~ m/^r(g(b(c(o(l(o(r)?)?)?)?)?)?)?\s*$/) { # rgbcolor case 
+			      if($ss =~ m/\s*variable\s*/) {
+				  push(@list, "rgbcolor variable");
+			      } else {
+				  push(@list, "rgbcolor \"$ss\"");
+			      }
+			  } elsif($s =~ m/^p(a(l(e(t(t(e)?)?)?)?)?)?\s*$/) { # palette case
+			      push(@list, "palette $ss");
+			  } else {
+			      barf("<foo>tics option: textcolor appears not to contain a colorspec");
+			  }
+		      }
+		      return \@list;
+		  }
+
+		  unless(ref($new) eq 'ARRAY') {
+		      $new = [split /\s+/, $new];
+		  }
+
+		  print STDERR "Warning: <foo>tics array parsing not handled ATM...";
+		  @list = @$new;
+		  return \@list;
     }
 };
+
 
 
 
