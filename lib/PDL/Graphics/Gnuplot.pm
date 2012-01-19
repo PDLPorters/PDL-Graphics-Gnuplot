@@ -1543,8 +1543,7 @@ sub plot
     
     # Check binary mode operation.  We normally do everything in binary, but 
     # if certain bug-triggering conditions are identified we can default to ASCII.
-    # 
-    # Currently, we 
+
     my $binary_mode = $this->{options}->{binary};
     unless(defined $binary_mode) {
 
@@ -1658,6 +1657,18 @@ sub plot
 	    print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n";
 	}
     }
+
+    # If we're working with time data, and timefmt isn't set, then default it to '%s'.
+    my $using_times = 0;
+    for my $axis(qw/x x2 y y2 z cb/) {
+	$using_times++ if( defined($this->{options}->{$axis."data"}) and
+			           $this->{options}->{$axis."data"} =~ m/^time/i
+	    );
+    }
+    if($using_times and !defined($this->{options}->{timefmt})) {
+	$this->{options}->{timefmt} = '%s';
+    }
+	    
     
     ##########
     # First: Emit the plot options lines that go above the plot command.  We do this 
