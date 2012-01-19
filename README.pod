@@ -1,11 +1,3 @@
-=head1 OVERVIEW
-
-This is a Gnuplot-based plotter for PDL. This repository stores the history for
-the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
-page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
-
-=cut
-
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -395,7 +387,13 @@ control, feed in a list ref with zero or more of the following parameters, in or
 
 =item tics specifications
 
-These keywords indicate whether gridlines should be drawn on axis tics (see below) for each axis.  Each one takes the form of either "no" or "m" or "", followed by an axis name and "tics" -- e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws (horizontal) Y gridlines on Y axis major and minor tics, while C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both vertical (X) and horizontal (Y) grid lines on major tics.
+These keywords indicate whether gridlines should be drawn on axis tics
+(see below) for each axis.  Each one takes the form of either "no" or
+"m" or "", followed by an axis name and "tics" --
+e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws
+(horizontal) Y gridlines on Y axis major and minor tics, while
+C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both
+vertical (X) and horizontal (Y) grid lines on major tics.
 
 =head2 POs for axis ranging: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
@@ -458,41 +456,61 @@ If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
 of a unit).
 
-Each tics option can accept a list ref containing options to pass
-directly to Gnuplot (they are not parsed further -- though a future
-version of PDL::Graphics::Gnuplot may accept a hash ref and parse it
-into an options string).  You can interpolate all the words into a
-single string, provided it is contained in a list ref.  The keywords
-are all optional, but must appear in the order given here, and may not
-be abbreviated.  They are:
+Each tics option can accept a list or hash ref containing options to
+pass to Gnuplot.  If you want PDL::Graphics::Gnuplot to parse your options
+for you (inserting commas and quotes, for example, where the gnuplot backend 
+wants them), then you must pass in a hash ref.  
+
+If you are comfortable with the Gnuplot backend's syntax, then you can 
+pass in a scalar string or a list ref that is interpolated into a single
+space-separated string to be passed to the gnuplot backend.  
+
+The keywords accepted by the hash are:
 
 =over 2
 
-=item * ( axis | border ) - are tics on the axis, or on the plot border?
+=item * axis - set this to 1 to place tics on the axis (the default)
 
-=item * ( nomirror | mirror ) - place mirrored tics on the opposite axis/border?
+=item * border - set this to 1 to place tics on the border (not the default)
 
-=item * ( in | out ) - controls tic direction relative to the plot
+=item * mirror - set this to 1 to place mirrored tics on the opposite axis/border?
 
-=item * scale ( default | <major>[,<minor>] ) - multiplier on tic length
+=item * in - set this to 1 to draw tics inward from the axis/border
 
-=item * ( norotate | rotate [by <ang>] ) - turn label text by 90deg or specified angle
+=item * out - set this to 1 to draw tics outward from the axis/border
 
-=item * ( nooffset | offset <x>,<y>[,<z>] ) - offset label text from default position
+=item * scale - multiplier on tic length.  
 
-=item * (autofreq | <incr> | <start>,<incr>[,<end>] | <label-list>) - set tic locations
+If you pass in undef, tics get the default length.  If you pass in a scalar, major tics get scaled.  You can pass in a list ref to scale minor tics too.
 
-=item * format "<formatstring>" - printf-style formatting for tic labels
+=item * rotate - turn label text by the given angle (in degrees)
 
-=item * font "<font>[,<size>]" - set font name and size (system font name)
+=item * offset - offset label text from default position, (units: characters; requires list ref containing x,y)
 
-=item * rangelimited - limit tics to the range of values actually present in the plot
+=item * locations - sets tic locations.  list ref: [incr], [start, incr], or [start, incr, stop].
 
-=item * textcolor <colorspec> - set the color of the ticks (see "color specs" below)
+=item * labels - sets tic locations explicitly, with text labels for each. 
+
+The labels should be a nested list ref that is a collection of duals
+or triplets.  Each dual or triplet should contain
+[label, position, minorflag], as in
+C<labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]]>.
+
+=item * format - printf-style formatting for tic labels
+
+=item * font - set font name and size (system font name)
+
+=item * rangelimited - set to 1 to limit tics to the range of values actually present in the plot
+
+=item * textcolor - set the color of the ticks (see "color specs" below)
 
 =back
 
 For example, to turn on inward mirrored X axis ticks with diagonal Arial 9 text, use:
+
+ xtics => {axis=>1,mirror=>1,in=>1,rotate=>45,font=>'Arial,9'}
+
+or
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
