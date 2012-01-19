@@ -409,6 +409,8 @@ e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws
 C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both
 vertical (X) and horizontal (Y) grid lines on major tics.
 
+=back
+
 =head2 POs for axis ranging: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
@@ -929,9 +931,7 @@ I<instead> of writing to a gnuplot process. Useful to see what commands would be
 sent to gnuplot. This is a dry run. Note that this dump will contain binary
 data, if the 'binary' option is given (see below)
 
-=item log
-
-Used for debugging. If true, writes out the gnuplot commands to STDERR I<in
+C<log> is used for debugging. If true, writes out the gnuplot commands to STDERR I<in
 addition> to writing to a gnuplot process. This is I<not> a dry run: data is
 sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
 this log will contain binary data, if the 'binary' option is given (see below)
