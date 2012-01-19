@@ -60,9 +60,9 @@ interface. Plot objects track individual gnuplot subprocesses.  Direct
 calls to C<gplot()> are tracked through a global object that stores
 globally set configuration variables.
 
-Gnuplot collects two kinds of options hash: plot options, which
+Gnuplot collects two kinds of options hash: B<plot options>, which
 describe the overall structure of the plot being produced (e.g. axis
-specifications, window size, and title), from curve options, which
+specifications, window size, and title), and B<curve options>, which
 describe the behavior of individual traces or collections of points
 being plotted.  In addition, the module itself supports options that
 allow direct pass-through of plotting commands to the underlying
@@ -86,9 +86,8 @@ You select a plot style with the "with" curve option, as in
 
 Normal threading rules apply across the arguments to a given plot.
 
-At least the first data column in a tuple is required to be a PDL.
-Subsequent data columns can be delivered as string data if desired, in a
-Perl list ref.  If you use a list ref as a data column, then normal
+All data are required to be supplied as either PDLs or list refs.
+If you use a list ref as a data column, then normal
 threading is disabled and all arguments must be 1-D and contain the 
 same number of elements.  For example:
 
@@ -113,14 +112,22 @@ style will persist for all the following curves, until this style is turned
 off. The only exception to this is the C<legend> option, since it's very rarely
 a good idea to have multiple curves with the same label. An example:
 
- gplot( with => 'points', $x, $a,
-        y2   => 1,        $x, $b,
-        with => 'lines',  $x, $c );
+ gplot( with => 'points',  $x, $a,
+        {y2   => 1},       $x, $b,
+        with => 'lines',   $x, $c );
 
 This plots 3 curves: $a vs. $x plotted with points on the main y-axis (this is
 the default), $b vs. $x plotted with points on the secondary y axis, and $c
-vs. $x plotted with lines also on the secondary y axis. All the curve options
-are described below in L</"Curve options">.
+vs. $x plotted with lines also on the secondary y axis. Note that the curve
+options can be supplied as either an inline hash or a hash ref.
+
+All the curve options are described below in L</"Curve options">.
+
+If you want to plot multiple curves of the same type without changing any options
+between them, you must include an empty hash ref between the tuples for subsequent 
+lines, as in:
+
+ gplot( $x, $a, {}, $x, $b, {}, $x, $c );
 
 =head2 Data arguments
 
@@ -132,7 +139,8 @@ size and color, each tuple has 5 values (x,y,z,size,color). Each tuple element
 must be passed separately.  For ordinary (non-curve) plots, the 0 dim of the 
 tuple elements runs across plotted point.  PDL threading is active, so multiple 
 curves with similar curve options can be plotted by stacking data inside the 
-passed-in piddles.  
+passed-in PDLs.  (An exception is that threading is disabled if one or more of 
+the data elements is a list ref).
 
 An example:
 
@@ -161,10 +169,12 @@ passed in for the first curve; the second curve inherits those options.
 =head3 Implicit domains
 
 When making a simple 2D plot, if exactly 1 dimension is missing,
-PDL::Graphics::Gnuplot will use C<sequence(N)> as the domain. This is why code
-like C<plot(pdl(1,5,3,4,4) )> works. Only one piddle is given here, but a
-default tuplesize of 2 is active, and we are thus exactly 1 piddle short. This
-is thus equivalent to C<plot( sequence(5), pdl(1,5,3,4,4) )>.
+PDL::Graphics::Gnuplot will use C<sequence(N)> as the domain. This is
+why code like C<plot(pdl(1,5,3,4,4) )> works. Only one PDL is given
+here, but the plot type ("lines" by default) requires 2 elements per
+tuple. We are thus exactly 1 piddle short; C<sequence(5)> is used as
+the missing domain PDL.  This is thus equivalent to 
+C<plot(sequence(5), pdl(1,5,3,4,4) )>.
 
 If plotting in 3d or displaying an image, an implicit domain will be
 used if we are exactly 2 piddles short. In this case,
@@ -179,17 +189,9 @@ Here the only given piddle has dimensions (21,21). This is a 3D plot, so we are
 exactly 2 piddles short. Thus, PDL::Graphics::Gnuplot generates an implicit
 domain, corresponding to a 21-by-21 grid.
 
-One thing to watch out for it to make sure PDL::Graphics::Gnuplot doesn't get
-confused about when to use implicit domains. For example, C<plot($a,$b)> is
-interpreted as plotting $b vs $a, I<not> $a vs an implicit domain and $b vs an
-implicit domain. If 2 implicit plots are desired, add a separator:
-C<plot($a,{},$b)>. Here C<{}> is an empty curve options hash. If C<$a> and C<$b>
-have the same dimensions, one can also do C<plot($a-E<gt>cat($b))>, taking advantage
-of PDL threading.
-
 =head2 Images
 
-PDL::Graphics::Gnuplot supports image plotting in three styles via the "with"
+PDL::Graphics::Gnuplot supports image plotting in four styles via the "with"
 curve option. 
 
 The "image" style accepts a single image plane and displays it using
@@ -213,14 +215,14 @@ You can plot rgb images directly with the image style, just by including a
 
  $rgbim = pdl( xvals($im), yvals($im),rvals($im)/sqrt(2));
  image( $rgbim );                # display an RGB image
- image( with=>'image', $rgbim ); # display an RGB image (longer form)
+ gplot( with=>'image', $rgbim ); # display an RGB image (longer form)
 
 Some additional plot styles exist to specify RGB and RGB transparent forms
 directly.  These are the "with" styles "rgbimage" and "rgbalpha".  For each
 of them you must specify the channels as separate PDLs:
 
- plot( with=>'rgbimage', $rgbim->dog );           # RGB  the long way
- plot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way 
+ gplot( with=>'rgbimage', $rgbim->dog );           # RGB  the long way
+ gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way 
 
 According to the gnuplot specification you can also give X and Y
 values for each pixel, as in
@@ -229,6 +231,18 @@ values for each pixel, as in
 
 but this appears not to work properly for anything more complicated
 than a trivial matrix of X and Y values.
+
+PDL::Graphics::Gnuplot provides a "fits" plot style that interprets
+WCS information in a supplied FITS header, to display image data in 
+rectified scientific cooedinates.   You can plot FITS images in scientific
+coordinates with
+
+ gplot( with=>'fits', $fitsdata );
+
+Because of the bug in the underlying Gnuplot engine, FITS
+rectification is handled using resampling from the L<PDL::Transform> package;
+future versions may switch to full distorted-grid rendering if the Gnuplot
+render bug is fixed.
 
 =head2 Interactivity
 
@@ -299,40 +313,40 @@ arguments (all are optional) in the order listed:
 
 =over 3
 
-=item ( on | off ) - turn the key on or off
+=item * ( on | off ) - turn the key on or off
 
-=item ( inside | outside | lmargin | rmargin | tmargin | bmargin | at <pos> )
+=item * ( inside | outside | lmargin | rmargin | tmargin | bmargin | at <pos> )
 
 These keywords set the location of the key -- "inside/outside" is
 relative to the plot border; the margin keywords indicate location in
 the margins of the plot; and at <pos> (where <pos> is a 2-list
 containing (x,y): C<key=>[at=>[0.5,0.5]]>) is an exact location to place the key.
 
-=item ( left | right | center ) ( top | bottom | center ) - horiz./vert. alignment
+=item * ( left | right | center ) ( top | bottom | center ) - horiz./vert. alignment
 
-=item ( vertical | horizontal ) - stacking direction within the key
+=item * ( vertical | horizontal ) - stacking direction within the key
 
-=item ( Left | Right ) - justification of plot labels within the key (note case)
+=item * ( Left | Right ) - justification of plot labels within the key (note case)
 
-=item [no]reverse - switch order of label and sample line
+=item * [no]reverse - switch order of label and sample line
 
-=item [no]invert - invert the stack order of the labels
+=item * [no]invert - invert the stack order of the labels
 
-=item samplen <length> - set the length of the sample lines
+=item * samplen <length> - set the length of the sample lines
 
-=item spacing <dist> - set the spacing between adjacent labels in the list
+=item * spacing <dist> - set the spacing between adjacent labels in the list
 
-=item [no]autotitle - control whether labels are generated when not specified
+=item * [no]autotitle - control whether labels are generated when not specified
 
-=item title "<text>" - set a title for the key
+=item * title "<text>" - set a title for the key
 
-=item [no]enhanced - override terminal settings for enhanced text interpretation
+=item * [no]enhanced - override terminal settings for enhanced text interpretation
 
-=item font "<face>,<size>" - set font for the labels
+=item * font "<face>,<size>" - set font for the labels
 
-=item textcolor <colorspec> 
+=item * textcolor <colorspec> 
 
-=item [no]box linestyle <ls> linetype <lt> linewidth <lw> - control box around the key
+=item * [no]box linestyle <ls> linetype <lt> linewidth <lw> - control box around the key
 
 =back
 
