@@ -2767,6 +2767,10 @@ our $pOptionsTable =
 		    '[pseudo] Set default "with" plot style for the object'
     ], # pseudo-option to add 'with' parameters
 
+    'globalPlot'=> ['l',sub { return '' },undef,undef,
+		    '[pseudo] marker for the global plot object'
+    ], 
+
     'justify'   => [sub { my($old,$new,$opt) = @_;
 			  if($new > 0) {
 			      $opt->{'size'} = ["ratio ".(-$new)];
@@ -2922,7 +2926,10 @@ our $pOptionsTable =
     'origin'    => ['l',',',undef,undef,
 		    'set 2-D origin of the plotting surface in relative screen coordinates'
     ],
-    'output'    => [sub { barf("Don't set output as a plot option; use the constructor\n"); },
+    'output'    => [sub { my($k,$v,$h) = @_;
+			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set output as a plot option; use the constructor\n");}
+			  return $v;
+		    },
 		    'qnm',undef,3,
 		    'set output file or label for plot (see "terminal", "device")'
     ],
@@ -2958,7 +2965,10 @@ our $pOptionsTable =
     ],
     'table'     => [sub { die "table not supported - use Perl's 'print' instead\n" }
     ],
-    'terminal'  => [sub { "Don't set terminal as a plot option; use the constructor\n" },
+    'terminal'  => [sub { my($k,$v,$h)=@_;
+			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set terminal as a plot option; use the constructor\n")}
+			  return $v;
+		    },
 		    'nomulti',
 		    undef,1,
 		    'Set the output device type and device dependent options (see docs)\n'
@@ -4833,8 +4843,10 @@ sub _obj_or_global {
     if(UNIVERSAL::isa($arglist->[0],"PDL::Graphics::Gnuplot")) {
 	$this = shift @$arglist;
     } else {
-	$globalPlot = new("PDL::Graphics::Gnuplot") 
-	    unless(UNIVERSAL::isa($globalPlot,"PDL::Graphics::Gnuplot"));;
+	unless(UNIVERSAL::isa($globalPlot,"PDL::Graphics::Gnuplot")) {
+	    $globalPlot = new("PDL::Graphics::Gnuplot") ;
+	}
+	$globalPlot->{options}->{globalPlot} = 1;
 	$this = $globalPlot;
     }
     return $this;

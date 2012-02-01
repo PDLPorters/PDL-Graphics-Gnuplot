@@ -32,7 +32,7 @@ my $x = sequence(5);
   print STDERR "testfile: $testoutput\n";
 
 
-  eval{ plot ( terminal => 'dumb 79 24', output => $testoutput, $x); };
+  eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput}, $x); };
   ok(! $@,           'basic plotting succeeded without error' )
     or diag "plot() died with '$@'";
   ok(-e $testoutput, 'basic plotting created an output file' )
@@ -51,8 +51,9 @@ my $x = sequence(5);
   # process STDERR is read and parsed correctly
 
   my (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
-  eval{ plot ( terminal => 'dumb 79 24', output => $testoutput, with => 'bogus', $x); };
-  ok($@ && $@ =~ /gnuplot>.*bogus.*expecting/s,  'error detection works' )
+  eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput}, with => 'bogus', $x); };
+  print "error detection: found\n$@\n";
+  ok($@ && $@ =~ /with\ bogus/s,  'error detection works' )
     or diag "plot() produced no error";
 
   unlink $testoutput;
