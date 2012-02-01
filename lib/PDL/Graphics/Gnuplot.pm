@@ -2861,7 +2861,8 @@ our $pOptionsTable =
     'fontpath'  => ['l','l',undef,undef,
 		    'set directories to search when looking for fonts (PostScript only)'
     ],
-    'format'    => [sub { die "format: use <axis>tics instead\n"; }
+    'format'    => ['H','H',undef,undef,
+		    'Fine-grained control over formatting of axis labels'
     ],
     'function'  => [sub { die "'set function' is deprecated by gnuplot and not allowed here\n"; }
     ],
@@ -4163,6 +4164,8 @@ our $termTab_types = {
     oldstyle   => ['b','cff',   "Force old-style text spacing (deprecated)"],
     newstyle   => ['b','cff',   "Force new-style text spacing (default; see 'oldstyle')"],
     auxfile    => ['b','cf',    "Generate (or not) an auxiliary .aux file for LaTeX"],
+    persist    => ['b','cf',    'enable (or disable) persistence after plotting is done'],
+    raise      => ['b','cf',    'enable (or disable) raising the display window to the top']
 };    
 
 # This table includes all terminals named in the gnuplot 4.4 documentation.  Unsupported terminals have 
@@ -4198,7 +4201,6 @@ our $termTabSource = {
 			   ['jsdir',      's','cq',   "URL of directory where javascripts are found"],
 			   'title']},
 
-    'apollo'   => "Apollo terminal driver                 [NS: ancient]",
     'cgi'      => "SCO CGI drivers.                       [NS: ancient/evil]",
     'cgm'      => { unit=>'pt', desc=> "Computer Graphic Metafile format (ANSI X3.122-1986)",
 		    opt=>[ qw/ color monochrome solid dashed rotate /,
@@ -4377,13 +4379,15 @@ our $termTabSource = {
 		 opt=>[ qw/color monochrome font title size/,
 			['position','l','csize','pixel location of the window'],
 			'output']},
-    'wxt'     =>"wxWidgets library                      [NS: obsolete]",
+    'wxt'     =>{unit=>"px",
+		 opt=>[ qw/size enhanced font title dashed solid dashlength persist raise/,
+			['ctrl',  'b','cf','enable (or disable) control-Q to quit window'],
+			['close', 'b','cf','close window on completion?']
+                 ]},
     'x11'     =>{unit=>"px",desc=>"X Windows display",
 		 opt=>[ 'output_',
 			['title','s','cq','Window title (in title bar)'],
-			qw/enhanced font linewidth solid dashed/,
-			['persist','b','cf','enable (or disable) persistence after plotting is done'],
-			['raise',  'b','cf','enable (or disable) raising the window to the top on plot'],
+			qw/enhanced font linewidth solid dashed persist raise/,
 			['ctrlq',  'b','cf','enable (or disable) control-Q to quit window'],
 			'size']},
     'xlib'    =>"Xlib command file (for debugging X11)  [NS: useless here]"
