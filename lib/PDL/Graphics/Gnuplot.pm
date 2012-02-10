@@ -449,8 +449,8 @@ C<logscale> allows you to turn on logarithmic scaling for any or all
 axes, and to set the base of the logarithm.  It takes a list ref, the
 first element of which is a string mushing together the names of all
 the axes to scale logarithmically, and the second of which is the base
-of the logarithm: C<logscale=>[xy=>10]>.  You can also leave off the
-base if you want base-10 logs: C<logscale=>['xy']>.
+of the logarithm: C<logscale=>[xy=&gt;10]>.  You can also leave off the
+base if you want base-10 logs: C<logscale=&gt;['xy']>.
 
 =head2 POs for Axis tick marks - [m](x|x2|y|y2|z|cb)tics
 
@@ -3202,6 +3202,7 @@ our $cOptionsTable = {
     'legend'   => ['l', sub { if(defined($_[1]) and $_[1]->[0]) {return "title \"$_[1]->[0]\"";} else {return "notitle"}},
 		   undef, 7],
     'axes'     => [['x1y1','x1y2','x2y1','x2y2'],'cs',undef,8],
+    'smooth'   => ['s','cs',undef,8.1],
     'with'     => ['l', 'cl', undef, 9],
     'tuplesize'=> ['s',sub { return ""}]    # holds tuplesize option for explicit setting
 };
