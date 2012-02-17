@@ -1709,7 +1709,12 @@ sub plot
     my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
 	join( ", ", 
 	      map { 
-		  _emitOpts($chunks->[$_]->{options}, $cOpt, $this);
+		  my $s = _emitOpts($chunks->[$_]->{options}, $cOpt, $this);
+## FIXME ##
+		  our @foo;
+		  push(@foo, $chunks->[$_]->{options});
+		  print "options: $s\n";
+		  $s;
 	      } (0..$#$chunks)
 	);
 
@@ -2019,22 +2024,26 @@ sub plot
 	    } else {
 		@with = @{$chunk{options}{with}};
 	    }
-	    
+	    print "earlier: with= (",join(",",@with),")\n";
+	    print "chunk options = (",join(",",@{$chunk{options}{'with'}}),")\n";
 
 	    # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
 	    # before giving up entirely.
 	    unless( exists( $plotStyleProps->{$with[0]}->[0] ) ) {
+		print "Trying pluralization...\n";
+
 		# Try pluralizing and lc'ing if that works...
 		if($with[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with[0].'s'} ) ) {
+		    print "ok\n";
 		    $with[0] = lc $with[0].'s';
-		    shift @{$chunk{options}{'with'}};
-		    unshift @{$chunk{options}{'with'}},@with;
+		    $chunk{options}{'with'}[0] = $with[0];
 		} else {
 		    # nope.  throw a fit.
 		    barf "invalid plotstyle 'with ".($with[0])."' in plot\n";
 		}
 	    }
-
+	    print "with= (",join(",",@with),")\n";
+	    print "chunk options = (",join(",",@{$chunk{options}{'with'}}),")\n";
 	    my $psProps = $plotStyleProps->{$with[0]};
 
 	    # Handle any required dimensional padding of the data
@@ -3591,7 +3600,7 @@ $_pOHInputs = {
 			      push(@list, "(", join(", ",
 					       map {
 						   barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
-						   sprintf('"%s" %s %s',map { $_ || "" } @$_[0..2]);
+						   sprintf('"%s" %s %s', $_->[0]//"", $_->[1]//0, $_->[2]//"");
 					       
 					       } @{$new->{labels}}
 					       ),
@@ -3640,7 +3649,12 @@ $_pOHInputs = {
 		      $new = [split /\s+/, $new];
 		  }
 
-		  print STDERR "Warning: <foo>tics array parsing not handled ATM...";
+		  if( grep( (ref $_), @$new) ) {
+		      barf("<foo>tics: if you specify an array it must contain only strings or numeric\n   values.  Consider using a hash ref instead, as hash values are parsed.\n");
+		  } 
+
+		  print STDERR "PDL::Graphics::Gnuplot: <foo>tics: WARNING: using deprecated list ref form.\n";
+
 		  @list = @$new;
 		  return \@list;
     }
