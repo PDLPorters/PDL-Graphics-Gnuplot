@@ -293,7 +293,7 @@ arguments (all are optional) in the order listed:
 These keywords set the location of the key -- "inside/outside" is
 relative to the plot border; the margin keywords indicate location in
 the margins of the plot; and at <pos> (where <pos> is a 2-list
-containing (x,y): C<key=>[at=>[0.5,0.5]]>) is an exact location to place the key.
+containing (x,y): C<< key=>[at=>[0.5,0.5]] >>) is an exact location to place the key.
 
 =item ( left | right | center ) ( top | bottom | center ) - horiz./vert. alignment
 
@@ -323,7 +323,7 @@ containing (x,y): C<key=>[at=>[0.5,0.5]]>) is an exact location to place the key
 
 =back
 
-=head2 axis, grid, and border control: grid, (x|x2|y|y2|z)zeroaxis, border
+=head2 Border, axis, and grid control: border, grid, (x|x2|y|y2|z)zeroaxis
 
 Normally, tick marks and their labels are applied to the border of a plot,
 and no extra axes (e.g. the y=0 line) nor coordinate grids are shown.  You can
@@ -338,7 +338,8 @@ in the order given.
 
 =over 3
 
-=item <integer> - packed bit flags for which border lines to draw
+=item * <integer> - packed bit flags for which border lines to draw
+
 
 The default if you set a true value for C<border> is to draw all border lines. 
 You can feed in a single integer value containing a bit mask, to draw only some
@@ -352,29 +353,33 @@ plots; the middle four control the vertical edges that rise from the
 clockwise end of the bottom plane edges; and the last four control the
 top plane edges.
 
-=item ( back | front ) - draw borders first or last (controls hidden line appearance)
+=item * ( back | front ) - draw borders first or last (controls hidden line appearance)
 
-=item linewidth <lw>, linestyle <ls>, linetype <lt> 
+=item * linewidth <lw>, linestyle <ls>, linetype <lt> 
 
 These are Gnuplot's usual three options for line control.
 
 =back
 
-To draw each axis set the appropriate "zeroaxis" parameter -- i.e. to draw
-the X axis (y=0), use C<xzeroaxis=>1>.  If you just want the axis
-turned on with default values, you can feed in a Boolean scalar; if
-you want to set its parameters, you can feed in a list ref containing
-linewidth, linestyle, and linetype (with appropriate parameters for each), e.g.
-C<xzeroaxis=>[linewidth=>2]>.
+The C<grid> option indicates whether gridlines should be drawn on
+each axis.  It takes a list ref of arguments, each of which is either "no" or "m" or "",
+followed by an axis name and "tics" --
+e.g. C<< grid=>["noxtics","ymtics"] >> draws no X gridlines and draws
+(horizontal) Y gridlines on Y axis major and minor tics, while
+C<< grid=>["xtics","ytics"] >> or C<< grid=>["xtics ytics"] >> will draw both
+vertical (X) and horizontal (Y) grid lines on major tics.
 
-To draw a coordinate grid with default values, set C<grid=>1>.  For more 
+To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more 
 control, feed in a list ref with zero or more of the following parameters, in order:
 
-=over 3
 
-=item tics specifications
-
-These keywords indicate whether gridlines should be drawn on axis tics (see below) for each axis.  Each one takes the form of either "no" or "m" or "", followed by an axis name and "tics" -- e.g. C<grid=>["noxtics","ymtics"]> draws no X gridlines and draws (horizontal) Y gridlines on Y axis major and minor tics, while C<grid=>["xtics","ytics"]> or C<grid=>["xtics ytics"]> will draw both vertical (X) and horizontal (Y) grid lines on major tics.
+The C<zeroaxis> keyword indicates whether to actually draw each axis
+line at the corresponding zero along its indicated dimension.  For
+example, to draw the X axis (y=0), use C<< xzeroaxis=>1 >>.  If you just
+want the axis turned on with default values, you can feed in a Boolean
+scalar; if you want to set its parameters, you can feed in a list ref
+containing linewidth, linestyle, and linetype (with appropriate
+parameters for each), e.g.  C<< xzeroaxis=>[linewidth=>2] >>.
 
 =head2 Axis ranging and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
@@ -416,8 +421,8 @@ C<logscale> allows you to turn on logarithmic scaling for any or all
 axes, and to set the base of the logarithm.  It takes a list ref, the
 first element of which is a string mushing together the names of all
 the axes to scale logarithmically, and the second of which is the base
-of the logarithm: C<logscale=>[xy=>10]>.  You can also leave off the
-base if you want base-10 logs: C<logscale=>['xy']>.
+of the logarithm: C<< logscale=>[xy=>10] >>.  You can also leave off the
+base if you want base-10 logs: C<< logscale=>['xy'] >>.
 
 =head2 Axis tick marks - [m](x|x2|y|y2|z|cb)tics
 
@@ -429,9 +434,9 @@ ticks (see "Time data" below).
 
 By default, gnuplot will automatically place major and minor ticks.
 You can turn off ticks on an axis by setting the appropriate <foo>tics
-option to a defined, false scalar value (e.g. C<xtics=>0>), and turn them
+option to a defined, false scalar value (e.g. C<< xtics=>0 >>), and turn them
 on with default values by setting the option to a true scalar value
-(e.g. C<xtics=>1>). 
+(e.g. C<< xtics=>1 >>). 
 
 If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
@@ -487,7 +492,7 @@ any of its axes.  There are three main methods, which are mutually exclusive
 
 You can set any axis to plot timestamps rather than numeric values by
 setting the corresponding "data" plot option to "time",
-e.g. C<xdata=>"time">.  If you do so, then numeric values in the
+e.g. C<< xdata=>"time" >>.  If you do so, then numeric values in the
 corresponding data are interpreted as UNIX times (seconds since the
 UNIX epoch).  No provision is made for UTC->TAI conversion (yet).  You
 can format how the times are plotted with the "format" option in the
@@ -503,13 +508,13 @@ will plot UNIX times as ISO timestamps in the ordinate.
 If you just want to plot named days of the week, you can instead use 
 the dtics options set plotting to day of week, where 0 is Sunday and 6
 is Saturday; values are interpreted modulo 7.  For example,
-C<xmtics=>1,xrange=>[-4,9]> will plot two weeks from Wednesday to
+C<< xmtics=>1,xrange=>[-4,9] >> will plot two weeks from Wednesday to
 Wednesday.
 
 =item B<month-of-year plotting>
 
 The mtics options set plotting to months of the year, where 1 is January and 12 is 
-December, so C<xdtics=>1, xrange=>[0,4]> will include Christmas through Easter.
+December, so C<< xdtics=>1, xrange=>[0,4] >> will include Christmas through Easter.
 
 =back
 
@@ -540,7 +545,7 @@ screen coordinates -- i.e. fraction of the total plotting window.
 
 The size option lets you adjust the size and aspect ratio of the plot, 
 as an absolute fraction of the plot window size.  You feed in fractional
-ratios, as in C<size=>[$xfrac, $yfrac]>.  You can also feed in some keywords
+ratios, as in C<< size=>[$xfrac, $yfrac] >>.  You can also feed in some keywords
 to adjust the aspect ratio of the plot.  The size option overrides any 
 autoscaling that is done by the auto-layout in multiplot mode, so use 
 with caution -- particularly if you are multiplotting.  You can use
@@ -553,7 +558,7 @@ numbers yield taller plots.
 
 C<clip> controls the border between the plotted data and the border of the plot.
 There are three clip types supported:   points, one, and two.  You can set them 
-independently by passing in booleans with their names: C<clip=>[points=>1,two=>0]>.
+independently by passing in booleans with their names: C<< clip=>[points=>1,two=>0] >>.
 
 =head2 Color: colorbox, palette, clut
 
@@ -591,7 +596,7 @@ For simple color maps, C<clut> gives access to a set of named color
 maps.  (from "Color Look Up Table").  A few existing color maps are:
 "default", "gray", "sepia", "ocean", "rainbow", "heat1", "heat2", and
 "wheel".  To see a complete list, specify an invalid table,
-e.g. "clut=>'xxx'".  (This should be improved in a future version).
+e.g. C<< clut=>'xxx' >>.  (This should be improved in a future version).
 
 =head2 3-D: trid, view, pm3d, hidden3d, dgrid3d, surface, xyplane, mapping
 
@@ -602,11 +607,11 @@ command, but it is tracked with persistent state just as any other
 option.
 
 The C<view> option controls the viewpoint of the 3-D plot.  It takes a
-list of numbers: C<view=>[$rot_x, $rot_z, $scale, $scale_z]>.  After
+list of numbers: C<< view=>[$rot_x, $rot_z, $scale, $scale_z] >>.  After
 each number, you can omit the subsequent ones.  Alternatively,
-C<view=>['map']> represents the drawing as a map (e.g. for contour
-plots) and C<view=>[equal=>'xy']> forces equal length scales on the X
-and Y axes regardless of perspective, while C<view=>[equal=>'xyz']>
+C<< view=>['map'] >> represents the drawing as a map (e.g. for contour
+plots) and C<< view=>[equal=>'xy'] >> forces equal length scales on the X
+and Y axes regardless of perspective, while C<< view=>[equal=>'xyz'] >>
 sets equal length scales on all three axes.
 
 The C<pm3d> option accepts several parameters to control the pm3d plot style,
@@ -620,8 +625,8 @@ hidden surfaces and lines are handled.  For details see the gnuplot manual.
 
 C<xyplane> sets the location of that plane (which is drawn) relative
 to the rest of the plot in 3-space.  It takes a single string: "at" or
-"relative", and a number.  C<xyplane=>[at=>$z]> places the XY plane at the
-stated Z value (in scientific units) on the plot.  C<xyplane=>[relative=>$frac]>
+"relative", and a number.  C<< xyplane=>[at=>$z] >> places the XY plane at the
+stated Z value (in scientific units) on the plot.  C<< xyplane=>[relative=>$frac] >>
 places the XY plane $frac times the length of the scaled Z axis *below* the Z 
 axis (i.e. 0 places it at the bottom of the plotted Z axis; and -1 places it 
 at the top of the plotted Z axis).
@@ -671,7 +676,7 @@ To modify an object, you can specify it by number, either by appending
 the number to the plot option name (e.g. C<arrow3>) or by supplying it
 as the first element of the option list for that object.  
 
-To remove all objects of a given type, supply undef (e.g. C<arrow=>undef>).
+To remove all objects of a given type, supply undef (e.g. C<< arrow=>undef >>).
 
 For example, to place two labels, use the plot option:
 
@@ -716,7 +721,7 @@ and you are not specifying a <tag>.
 
 The <position> should be a string containing a gnuplot position specifier.
 At its simplest, the position is just two numbers separated by
-a comma, as in C<label2=>["foo",at=>"5,3">, to specify (X,Y) location 
+a comma, as in C<< label2=>["foo",at=>"5,3" >>, to specify (X,Y) location 
 on the plot in scientific coordinates.  Each number can be preceded
 by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20) 
 for details.
@@ -734,7 +739,7 @@ optional.
 The <name>,<size> must be double quoted in the string (this may be fixed
 in a future version), as in
 
- C<label3=>["foo",at=>"3,4",font=>'"Helvetica,18"']>.
+ C<< label3=>["foo",at=>"3,4",font=>'"Helvetica,18"'] >>.
 
 =item noenhanced - turn off gnuplot enhanced text processing (if enabled)
 
@@ -761,7 +766,7 @@ are:
 
 The <position> should be a string containing a gnuplot position specifier.
 At its simplest, the position is just two numbers separated by
-a comma, as in C<label2=>["foo",at=>"5,3">, to specify (X,Y) location 
+a comma, as in C<< label2=>["foo",at=>"5,3" >>, to specify (X,Y) location 
 on the plot in scientific coordinates.  Each number can be preceded
 by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20) 
 for details.
@@ -805,17 +810,17 @@ The arguments, all of which are optional but which must be given in the order li
 
 The <object-type> is one of four words: "rectangle", "ellipse", "circle", or "polygon".  
 
-You can specify a rectangle with C<from=>$pos1, [r]to=>$pos2>, with C<center=>$pos1, size=>"$w,$h">,
-or with C<at=>$pos1,size=>"$w,$h">.
+You can specify a rectangle with C<< from=>$pos1, [r]to=>$pos2 >>, with C<< center=>$pos1, size=>"$w,$h" >>,
+or with C<< at=>$pos1,size=>"$w,$h" >>.
 
-You can specify an ellipse with C<at=>$pos, size=>"$w,$h"> or C<center=>$pos size=>"$w,$h">, followed
-by C<angle=>$a>.
+You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed
+by C<< angle=>$a >>.
 
-You can specify a circle with C<at=>$pos, size=>"$w,$h"> or C<center=>$pos size=>"$w,$h">, followed 
-by C<size=>$radius> and (optionally) C<arc=>"[$begin:$end]">.
+You can specify a circle with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed 
+by C<> size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
 
-You can specify a polygon with C<from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn> or with 
-C<from=>$pos1,rto=>$diff1,rto=>$diff2,...rto=>$diffn>.
+You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with 
+C<< from=>$pos1,rto=>$diff1,rto=>$diff2,...rto=>$diffn >>.
 
 =item ( front | back | behind ) - draw the object last | first | really-first.
 
@@ -836,7 +841,7 @@ TBD - more to come.
 C<locale> is used to control date stamp creation.  See the gnuplot manual.
 
 C<decimalsign>  accepts a character to use in lieu of a "." for the decimalsign.
-(e.g. in European countries use C<decimalsign=>','>).
+(e.g. in European countries use C<< decimalsign=>',' >>).
 
 =head2 Miscellany: globalwith, timestamp, zero, fontpath, binary
 
@@ -861,16 +866,14 @@ Most plotting is done with binary data transfer to Gnuplot; however, due to
 some bugs in Gnuplot binary handling, certain types of plot data are sent in ASCII.
 In particular, time series data require transmission in ASCII (as of Gnuplot 4.4). 
 You can force ASCII transmission of all but image data by explicitly setting the
-C<binary=>0> option.
+C<< binary=>0 >> option.
 
 C<dump> is used for debugging. If true, it writes out the gnuplot commands to STDOUT
 I<instead> of writing to a gnuplot process. Useful to see what commands would be
 sent to gnuplot. This is a dry run. Note that this dump will contain binary
 data, if the 'binary' option is given (see below)
 
-=item log
-
-Used for debugging. If true, writes out the gnuplot commands to STDERR I<in
+C<log> is used for debugging. If true, writes out the gnuplot commands to STDERR I<in
 addition> to writing to a gnuplot process. This is I<not> a dry run: data is
 sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
 this log will contain binary data, if the 'binary' option is given (see below)
