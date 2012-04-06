@@ -1286,6 +1286,11 @@ sub DESTROY
   _killGnuplot($this);
 }
 
+sub close
+{
+    my $this = shift;
+    _killGnuplot($this);
+}
 
 
 =head2 options - set/get persistent plot options for a plot object
@@ -4112,8 +4117,9 @@ sub _killGnuplot {
     my $suffix = shift;
 
     unless(defined($suffix)) {
-	for (grep(m/^pid\-(.*)$/,keys %$this)) {
-	    _killGnuplot($this,$1) if($1);
+	for(keys %$this) {
+	    next unless (m/^pid\-(.*)$/);
+	    _killGnuplot($this,$1);
 	}
 	return;
     }
@@ -4128,8 +4134,8 @@ sub _killGnuplot {
 	{
 	    _printGnuplotPipe( $this, $suffix, "exit\n" );
 	}
-	
-	waitpid( $this->{"pid-$suffix"}, 0 ) ;
+
+	waitpid($this->{"pid-$suffix"},0);
     }
     
     for (map { $_."-$suffix" } qw/in err errSelector pid/) {
