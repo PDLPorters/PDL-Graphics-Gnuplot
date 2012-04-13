@@ -1603,10 +1603,21 @@ sub plot
 	next if( !($chunks->[$i]->{imgFlag}) );
 	
 	# Fix up gnuplot ranging bug for images
+
+	if(defined($this->{options}->{xrange}) and !defined($chunks->[$i]->{options}->{xrange})) {
+	    $chunks->[$i]->{options}->{xrange} = $this->{options}->{xrange};
+	}
+
+	if(defined($this->{options}->{yrange}) and !defined($chunks->[$i]->{options}->{yrange})) {
+	    $chunks->[$i]->{options}->{yrange} = $this->{options}->{yrange};
+	}
+
 	unless( $i or 
 		$chunks->[$i]->{options}->{xrange} or
 		$chunks->[$i]->{options}->{yrange}
 	    ) {
+
+	    # Neither curve nor plot option has been set.  
 	    if($chunks->[$i]->{ArrayRec} eq 'array') {
 		# Autorange using matrix locations -- pixels overlap by 0.5 on bottom and top.
 		$chunks->[$i]->{options}->{xrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(1) - 0.5 ];
@@ -1616,15 +1627,13 @@ sub plot
 		# guessing at dx and dy.
 		my($xmin,$xmax) = $chunks->[$i]->{data}->[0]->slice("(0)")->minmax;
 		my($ymin,$ymax) = $chunks->[$i]->{data}->[0]->slice("(1)")->minmax;
-
+		
 		my $dx = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
 		$chunks->[$i]->{options}->{xrange} = [$xmin - $dx, $xmax + $dx];
 		
 		my $dy = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
 		$chunks->[$i]->{options}->{yrange} = [$ymin - $dy, $ymax + $dy];
 	    }
-		
-
 	}
 	
 	# Fix up gnuplot color scaling bug/misfeature for RGB images
@@ -1657,11 +1666,14 @@ sub plot
 	$this->{options}->{cbrange} = $o;
     }
 
-    # Since we accept ranges as curve options, but they are only allowed in the first curve of
-    # a multiplot, we don't allow ranges in later curves to be emitted.  This is a hack, 
-    # since the alternatives are (a) disallowing all curve option ranges (inconvenient), 
-    # or (b) trying to merge all ranges, which in turn requires parsing all the available
-    # tuple sizes to figure matrix values (which is tedious and I'm too lazy right now).
+    # Since we accept ranges as curve options, but they are only
+    # allowed in the first curve of a single multi-curve plot, we
+    # don't allow ranges in later curves to be emitted.  This is a
+    # hack, since the alternatives are (a) disallowing all curve
+    # option ranges (inconvenient), or (b) trying to merge all ranges,
+    # which in turn requires parsing all the available tuple sizes to
+    # figure matrix values (which is tedious and I'm too lazy right
+    # now).
     {
 	my $rangeflag = 0;
 	for my $i(1..$#$chunks) {
