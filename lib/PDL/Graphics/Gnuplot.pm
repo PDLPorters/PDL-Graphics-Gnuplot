@@ -345,7 +345,7 @@ sub plot
   # terminal, and then _checkpoint() for errors.  To make this quick, the test
   # plot command contains the minimum number of data points
   my ($plotcmd, $testplotcmd, $testplotdata) =
-    plotcmd( $chunks, @{$plotOptions}{qw(3d binary globalwith)} );
+    plotcmd( $chunks, $plotOptions );
 
   testPlotcmd($this, $testplotcmd, $testplotdata);
 
@@ -384,22 +384,22 @@ sub plot
   # generates the gnuplot command to generate the plot. The curve options are parsed here
   sub plotcmd
   {
-    my ($chunks, $is3d, $isbinary, $globalwith) = @_;
+    my ($chunks, $plotOptions) = @_;
 
     my $basecmd = '';
 
     # if anything is to be plotted on the y2 axis, set it up
     if( grep {my $chunk = $_; grep {$_->{y2}} @{$chunk->{options}}} @$chunks)
     {
-      if ( $is3d )
+      if ( $plotOptions->{'3d'} )
       { barf "3d plots don't have a y2 axis"; }
 
       $basecmd .= "set ytics nomirror\n";
       $basecmd .= "set y2tics\n";
     }
 
-    if($is3d) { $basecmd .= 'splot '; }
-    else      { $basecmd .= 'plot ' ; }
+    if($plotOptions->{'3d'} ) { $basecmd .= 'splot '; }
+    else                      { $basecmd .= 'plot ' ; }
 
 
     my @plotChunkCmd;
@@ -409,9 +409,9 @@ sub plot
     foreach my $chunk (@$chunks)
     {
       my @optionCmds =
-        map { optioncmd($_, $globalwith) } @{$chunk->{options}};
+        map { optioncmd($_, $plotOptions->{globalwith}) } @{$chunk->{options}};
 
-      if( $isbinary )
+      if( $plotOptions->{binary} )
       {
         # I get 2 formats: one real, and another to test the plot cmd, in case it
         # fails. The test command is the same, but with a minimal point count. I
