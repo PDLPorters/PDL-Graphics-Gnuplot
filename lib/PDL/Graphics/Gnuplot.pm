@@ -919,9 +919,7 @@ EOM
                     \n^.*invalid\s+command.*$//xmg;            # actual 'invalid command' complaint
     }
 
-    # strip out all the leading/trailing whitespace
-    $fromerr =~ s/^\s*//;
-    $fromerr =~ s/\s*$//;
+    $fromerr =~ s/^\s*(.*?)\s*/$1/;
 
     return $fromerr;
   }
