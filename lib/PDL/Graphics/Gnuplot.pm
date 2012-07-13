@@ -812,20 +812,16 @@ sub plot
     # I send a test plot command. Gnuplot implicitly uses && if multiple
     # commands are present on the same line. Thus if I see the post-plot print
     # in the output, I know the plot command succeeded
-    my $postTestplotCheckpoint   = 'xxxxxxx Plot succeeded xxxxxxx';
-    my $print_postTestCheckpoint = "; print \"$postTestplotCheckpoint\"";
-    _printGnuplotPipe( $this, "$testplotcmd$print_postTestCheckpoint\n" );
+    _printGnuplotPipe( $this, $testplotcmd . "\n" );
     _printGnuplotPipe( $this, $testplotdata );
 
-    my $checkpointMessage = _checkpoint($this, 'ignore_invalidcommand');
+    my $checkpointMessage = _checkpoint($this, 'ignore_known_test_failures');
 
-    if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
+    if( $checkpointMessage )
     {
-      # don't actually print out the checkpoint message
-      $checkpointMessage =~ s/$print_postTestCheckpoint//;
-
-      # The checkpoint message does not contain the post-plot checkpoint. This
-      # means gnuplot decided that the plot command failed.
+      # There's a checkpoint message. I explicitly ignored and threw away all
+      # errors that are allowed to occur during a test. Anything leftover
+      # implies a plot failure.
       barf "Gnuplot error: \"\n$checkpointMessage\n\" while sending plotcmd \"$testplotcmd\"";
     }
 
@@ -896,7 +892,7 @@ EOM
 
     $fromerr = $1;
 
-    my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
+    my $warningre = qr{^.*(?:warning:\s*(.*?)\s*$)\n?}mi;
 
     if(defined $flags && $flags =~ /printwarnings/)
     {
@@ -908,15 +904,35 @@ EOM
     # I've now read all the data up-to the checkpoint. Strip out all the warnings
     $fromerr =~ s/$warningre//gm;
 
-    # if asked, get rid of all the "invalid command" errors. This is useful if
-    # I'm testing a plot command and I want to ignore the errors caused by the
-    # test data bein sent to gnuplot as a command. The plot command itself will
-    # never be invalid, so this doesn't actually mask out any errors
-    if(defined $flags && $flags =~ /ignore_invalidcommand/)
+    # if asked, ignore and get rid of all the errors known to happen during
+    # plot-command testing. These include
+    #
+    # 1. "invalid command" errors caused by the test data bein sent to gnuplot
+    #    as a command. The plot command itself will never be invalid, so this
+    #    doesn't actually mask out any errors
+    #
+    # 2. "invalid range" errors caused by requested plot bounds (xmin, xmax,
+    #    etc) tossing out any test-plot data. The point of the plot-command
+    #    testing is to make sure the command is valid, so any out-of-boundedness
+    #    of the test data is irrelevant
+    if(defined $flags && $flags =~ /ignore_known_test_failures/)
     {
       $fromerr =~ s/^gnuplot>\s*(?:$testdataunit_ascii|e\b).*$ # report of the actual invalid command
                     \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
                     \n^.*invalid\s+command.*$//xmg;            # actual 'invalid command' complaint
+
+
+      # ignore a simple 'invalid range' error observed when, say only the xmin
+      # bound is set and all the data is below it
+      $fromerr =~ s/^gnuplot>\s*plot.*$                        # the test plot command
+                    \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
+                    \n^.*range\s*is\s*invalid.*$//xmg;         # actual 'invalid range' complaint
+
+      # fancier plots show a different 'invalid range' error. Observed when xmin
+      # > xmax (inverted x axis) and when there's out-of-bounds data
+      $fromerr =~ s/^gnuplot>\s*plot.*$                        # the test plot command
+                    \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
+                    \n^.*all\s*points.*undefined.*$//xmg;      # actual 'invalid range' complaint
     }
 
     $fromerr =~ s/^\s*(.*?)\s*/$1/;
