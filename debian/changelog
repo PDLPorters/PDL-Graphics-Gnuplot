@@ -1,3 +1,12 @@
+libpdl-graphics-gnuplot-perl (0.04) unstable; urgency=low
+
+  * binary communication now works for the vast majority of plots
+    'with labels' is the main notable exception
+  * I can now build an implicit 3D plot even with a 1D domain.
+  * Fixed bug where a specific xmin setting caused a plot test failure
+
+ -- Dima Kogan <dima@secretsauce.net>  Fri, 13 Jul 2012 01:33:43 -0700
+
 libpdl-graphics-gnuplot-perl (0.03) unstable; urgency=low
 
   * debian packaging cleanup
