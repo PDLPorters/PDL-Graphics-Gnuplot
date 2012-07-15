@@ -2,7 +2,3 @@
 
 %:
 	dh $@
-
-# no testing when building a package.
-override_dh_auto_test:
-	true
