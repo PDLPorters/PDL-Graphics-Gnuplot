@@ -52,7 +52,7 @@ my $x = sequence(5);
 
   my (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
   eval{ plot ( terminal => 'dumb 79 24', output => $testoutput, with => 'bogus', $x); };
-  ok($@ && $@ =~ /gnuplot>.*bogus.*expecting/s,  'error detection works' )
+  ok($@ && $@ =~ /gnuplot>.*bogus.*(?:expecting|unrecognized)/s,  'error detection works' )
     or diag "plot() produced no error";
 
   unlink $testoutput;
