@@ -1,8 +1,7 @@
 Source: libpdl-graphics-gnuplot-perl
 Section: perl
 Priority: optional
-Build-Depends: debhelper (>= 7)
-Build-Depends-Indep: perl
+Build-Depends: debhelper (>= 7), perl, gnuplot
 Maintainer: Dima Kogan <dima@secretsauce.net>
 Standards-Version: 3.9.2
 Homepage: http://search.cpan.org/dist/PDL-Graphics-Gnuplot/
