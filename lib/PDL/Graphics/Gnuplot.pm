@@ -14,7 +14,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d plotlines plotpoints);
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 
 # when testing plots with ASCII i/o, this is the unit of test data
 my $testdataunit_ascii = "10 ";
