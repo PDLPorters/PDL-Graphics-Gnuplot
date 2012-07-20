@@ -917,6 +917,8 @@ EOM
     #    etc) tossing out any test-plot data. The point of the plot-command
     #    testing is to make sure the command is valid, so any out-of-boundedness
     #    of the test data is irrelevant
+    #
+    # 3. image grid complaints
     if(defined $flags && $flags =~ /ignore_known_test_failures/)
     {
       $fromerr =~ s/^gnuplot>\s*(?:$testdataunit_ascii|e\b).*$ # report of the actual invalid command
@@ -935,6 +937,10 @@ EOM
       $fromerr =~ s/^gnuplot>\s*plot.*$                        # the test plot command
                     \n^\s+\^\s*$                               # ^ mark pointing to where the error happened
                     \n^.*all\s*points.*undefined.*$//xmg;      # actual 'invalid range' complaint
+
+      # 'with image' plots can complain about an uninteresting domain. Exact error:
+      # GNUPLOT (plot_image):  Image grid must be at least 4 points (2 x 2).
+      $fromerr =~ s/^.*Image grid must be at least.*$//mg;
     }
 
     $fromerr =~ s/^\s*(.*?)\s*/$1/;
