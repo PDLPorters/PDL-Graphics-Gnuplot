@@ -152,7 +152,7 @@ print STDERR $@ if $@;
 say STDERR "=================================\n\n";
 
 
-say STDERR 'PDL::Graphics::Gnuplot can detect I/O hanges. Here I ask for a delay, so I should detect this and quit after a few seconds:';
+say STDERR 'PDL::Graphics::Gnuplot can detect I/O hangs. Here I ask for a delay, so I should detect this and quit after a few seconds:';
 say STDERR "=================================";
 eval( <<'EOM' );
   my $xy = zeros(21,21)->ndcoords - pdl(10,10);
