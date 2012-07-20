@@ -552,7 +552,19 @@ sub plot
         {
           if (my @badKeys = grep {!defined $curveOptionsSet{$_}} keys %$option)
           {
-            barf "plot() got some unknown curve options: (@badKeys)";
+            my @bad_plot_options = grep {$plotOptionsSet{$_}} @badKeys;
+
+            if( !@bad_plot_options )
+            {
+              barf "plot() got some unknown curve options: (@badKeys)";
+            }
+            else
+            {
+              barf
+                "plot() got some unknown curve options: (@badKeys)\n" .
+                "Of these, the following are valid PLOT options: @bad_plot_options\n" .
+                "All plot options must be given before all curve options";
+            }
           }
         }
       }
