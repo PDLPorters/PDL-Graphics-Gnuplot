@@ -3366,6 +3366,9 @@ $palettesTab = {
     grey     => [ undef, 'gray',	                 "gray" ],
     gray     => [ undef, 'gray',	                 "gray" ],
     sepia    => [ 'RGB', 'color rgbformulae 7,3,4',      "a simple sepiatone" ],
+    grepia   => [ 'RGB', 'color rgbformulae 3,7,4',      "a simple sepiatone, in green" ],
+    blepia   => [ 'RGB', 'color rgbformulae 4,3,7',      "a simple sepiatone, in cyan/blue"],
+    vepia    => [ 'RGB', 'color rgbformulae 3,4,7',      "a simple sepiatone, in violet" ],
     pm3d     => [ 'RGB', 'color rgbformulae 7,5,15',     "black-blue-red-yellow" ],
     grv      => [ 'RGB', 'color rgbformulae 3,11,6',     "green-red-violet" ],
     ocean    => [ 'RGB', 'color rgbformulae 23,28,3',    "green-blue-white" ],
@@ -4926,7 +4929,6 @@ sub _obj_or_global {
 # scientific coordinates with autoscaling.  Grids that are rectangular but scaled
 # seem to work OK.
 # 
-
 sub _with_fits_prefrobnicator {
     my( $with, $this, $chunk, @data ) = @_;
 
@@ -4938,14 +4940,63 @@ sub _with_fits_prefrobnicator {
     
     my $h = $data->gethdr();
     unless($h   and   ref $h eq 'HASH'   and   $h->{NAXIS}   and   $h->{NAXIS1}   and   $h->{NAXIS2}) {
-	barf "PDL::Graphics::Gnuplot: 'with fits' requires an image with a FITS header\n";
+	if($data->ndims==2 or ($data->ndims==3 && ($data->dim(3)==3 || $data->dim(3)==1))) {
+	    warn("PDL::Graphics::Gnuplot: 'with fits' expected a FITS header.  Using pixel coordinates...\n");
+		 $h = {
+		     NAXIS=>2,
+		     NAXIS1 => $data->dim(0),    NAXIS2 => $data->dim(1),
+		     CRPIX1=>1,		         CRPIX2=>1,
+		     CRVAL1=>0,   		 CRVAL2=>0,
+		     CDELT1=>1,                  CDELT2=>1,
+		     CTYPE1=>"X",                CTYPE2=>"Y",
+		     CUNIT1=>"Pixels",           CUNIT2=>"Pixels"
+		 }
+	} else {
+	    barf("PDL::Graphics::Gnuplot: 'with fits' got a (non-image) ".join("x",$data->dims)." PDL with no FITS header.\n");
+	}
     }
 
+    ##############################
+    # Now find the dataspace boundaries for the map, so we don't waste pixels.
+    my ($xmin,$xmax,$ymin,$ymax);
+    if(exists($this->{options}->{xrange})) {
+	$xmin = $this->{options}->{xrange}->[0];
+	$xmax = $this->{options}->{xrange}->[1];
+    }
+    if(exists($this->{options}->{yrange})) {
+	$ymin = $this->{options}->{yrange}->[0];
+	$ymax = $this->{options}->{yrange}->[1];
+    }
+    unless(defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
+	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0)-1,$data->dim(1)-1);
+	my $corners = $pix_corners->apply(t_fits($h));
+	
+	$xmin = $corners->slice("(0)")->min unless defined($xmin);
+	$xmax = $corners->slice("(0)")->max unless defined($xmax);
+	$ymin = $corners->slice("(1)")->min unless defined($ymin);
+	$ymax = $corners->slice("(1)")->max unless defined($ymax);
+    }
+    if($ymin > $ymax) {
+	my $a = $ymin; $ymin = $ymax; $ymax = $a;
+    }
+    if($xmin > $xmax) {
+	my $a = $xmin; $xmin = $xmax; $xmax = $a;
+    }
     
-    my $d2 = $data->map( t_fits($data), {method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
+    our $dest_hdr = {NAXIS=>2,
+		    NAXIS1=> $fitsmap_size,         NAXIS2=>$fitsmap_size,
+		    CRPIX1=> 1,                     CRPIX2=>1,
+		    CRVAL1=> $xmin,                 CRVAL2=>$ymin,
+		    CDELT1=> ($xmax-$xmin)/($fitsmap_size-1),
+		    CDELT2=> ($xmax-$xmin)/($fitsmap_size-1),
+		    CTYPE1=> $h->{CTYPE1},	    CTYPE2=> $h->{CTYPE2},
+		    CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
+    };
+    
+    my $d2 = $data->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
 
-    my $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($data) ); 
-
+#    my $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($data) ); 
+    my $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($d2) );
 
     # Now update plot options to set the axis labels, if they haven't been updated already...
     unless(defined $this->{options}->{xlabel}) {
@@ -4967,21 +5018,22 @@ sub _with_fits_prefrobnicator {
 				       )];
     }
 
+    print" ndc is ".join("x",$ndc->dims)."; data is ".join("x",$d2->dims)."\n";
     
-    if($data->ndims == 2) {
+    if($d2->ndims == 2) {
 	$with->[0] = 'image';
 	$chunk->{options}->{with} = [@$with];
-	return ($ndc->mv(0,-1)->dog, $data);
+	return ($ndc->mv(0,-1)->dog, $d2);
     }
 
     if($data->ndims == 3 and $data->dim(2)==3) {
 	$with->[0] = 'rgbimage';
-	return ($ndc->mv(0,-1)->dog, $data->dog);
+	return ($ndc->mv(0,-1)->dog, $d2->dog);
     }
 
     if($data->ndims == 3 and $data->dim(2)==4) {
 	$with->[0] = 'rgbalpha';
-	return ($ndc->mv(0,-1)->dog, $data->dog);
+	return ($ndc->mv(0,-1)->dog, $d2->dog);
     }
 
     barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n";
