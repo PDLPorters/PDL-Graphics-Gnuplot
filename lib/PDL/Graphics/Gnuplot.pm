@@ -8,6 +8,7 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
 
  pdl> $x = sequence(101) - 50;
  pdl> gplot($x**2);
+ pdl> gplot($x**2,{xr=>[0,50]});
 
  pdl> gplot( {title => 'Parabola with error bars'},
        with => 'xyerrorbars', legend => 'Parabola',
@@ -102,7 +103,11 @@ See below for supported plot styles.
 
 The plot options are parameters that affect the whole plot, like the title of
 the plot, the axis labels, the extents, 2d/3d selection, etc. All the plot
-options are described below in L</"Plot options">.
+options are described below in L</"Plot options">.  Plot options can be set directly
+in the plot object, or passed to the plotting methods directly.  Plot options can
+be passed in as a leading interpolated hash, as a leading hash ref, or as a trailing
+hash ref in the argument list to any of the main plotting routines (C<gplot>, C<plot>,
+C<image>, etc.).
 
 The curve options are parameters that affect only one curve in particular. Each
 call to C<plot()> can contain many curves, and options for a particular curve
@@ -4929,6 +4934,7 @@ sub _obj_or_global {
 # scientific coordinates with autoscaling.  Grids that are rectangular but scaled
 # seem to work OK.
 # 
+our $fitsmap_size = 1024;
 sub _with_fits_prefrobnicator {
     my( $with, $this, $chunk, @data ) = @_;
 
