@@ -99,6 +99,26 @@ same number of elements.  For example:
 
 See below for supported plot styles.
 
+Gnuplot is built around a monolithic plot model - it is not possible to 
+add new data directly to a plot without redrawing the entire plot. To support
+replotting, PDL::Graphics::Gnuplot stores the data you plot in the plot object,
+so that you can add new data with the "replot" command:
+
+ $w=gpwin(x11);
+ $x=xvals(101)/100;
+ $y=$x;
+ $w->plot($x,$y);
+ $w->replot($x,$y*$y);
+
+For speed, the data are *not* disconnected from their original variables - so 
+this will plot X vs. sqrt(X):
+
+ $x = xvals(101)/100;
+ $y = xvals(101)/100;
+ $w->plot($x,$y);
+ $y->inplace->sqrt;
+ $w->replot($x,$y);
+
 =head2 Options arguments
 
 The plot options are parameters that affect the whole plot, like the title of
@@ -1103,7 +1123,6 @@ one can do
 This command is equivalent to the C<hardcopy> shorthand used previously, but the
 fonts and sizes can be changed.
 
-
 =head1 Methods 
 
 =cut
@@ -1191,7 +1210,7 @@ sub gpwin { return new("PDL::Graphics::Gnuplot",@_); }
 
 =for ref
 
-Creates a PDL::Graphics::Gnuplot object to make a persistent plot.
+Creates a PDL::Graphics::Gnuplot persistent plot object, and connects it to gnuplot.
 
 =for example
 
@@ -1199,12 +1218,14 @@ Creates a PDL::Graphics::Gnuplot object to make a persistent plot.
   $plot->plot( legend => 'curve', sequence(5) );
 
 The plot options can be passed into the constructor as a trailing hash
-ref; the curve options and the data are passed into the method. One
-advantage of making plots this way is that there's a gnuplot process
+ref; the curve options and the data are passed into the method. 
+
+One advantage of making plots this way is that there's a gnuplot process
 associated with each PDL::Graphics::Gnuplot instance, so as long as
 C<$plot> exists, the plot will be interactive. Also, calling
 C<$plot-E<gt>plot()> multiple times reuses the plot window instead of
-creating a new one.
+creating a new one, and you can switch devices and use replot() on the
+object to output a single plot several different ways.
 
 Gnuplot interprets plot options differently per device.
 PDL::Graphics::Gnuplot attempts to interpret some of the more common
@@ -1288,6 +1309,7 @@ sub new
   my $this = { t0          => [gettimeofday],   # last access
 	       options     => {multiplot=>0},   # multiplot option actually holds multiplotting state flag
 	       replottable => 0,                # small amount of state...
+	       interactive => 0,
               };
   bless($this,$classname);
 
@@ -1347,7 +1369,7 @@ sub DESTROY
 sub close
 {
     my $this = shift;
-    _killGnuplot($this);
+    restart($this);
 }
 
 
@@ -1436,6 +1458,8 @@ sub reset {
     _printGnuplotPipe($this, "main", "reset\n");
     $checkpointMessage = _checkpoint($this, "main");
     
+    $this->{replottable} = 0;
+    delete $this->{last_plot};
     return $this;
 }
 
@@ -1485,6 +1509,11 @@ sub plot
     barf( "Plot called with no arguments") unless @_;
 
     my $this = _obj_or_global(\@_);
+
+    # If we're replotting, start with the last_plot options - which may not be "persistent" in the
+    # object but persist in the last_plot stored state.
+    my $o = ($this->{replotting}) ? $this->{last_plot}->{options} : $this->{options};
+
     ##############################
     # Parse optional plot options - must be an array or hash ref, if present.
     # Cheesy but hopefully effective method (from Dima): parse as plot options
@@ -1496,7 +1525,6 @@ sub plot
     # 
     # The temporariness is accomplished by localizing $this->{options} and replacing
     # it with either itself or the parsed copy of itself.
-    my $o = $this->{options};
     
     if(  (ref $_[0]) =~ m/^(HASH|ARRAY)/ ) {
 	my $oo = dclone($o);
@@ -1537,6 +1565,21 @@ sub plot
 
     # Make sure to reset the palette to the gnuplot default if it's not set here
     $this->{options}->{palette} = [] unless($this->{options}->{palette});
+
+    # If we're replotting, then any remaining arguments need to be put
+    # *after* the arguments that we used for the last plot.  
+    if($this->{replotting}) {
+	unless(UNIVERSAL::isa($_[0],'PDL')) {
+	    @_ = (@{$this->{last_plot}->{args}},@_);
+	} else {
+	    @_ = (@{$this->{last_plot}->{args}},{},@_);
+	}
+
+    }
+
+    # Store the current arguments into the state array for next time.
+    # (This has to be done here because plot options need to be stripped out first).
+    $this->{last_plot}->{args}  = [@_];
 
     # Now parse the rest of the arguments into chunks.
     # parseArgs is a nested sub at the bottom of this one.
@@ -1863,6 +1906,7 @@ sub plot
     # Sixth: put data and final checkpointing on the test command
     $testcmd .= join("", map { $_->{testdata} } @$chunks) if($check_syntax);
 
+    # Stash this plot command in the debugging variable
     our $last_plotcmd = $plotcmd;
     our $last_testcmd = $testcmd if($check_syntax);
 
@@ -1888,6 +1932,7 @@ sub plot
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
     _printGnuplotPipe( $this, "main", $plotcmd);
+    $this->{last_plot}->{command} = $plotcmd;
 
     my $chunkno = 0;
     for my $chunk(@$chunks){
@@ -1964,14 +2009,14 @@ sub plot
 	}
 
     } 
-    if( $this->{options}->{multiplot} ) {
-	# In multiplots we can clean up most things but not all.
-	# Maybe more cleanup could be added here...
-	$cleanup_cmd .= "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
-    } else {
-	# Outside of multiplots we can clean up everything.
-	$cleanup_cmd .= "reset\n";
-    }
+
+    # Clean up several things that we don't want to persist, but that do in gnuplot itself.  
+    # Don't issue a "reset" because we may want to replot or perform interactive operations,
+    # or may be inside a multiplot.
+    $cleanup_cmd .= "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
+
+    # Mark the gnuplot as replottable.
+    $this->{replottable} = 1;
 
     if($check_syntax) {
 	$PDL::Graphics::Gnuplot::last_testcmd .= $cleanup_cmd;
@@ -2389,6 +2434,30 @@ sub plot
 # convenience wrappers for plot
 #
 ##############################
+
+=head2 replot
+
+=for ref
+
+Replot the last plot (possibly with a new device and/or new arguments)
+
+C<replot> is similar to gnuplot's "replot" command - it allows you to
+regenerate the last plot made with this object.  You can change the
+plot by adding new elements to it, modifying options, or even (with the 
+"device" method) changing the output device.  C<replot> takes the same
+arguments as C<plot>.
+
+=cut
+
+sub replot {
+    my $this = shift;
+    if($this->{replottable}) {
+	local($this->{replotting}) = 1;
+	$this->plot(@_);
+    } else {
+	die "PDL::Graphics::Gnuplot::replot: you must have already plotted something!\n";
+    }
+}
 
 =head2 plot3d, splot
 
@@ -4188,17 +4257,30 @@ our $_OptionEmitters = {
 my $emit_enh = sub { my ($k,$v,$h) = @_; return " ".($v?"":"no")."enhanced "; };
 
 our $lConv = {
-    inch => 1,
-    in   => 1,
-    char => 16,
-    pt   => 72,
-    point=> 72,
-    points=>72,
-    px   => 100,
-    pixel=> 100,
+    inch  => 1,
+    inc   => 1,
+    in    => 1,
+    i     => 1,
+    char  => 16,
+    cha   => 16,
+    ch    => 16,
+    c     => 16,
+    pt    => 72,
+    points=> 72,
+    point => 72,
+    poin  => 72,
+    poi   => 72,
+    po    => 72,
+    px    => 100,
     pixels=>100,
-    mm   => 25.4,
-    cm   => 2.54
+    pixel => 100,
+    pixe  => 100,
+    pix   => 100,
+    pi    => 100,
+    p     => 100,
+
+    mm    => 25.4,
+    cm    => 2.54
 };
 
 # These are keyed descriptors for options that are used in at least two devices. They are invoked by name in the 
@@ -5061,6 +5143,28 @@ L<https://github.com/dkogan/PDL-Graphics-Gnuplot>
 =head1 AUTHOR
 
 Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@deforest.org> >>
+
+=head1 STILL TO DO
+
+=over 3
+
+=item test suite needs work
+
+=item interactivity
+
+=item replotting
+
+=item some plot options need better parsing
+
+=over 3
+
+=item - options to "with" selection: accept a list ref instead of a string with args
+
+=item - better description of 
+
+=back
+
+=back
 
 =head1 LICENSE AND COPYRIGHT
 

@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 5;
+use Test::More tests => 11;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -9,6 +9,7 @@ BEGIN {
 
 use File::Temp qw(tempfile);
 use PDL;
+use PDL::Graphics::Gnuplot;
 my $x = sequence(5);
 
 # I want to test 2 things:
@@ -26,6 +27,8 @@ my $x = sequence(5);
 # to have portability issues
 
 
+##############################
+#
 {
   # test basic plotting
   my (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
@@ -43,9 +46,11 @@ my $x = sequence(5);
   ok($filestats[7] > 79*24*0.8, 'basic plotting created a reasonably-sized file')
     or diag "resulting output file should be ascii 79x24, but only contains $filestats[7] bytes";
 
-  unlink $testoutput;
+ # unlink $testoutput;
 }
 
+##############################
+#
 {
   # purposely fail. make sure error message is as expected. This means the gnuplot
   # process STDERR is read and parsed correctly
@@ -58,5 +63,68 @@ my $x = sequence(5);
 
   unlink $testoutput;
 }
+
+##############################
+# Test options parsing
+
+# Some working variables
+(undef, my $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
+$x = xvals(51);
+my $y = $x*$x; 
+
+{
+ # Object options passed into plot are transient
+    $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+    $w->options(xr=>[0,30]);
+    ok( (defined($w->{options}->{xrange}) and  
+	((ref $w->{options}->{xrange}) eq 'ARRAY') and
+	($w->{options}->{xrange}->[0] == 0) and
+	($w->{options}->{xrange}->[1] == 30))
+	, 
+	"xr sets xrange option properly in options call" );
+    $w->plot($x);
+
+    open FOO, "<$testoutput";
+    @lines = <FOO>;
+    ok( 0+@lines == 24, "setting 79x24 character dumb output yields 24 lines of output");
+    $s = $lines[$#lines - 1];
+    $s =~ s/\s*$//; # trim trailing whitespace
+    $s =~ s/.*\s//; # trim everything before the final X axis label
+    ok( $s == 30, "xrange option generates proper X axis (and dumb terminal behaves as expected)");
+
+    $w->plot($x,{xr=>[0,5]});
+
+    open FOO, "<$testoutput";
+    @lines = <FOO>;
+    $s = $lines[$#lines - 1];
+    $s =~ s/\s*$//; # trim trailing whitespace
+    $s =~ s/.*\s//; # trim everything before the final X axis label
+    ok( $s == 5, "inline xrange option overrides stored xrange option (and dumb terminal behaves as expected)");
+
+    ok( ((defined($w->{options}->{xrange}) and 
+	(ref $w->{options}->{xrange}) eq 'ARRAY' and 
+	$w->{options}->{xrange}->[0] == 0 and
+	$w->{options}->{xrange}->[1] == 30))
+	,
+	"inline xrange does not change stored xrange option"
+	);
+
+    ok( (defined ($w->{last_plot}) and
+	(ref ($w->{last_plot}) eq 'HASH') and
+	defined ($w->{last_plot}->{options}) and
+	(ref ($w->{last_plot}->{options}) eq 'HASH') and
+	defined ($w->{last_plot}->{options}->{xrange}) and
+	(ref ($w->{last_plot}->{options}->{xrange}) eq 'ARRAY') and
+	$w->{last_plot}->{options}->{xrange}->[0] == 0 and
+	$w->{last_plot}->{options}->{xrange}->[1] == 5)
+	,
+	"inline xrange is stored in last_plot options"
+	);
+}
+
+##############################
+# Test replotting
+
+unlink $testoutput;
 
 diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, Perl $], $^X" );
