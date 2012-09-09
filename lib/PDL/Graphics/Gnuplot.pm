@@ -1143,8 +1143,8 @@ use Time::HiRes qw(gettimeofday tv_interval);
 our $VERSION = '0.11ced';
 
 use base 'Exporter';
-our @EXPORT_OK = qw(plot plot3d line lines points image terminfo);
-our @EXPORT = qw(gpwin gplot);
+our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
+our @EXPORT = qw(gpwin gplot greplot greset grestart);
 
 our $check_syntax = 0;
 our $gnuplot_req_v = 4.4;
@@ -1417,6 +1417,7 @@ Called with no arguments, C<restart> applies to the global plot object.
 =cut
 
 # reset - tops and restarts the underlying gnuplot process for an object
+*grestart = \&restart;
 sub restart {
     my $this = _obj_or_global(\@_);
     _killGnuplot($this);
@@ -1442,7 +1443,7 @@ gnuplot itself.
 
 
 =cut
-
+*greset = \*reset;
 sub reset {
     my $this = _obj_or_global(\@_);
      for my $k(keys %{$this->{options}}) {
@@ -1510,9 +1511,6 @@ sub plot
 
     my $this = _obj_or_global(\@_);
 
-    # If we're replotting, start with the last_plot options - which may not be "persistent" in the
-    # object but persist in the last_plot stored state.
-    my $o = ($this->{replotting}) ? $this->{last_plot}->{options} : $this->{options};
 
     ##############################
     # Parse optional plot options - must be an array or hash ref, if present.
@@ -1525,7 +1523,45 @@ sub plot
     # 
     # The temporariness is accomplished by localizing $this->{options} and replacing
     # it with either itself or the parsed copy of itself.
-    
+    #
+    #
+    # As an additional DWIM to make Dima happy, we parse initial options as plot
+    # options until encountering something that could conceivably be a curve option -
+    # whereupon we switch to curve options.  The DWIMming is done by checking individual
+    # option names to see if they (A) are NOT curve options and (B) are plot options.
+    # We snarf up all such options and put 'em into a hash ref like they should have been.
+    {
+	my $dwim_plot_options = [];
+	while( 0+@_ and !(ref $_[0]) ) {
+	    my ($kk,$knum);
+
+	    ($kk,$knum) = eval { _expand_abbrev($_[0], $cOpt->[1], $cOpt->[2]) };
+
+	    if($@) {
+		($kk,$knum) = eval { _expand_abbrev($_[0], $pOpt->[1], $pOpt->[2]) };
+
+		if(!$@) {
+		    # It's a plot option and not a curve option -- pull it, and its argument, from the arg list and put them 
+		    # into $dwim_plot_options.
+		    push(@{$dwim_plot_options}, shift);
+		    push(@{$dwim_plot_options}, shift);
+		} else {
+		    last;
+		}
+	    } else {
+		last;
+	    }
+	}
+	if( 0+@{$dwim_plot_options} ) {
+	    unshift(@_, $dwim_plot_options);
+	}
+    }
+
+    # If we're replotting, start with the last_plot options - which may not be "persistent" in the
+    # object but persist in the last_plot stored state.
+    my $o = ($this->{replotting}) ? $this->{last_plot}->{options} : $this->{options};
+
+    # Now parse the initial hash of plot options (if there is one)
     if(  (ref $_[0]) =~ m/^(HASH|ARRAY)/ ) {
 	my $oo = dclone($o);
 	eval { _parseOptHash( $oo, $pOpt, $_[0] ); };
@@ -1543,6 +1579,7 @@ sub plot
 	}
     }
 
+    # Now look for and parse a trailing hash of plot options (if there is one)
     if( $#_ >= 1  and   ((ref $_[-1])=~ /^(HASH|ARRAY)/)) {
 	my $oo = dclone($o);
 	eval { _parseOptHash( $oo, $pOpt, $_[-1] ); };
@@ -1579,7 +1616,11 @@ sub plot
 
     # Store the current arguments into the state array for next time.
     # (This has to be done here because plot options need to be stripped out first).
+    # 
+    # Storing the hash ref to options, rahter than making a deep copy, is a bit dangerous  - 
+    # but only if the user digs inside the object. The parsing methods copy the hash.
     $this->{last_plot}->{args}  = [@_];
+    $this->{last_plot}->{options} = $this->{options};
 
     # Now parse the rest of the arguments into chunks.
     # parseArgs is a nested sub at the bottom of this one.
@@ -1866,7 +1907,7 @@ sub plot
 		$chunks->[$i]->{testdata} = " 1 " x ($chunks->[$i]->{tuplesize}) . "\ne\n";
 	    }
 	}
-	    
+
 	$plotcmd .= $pchunk;
 	$testcmd .= $tchunk if($check_syntax);
 
@@ -1890,20 +1931,8 @@ sub plot
     $testcmd .= "$print_checkpoint\n" if($check_syntax);
 
 
-    #######
-    # Fifth: add extracmds, if necessary
-    { 
-	my $ec = $this->{options}->{extracmds};
-	if(defined($ec)) {
-	    $plotcmd .= (   ((ref $ec) eq 'ARRAY') ? 
-			   join("\n",@$ec,"") :
-			    $ec."\n"
-		);
-      }
-    }
-
     ##########
-    # Sixth: put data and final checkpointing on the test command
+    # Fifth: put data and final checkpointing on the test command
     $testcmd .= join("", map { $_->{testdata} } @$chunks) if($check_syntax);
 
     # Stash this plot command in the debugging variable
@@ -1915,7 +1944,7 @@ sub plot
     }
 
     #######
-    # Seventh: the commands are assembled.  Now test 'em by sending the test command down the pipe.
+    # Sixth: the commands are assembled.  Now test 'em by sending the test command down the pipe.
     my $checkpointMessage;
     if($check_syntax) {
 	_printGnuplotPipe( $this, "syntax", $testcmd );
@@ -2161,9 +2190,10 @@ sub plot
 		barf "plotstyle 'with ".($with[0])."' isn't valid in $ND plots\n";
 	    }
 
-	    # Additional columns are needed for certain 'with' modifiers. Figure 'em, cheesily...
+	    # Additional columns are needed for certain 'with' modifiers. Figure 'em, cheesily: each
+	    # palette or variable option to 'with' needs an additional column.
 	    my $ExtraColumns = 0;
-	    map { $ExtraColumns++ } grep /(palette|variable)/,@with;
+	    map { $ExtraColumns++ } grep /(palette|variable)/,map { split /\s+/ } @with;
 	    
 	    ##############################
 	    # Figure out what size of tuple we have, and check it against the tuple sizes we can take...
@@ -2178,6 +2208,7 @@ sub plot
 
 	    my (@tuplematch) = (grep ((abs($_)+$ExtraColumns == $NdataPiddles), @$tupleSizes));
 
+
 	    if( @tuplematch ) {
 		# Tuple sizes that require autogenerated dimensions require 'array'; all others
 		# reqire 'record'.
@@ -2188,7 +2219,20 @@ sub plot
 		    $chunk{ArrayRec} = 'record';
 		    print STDERR "WARNING: forced disallowed tuplesize with a curve option...\n";
 		} else {
-		    barf "Found $NdataPiddles PDLs for $ND plot type 'with ".($with[0])."', which needs one of (".join(",",@$tupleSizes).")\n";
+		    my $s = "Found $NdataPiddles PDLs for $ND plot type 'with ".($with[0])."', which needs ";
+		    if(@$tupleSizes==0) {
+			barf "Ouch! I'm never supposed to take this path.  Please report a bug.";
+		    } elsif(@$tupleSizes==1) {
+			$s .= abs($tupleSizes->[0]) + $ExtraColumns;
+		    } else {
+			$s .= "one of [".join(",",map { abs($_)+$ExtraColumns } @$tupleSizes)."]";
+		    }
+		    if($ExtraColumns) {
+			$s .= " (including the $ExtraColumns extras from your 'with' options).\n";
+		    } else {
+			$s .= ".\n";
+		    }
+		    barf $s;
 		}
 	    }
 	
@@ -2216,7 +2260,6 @@ sub plot
 	    }
 
 	    $chunk{tuplesize} = @dataPiddles;
-
 	    
 	    @dataPiddles = matchDims( @dataPiddles );
 
@@ -2228,7 +2271,7 @@ sub plot
 	    # is consistent...
 	    my $ncurves;
 
-	    if($imgFlag || $is3d){
+	    if($imgFlag){
 		# Images should never get a label unless one is explicitly set
 		$chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
 		$spec_legends = 1;
@@ -2236,7 +2279,7 @@ sub plot
 		# For the image case glom everything together into one 3-dimensional PDL, 
 		# pre-inverted so that the 0 dim runs across column.
 		
-		if($dataPiddles[0]->dims < 2) {
+		if($imgFlag and $dataPiddles[0]->dims < 2) {
 		    barf "Image plot types require at least a 2-D input PDL\n";
 		}
 
@@ -2449,8 +2492,9 @@ arguments as C<plot>.
 
 =cut
 
+*greplot = \&replot;
 sub replot {
-    my $this = shift;
+    my $this = _obj_or_global(\@_);
     if($this->{replottable}) {
 	local($this->{replotting}) = 1;
 	$this->plot(@_);
@@ -3388,13 +3432,13 @@ our $plotStyleProps ={
     histeps        => [ [-1,2],   0,      0, undef ],
     histogram      => [ [2,3],    0,      0, undef ],
     newhistogram   => [ [2,3],    0,      0, undef ],
-    fits           => [ [-1],     [-1],   1, 1     , \&_with_fits_prefrobnicator ],
-    image          => [ [-1,3],   [-1,4], 1, 1     ],
+    fits           => [ [-1],     [-2],   1, 1     , \&_with_fits_prefrobnicator ],
+    image          => [ [-1,3],   [-2,4], 1, 1     ],
     impulses       => [ [-1,2,3], [3,4],  0, undef ],
     labels         => [ [3],      [4],    0, 0     ], 
-    lines          => [ [-1,2],   [-1,3], 0, undef ],
-    linespoints    => [ [-1,2],   [-1,3], 0, undef ],
-    points         => [ [-1,2],   [-1,3], 0, undef ],
+    lines          => [ [-1,2],   [3],    0, undef ],
+    linespoints    => [ [-1,2],   [3],    0, undef ],
+    points         => [ [-1,2],   [3],    0, undef ],
     rgbalpha       => [ [-4,6],   [7],    1, 1     ],
     rgbimage       => [ [-3,5],   [6],    1, 1     ],
     steps          => [ [-1,2],   0,      0, undef ],
@@ -4211,14 +4255,14 @@ our $_OptionEmitters = {
 
 
 		     #looks like 'set <foo>range restore' (only way 'r' can be the first char)
-		     return "set $k ".join(" ",@$v)."\n" if($v->[0] =~ m/^\s*r/i);
+		     return "set $k ".join(" ",@$v)."\n" if(($v->[0] // '') =~ m/^\s*r/i);
 
 
 		     # first element is an empty range specifier - emit.
-		     return "set $k ".join(" ",@$v)."\n" if($v->[0] =~ m/\s*\[\s*\]/);
+		     return "set $k ".join(" ",@$v)."\n" if(($v->[0] // '') =~ m/\s*\[\s*\]/);
 		     
 		     # first element has a nonempty range specifier (naked or not).
-		     if($v->[0] =~ m/\:/) {
+		     if(($v->[0] // '') =~ m/\:/) {
 			 unless($v->[0] =~ m/^\s*\[/) {
 			     # the first char was not a '['; assume it is a naked range and patch accordingly.
 			     $v->[0] = "[$v->[0]]";
@@ -4228,7 +4272,7 @@ our $_OptionEmitters = {
 		     }
 		     # If we got here, the first element has no ':'.  Treat the first two elements as numbers and make a range 
 		     # specifier out of 'em, then emit.
-		     return sprintf("set %s [%s:%s] %s\n", $k, ((defined $v->[0])?$v->[0]:""), ((defined $v->[1])?$v->[1]:""), join(" ",@{$v}[2..$#$v]));
+		     return sprintf("set %s [%s:%s] %s\n", $k, ((defined $v->[0])?$v->[0]:"*"), ((defined $v->[1])?$v->[1]:"*"), join(" ",@{$v}[2..$#$v]));
     },
 
     "crange" => sub { my($k,$v,$h) = @_;
