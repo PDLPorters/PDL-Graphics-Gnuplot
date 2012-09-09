@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 11;
+use Test::More tests => 21;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -72,7 +72,7 @@ my $x = sequence(5);
 $x = xvals(51);
 my $y = $x*$x; 
 
-{
+do {
  # Object options passed into plot are transient
     $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
     $w->options(xr=>[0,30]);
@@ -120,11 +120,57 @@ my $y = $x*$x;
 	,
 	"inline xrange is stored in last_plot options"
 	);
-}
+};
+
+eval {unlink $testoutput;};
 
 ##############################
 # Test replotting
+print "testing replotting...\n";
 
+$w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+ok(1,"re-opened w");
+eval { $w->plot({xr=>[0,30]},xvals(50),xvals(50)**2); };
+print $@;
+ok(!$@," plot works");
+
+
+open FOO,"<$testoutput";
+@lines = <FOO>;
+close FOO;
 unlink $testoutput;
+
+ok(@lines == 24, "test plot made 24 lines");
+ok(!(-e $testoutput), "test file got deleted");
+
+eval { $w->replot(); };
+ok(!$@, "replot works");
+
+open FOO,"<$testoutput";
+@l2 = <FOO>;
+close FOO;
+unlink $testoutput;
+ok(@l2 == 24, "test replot made 24 lines");
+
+$same =1;
+for $i(0..23) {
+    $same &= ($lines[$i] eq $l2[$i]);
+}
+ok($same, "replot reproduces output");
+
+eval { $w->replot(xvals(50),40*xvals(50)) };
+ok(!$@, "replotting and adding a line works");
+
+# lame test - just make sure the plots include at least two lines
+open FOO,"<$testoutput";
+@l3 = <FOO>;
+close FOO;
+unlink $testoutput;
+ok(@l3==24,"test replot again made 24 lines");
+
+ok($l3[12]=~ m/\#\s+\*/, "test plot has two curves and curve 2 is above curve 1");
+
+
+
 
 diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, Perl $], $^X" );
