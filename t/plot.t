@@ -265,10 +265,10 @@ eval { $w->plot(legend=>['line 1'], pdl([2,3,4],[1,2,3])); };
 ok($@ =~ m/Legend has 1 entry; but 2 curve/, "Failure to thread crashes (other way)");
 
 eval { $w->plot(legend=>['line 1','line 2'], pdl([2,3,4],[1,2,3]),[3,4,5]) };
-ok(!$@, "Threads are expanded");
+ok($@ =~ m/only 1-D PDLs are allowed to be mixed with array/, "Can't thread with array refs");
 
 eval { $w->plot(legend=>['line 1','line 2'], pdl([2,3,4],[1,2,3]),[3,4]) };
-ok($@ =~ m/mismatched arguments in tuple/, "Mismatched arguments are rejected");
+ok($@ =~ m/only 1-D PDLs/, "Mismatched arguments are rejected");
 
 undef $w;
 unlink $testoutput;
@@ -334,18 +334,14 @@ SKIP: {
     $a = <STDIN>;
     ok($a !~ m/n/i, "See a nice 3-D plot of a spiral?");
 
-    if(0) {
-	$x = xvals(5);
-	$y = xvals(5)**2;
-	$labels = ['one','two','three','four','five'];
-	eval { $w->plot(with=>'labels',$x,$y,$labels); };
-	print STDERR "See the labels with words 'one','two','three','four', and 'five'? (Y/n)";
-	$a = <STDIN>;
-	ok($a !~ m/n/i, "labels plot is OK");
-    } else {
-	ok(1,"skipping labels test for now");
-    }
-
+    $x = xvals(5);
+    $y = xvals(5)**2;
+    $labels = ['one','two','three','four','five'];
+    eval { $w->plot(xr=>[-1,6],yr=>[-1,26],with=>'labels',$x,$y,$labels); };
+    print STDERR "See the labels with words 'one','two','three','four', and 'five'? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "labels plot is OK");
+    
     $x = xvals(51)-25; $y = $x**2;
     eval { $w->plot({title=>"Parabolic fit"},
 		 with=>"yerrorbars", legend=>"data", $x, $y+(random($y)-0.5)*2*$y/20, pdl($y/20),

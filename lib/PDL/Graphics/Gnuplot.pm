@@ -952,7 +952,7 @@ I<instead> of writing to a gnuplot process. Useful to see what commands would be
 sent to gnuplot. This is a dry run. Note that this dump will contain binary
 data, if the 'binary' option is given (see below)
 
-C<log> is used for debugging. If true, writes out the gnuplot commands to STDERR I<in
+C<tee> is used for debugging. If true, writes out the gnuplot commands to STDERR I<in
 addition> to writing to a gnuplot process. This is I<not> a dry run: data is
 sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
 this log will contain binary data, if the 'binary' option is given (see below)
@@ -1863,7 +1863,7 @@ sub plot
 
 	    if( $chunks->[$i]->{binaryCurveFlag} ) {
 		my $fstr = "%double" x $chunks->[$i]->{tuplesize};
-		
+		my $first = $chunks->[$i]->{data}->[0];
 		# The specifiers are identical, except that one gets a length of 1 and the other gets
 		# the correct length.   The map statement ensures the main and test cmd get identical 
 		# sprintf templates.
@@ -1873,7 +1873,7 @@ sub plot
 			    $_, 
 			    $fstr, 
 			    $plotcmds[$i]);
-		} ($chunks->[$i]->{data}->[0]->dim(0), 1);
+		} (  ((ref($first) eq 'ARRAY') ? 0+@{$first} : $first->dim(0))  , 1);
 		
 		# test data is a string containing the data to send -- just garbage. Use '.' to aid 
 		# byte counting in the test string.
@@ -2155,9 +2155,9 @@ sub plot
 
 	    my $psProps = $plotStyleProps->{$with[0]};
 
-	    # Extract the data objects from the argument list.  Some of them may be array refs, so 
-	    # piddlify them if they're not PDLs.
-	    my @dataPiddles = map { ref($_) eq 'PDL' ? $_ : pdl($_) } @args[$argIndex..$nextOptionIdx-1] ;
+	    # Extract the data objects from the argument list.  
+	    # They should all be either PDLs or array refs.
+	    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1] ;
 
 
 	    # Some plot styles (currently just "fits") are implemented via a 
@@ -2313,6 +2313,7 @@ sub plot
 		    barf "Legend has ".(0+@{$chunk{options}->{legend}})." entr$ent; but ".($ncurves)." curve$pl supplied!";
 		}
 
+		# Ensure legend appears in the options parsing (to emit "notitle" if necessary)
 		$chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
 
 
@@ -2344,6 +2345,9 @@ sub plot
 		$ncurves = 1;
 		$chunk{data} = \@dataPiddles;
 		$chunk{imgFlag} = 0;
+		# Ensure legend appears in the options parsing (to emit "notitle" if necessary)
+		$chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
+
 		push @chunks, \%chunk;
 	    }
 
@@ -2435,7 +2439,7 @@ sub plot
 		    if( (ref $_ eq 'PDL') and $_->ndims > 1 );
 
 		if((ref $_) eq 'ARRAY') {
-		    barf "plot(): row count disagreement:  ".(0+@$_)." != $nelem\n"
+		    barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
 			if( (defined $nelem) and (@$_ != $nelem) );
 		    $nelem = @$_;
 
@@ -3848,6 +3852,7 @@ sub _emitOpts {
 
     my $s = "";
     
+
     # Loop over the keys and emit.
     key: while(@keys) {
 	my $k = shift @keys;
