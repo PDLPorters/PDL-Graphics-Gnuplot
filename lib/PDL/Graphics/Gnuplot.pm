@@ -1617,7 +1617,7 @@ sub plot
     # Store the current arguments into the state array for next time.
     # (This has to be done here because plot options need to be stripped out first).
     # 
-    # Storing the hash ref to options, rahter than making a deep copy, is a bit dangerous  - 
+    # Storing the hash ref to options, rather than making a deep copy, is a bit dangerous  - 
     # but only if the user digs inside the object. The parsing methods copy the hash.
     $this->{last_plot}->{args}  = [@_];
     $this->{last_plot}->{options} = $this->{options};
@@ -1792,7 +1792,7 @@ sub plot
 	    
     
     ##########
-    # First: Emit the plot options lines that go above the plot command.  We do this 
+    # Second: Emit the plot options lines that go above the plot command.  We do this 
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = _emitOpts($this->{options}, $pOpt);
     my $testOptionsString;
@@ -1802,28 +1802,6 @@ sub plot
 	$testOptionsString = _emitOpts($this->{options}, $pOpt);
     }
     
-    #######
-    # Second: add topcmds and extracmds, if necessary
-    { 
-	my $ec = $this->{options}->{extracmds};
-	if(defined($ec)) {
-	    $plotOptionsString .= (   ((ref $ec) eq 'ARRAY') ? 
-			   join("\n",@$ec,"") :
-			    $ec."\n"
-		);
-      }
-    }
-
-
-    { 
-	my $tc = $this->{options}->{topcmds};
-	if(defined($tc)) {
-	    $plotOptionsString = (   ((ref $tc) eq 'ARRAY') ? 
-			   join("\n",@$tc,$plotOptionsString) : 
-			   $tc."\n".$plotOptionsString
-		);
-	}
-    }
 
     ##########
     # Third: generate the plot command with the fences in it. (fences are emitted in _emitOpts)
@@ -1916,15 +1894,15 @@ sub plot
     $plotcmd .= "\n";
 
 
-    { 
-	my $tc = $this->{options}->{topcmds};
-	if(defined($tc)) {
-	    $plotcmd = (   ((ref $tc) eq 'ARRAY') ? 
-			   join("\n",@$tc,$plotcmd) : 
-			   $tc."\n".$plotcmd
-		);
-	}
-    }
+#    { 
+#	my $tc = $this->{options}->{topcmds};
+#	if(defined($tc)) {
+#	    $plotcmd = (   ((ref $tc) eq 'ARRAY') ? 
+#			   join("\n",@$tc,$plotcmd) : 
+#			   $tc."\n".$plotcmd
+#		);
+#	}
+#    }
 
     my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
     my $print_checkpoint = "; print \"$postTestplotCheckpoint\"";
@@ -2032,7 +2010,7 @@ sub plot
 	my $bc = $this->{options}->{bottomcmds};
 	if(defined($bc)){
 	    $cleanup_cmd = (  (ref($bc) eq 'ARRAY') ?
-			      join( "\n", $bc,"" ) :
+			      join( "\n", @$bc,"" ) :
 			      $bc."\n"
 		);
 	}
@@ -2115,10 +2093,19 @@ sub plot
 	while($argIndex <= $#args)
 	{
 	    # First, I find and parse the options in this chunk
-	    # Array refs are allowed in some curve options, but only as values of key/value
-	    # pairs -- so any list refs glommed in with a bunch of PDLs are data.
+	    # Array refs are allowed in some curve options, so, but only as values of key/value
+	    # pairs -- so any list refs glommed in with a bunch of other refs are data.
+	    # This is cheesy because (e.g.) "xrange=>[5],[0,1,2]" works but "xrange=>5,[0,1,2]" does not.
+	    # The only way to get every single case like this is to actually parse a chunk at a time before
+	    # figuring out nextDataIdx.  But those forms are deprecated anyway - better to use 
+	    # a hash ref when possible.
 	    my $nextDataIdx = first { (ref $args[$_] ) and 
-				      (ref($args[$_]) =~ m/^(ARRAY|PDL)$/)} $argIndex..$#args;
+					  (  (ref($args[$_]) =~ m/PDL/) or 
+					     (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1]))
+					  )
+					  
+	    } $argIndex..$#args;
+
 	    last if !defined $nextDataIdx; # no more data. done.
 	    
 	    # I do not reuse the curve legend, since this would result in multiple
@@ -2168,8 +2155,9 @@ sub plot
 
 	    my $psProps = $plotStyleProps->{$with[0]};
 
-	    # Handle any required dimensional padding of the data
-	    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1] ;
+	    # Extract the data objects from the argument list.  Some of them may be array refs, so 
+	    # piddlify them if they're not PDLs.
+	    my @dataPiddles = map { ref($_) eq 'PDL' ? $_ : pdl($_) } @args[$argIndex..$nextOptionIdx-1] ;
 
 
 	    # Some plot styles (currently just "fits") are implemented via a 
@@ -2219,7 +2207,8 @@ sub plot
 		    $chunk{ArrayRec} = 'record';
 		    print STDERR "WARNING: forced disallowed tuplesize with a curve option...\n";
 		} else {
-		    my $s = "Found $NdataPiddles PDLs for $ND plot type 'with ".($with[0])."', which needs ";
+		    my $pl = ($NdataPiddles==1)?"":"s";
+		    my $s = "Found $NdataPiddles PDL$pl for $ND plot type 'with ".($with[0])."', which needs ";
 		    if(@$tupleSizes==0) {
 			barf "Ouch! I'm never supposed to take this path.  Please report a bug.";
 		    } elsif(@$tupleSizes==1) {
@@ -2228,7 +2217,8 @@ sub plot
 			$s .= "one of [".join(",",map { abs($_)+$ExtraColumns } @$tupleSizes)."]";
 		    }
 		    if($ExtraColumns) {
-			$s .= " (including the $ExtraColumns extras from your 'with' options).\n";
+			my $pl = ($ExtraColumns==1)?"":"s";
+			$s .= " (including the $ExtraColumns extra$pl from your 'with' options).\n";
 		    } else {
 			$s .= ".\n";
 		    }
@@ -2318,7 +2308,9 @@ sub plot
 		   @{$chunk{options}->{legend}} and 
 		   @{$chunk{options}->{legend}} != $ncurves
 		    ) {
-		    barf "Legend has ".(0+@{$chunk{options}->{legend}})." entries; but ".($ncurves)." curves supplied!";
+		    my $ent = (0+@{$chunk{options}->{legend}} == 1) ? "y" : "ies";
+		    my $pl = ($ncurves==1)?"":"s";
+		    barf "Legend has ".(0+@{$chunk{options}->{legend}})." entr$ent; but ".($ncurves)." curve$pl supplied!";
 		}
 
 		$chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
@@ -4762,13 +4754,13 @@ sub _startGnuplot
     my $s = "";
     print $in "show version\n";
     do {
-	if($errSelector->can_read(5)) {
+	if($errSelector->can_read(8)) {
 	    my $byte;
 	    sysread $err, $byte, 1;
 	    $s .= $byte;
 	} else {
 	    print STDERR <<"EOM"
-WARNING: Hmmm,  gnuplot didn't respond for 5 seconds.  I was expecting to read 
+WARNING: Hmmm,  gnuplot didn't respond for 8 seconds.  I was expecting to read 
    a version number.  Ah, well, I'm returning the object anyway -- but don't 
    be surprised if it doesn't work.
 EOM
@@ -4888,12 +4880,12 @@ sub _checkpoint {
     
     do
     { 
-	# if no data received in 5 seconds, the gnuplot process is stuck. This
+	# if no data received in a few seconds, the gnuplot process is stuck. This
 	# usually happens if the gnuplot process is not in a command mode, but in
 	# a data-receiving mode. I'm careful to avoid this situation, but bugs in
 	# this module and/or in gnuplot itself can make this happen
 	my $terminal =$this->{options}->{terminal};
-	my $delay = ($terminal && $termTab->{$terminal}->{delay}) || 5;
+	my $delay = ($terminal && $termTab->{$terminal}->{delay}) || 8;
 	
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{log};
 	
@@ -4903,7 +4895,7 @@ sub _checkpoint {
 	    # as are available", but I don't know how to this in a very portable way
 	    # (I just know there will be windows users complaining if I simply do a
 	    # non-blocking read). Very little data will be coming in anyway, so
-	    # doing this a byte at a time is an irrelevant inefficiency
+	    # doing this a byte at a time is (these days) an irrelevant inefficiency
 	    my $byte;
 	    sysread $pipeerr, $byte, 1;
 	    $fromerr .= $byte;
@@ -4921,7 +4913,8 @@ Hmmm, my $suffix Gnuplot process didn't respond for $delay seconds.
 This could be a bug in PDL::Graphics::Gnuplot or gnuplot itself -- 
 although for some terminals (like x11) it could be because of a 
 slow network.  If you don't think it is a network problem, please
-report it as a PDL::Graphics::Gnuplot bug.
+report it as a PDL::Graphics::Gnuplot bug.  You might be able to 
+ignore this message, or you might have to restart() the object.
 EOM
 	}
     } until $fromerr =~ /\s*(.*?)\s*$checkpoint.*$/ms;
@@ -4966,8 +4959,6 @@ EOM
 
     return $fromerr;
 }
-
-
 
 sub _getGnuplotFeatures
 {
