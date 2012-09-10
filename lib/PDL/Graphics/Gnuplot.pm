@@ -18,7 +18,7 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
  pdl> $z = inner($xy, $xy);
  pdl> gplot({title  => 'Heat map', '3d' => 1,
         extracmds => 'set view 0,0'},
-        with => 'image', $z*2);
+        with => 'image', xvals($z),yvals($z),zeroes($z),$z*2);
 
  pdl> $w = gpwin();
  pdl> $pi    = 3.14159;
@@ -1086,7 +1086,7 @@ Complicated 3D plot with fancy styling:
 
   plot3d(title => 'double helix',
 
-         { with => 'pointslines pointsize variable pointtype 7 palette', tuplesize => 5,
+         { with => 'linespoints pointsize variable pointtype 7 palette', tuplesize => 5,
            legend => 'spiral 1' },
          { legend => 'spiral 2' },
 
@@ -3424,15 +3424,15 @@ our $plotStyleProps ={
     histeps        => [ [-1,2],   0,      0, undef ],
     histogram      => [ [2,3],    0,      0, undef ],
     newhistogram   => [ [2,3],    0,      0, undef ],
-    fits           => [ [-1],     [-2],   1, 1     , \&_with_fits_prefrobnicator ],
-    image          => [ [-1,3],   [-2,4], 1, 1     ],
+    fits           => [ [-1],     [-1],   1, 1     , \&_with_fits_prefrobnicator ],
+    image          => [ [-1,3],   [-1,4], 1, 1     ],
     impulses       => [ [-1,2,3], [3,4],  0, undef ],
     labels         => [ [3],      [4],    0, 0     ], 
     lines          => [ [-1,2],   [3],    0, undef ],
     linespoints    => [ [-1,2],   [3],    0, undef ],
     points         => [ [-1,2],   [3],    0, undef ],
-    rgbalpha       => [ [-4,6],   [7],    1, 1     ],
-    rgbimage       => [ [-3,5],   [6],    1, 1     ],
+    rgbalpha       => [ [-4,6],   [-4,7], 1, 1     ],
+    rgbimage       => [ [-3,5],   [-3,6], 1, 1     ],
     steps          => [ [-1,2],   0,      0, undef ],
     vectors        => [ [4],      [6],    0, undef ],
     xerrorbars     => [ [-2,3,4], 0,      0, undef ],
@@ -5185,11 +5185,9 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =item test suite needs work
 
-=item interactivity
-
-=item replotting
-
 =item some plot options need better parsing
+
+=item labels don't work (PDL vs array of strings)
 
 =over 3
 

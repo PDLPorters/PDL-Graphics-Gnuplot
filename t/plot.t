@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 53;
+use Test::More tests => 69;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -272,3 +272,107 @@ ok($@ =~ m/mismatched arguments in tuple/, "Mismatched arguments are rejected");
 
 undef $w;
 unlink $testoutput;
+
+
+##############################
+# Interactive tests
+
+SKIP: {
+    skip "Skipping x11 interactive tests - set environment variables DISPLAY and\n   GNUPLOT_INTERACTIVE to enable",
+         16
+	     unless(exists($ENV{GNUPLOT_INTERACTIVE}) and $ENV{DISPLAY});
+    
+    eval { $w=gpwin(x11); };
+    ok(!$@, "created an X11 object");
+    
+    $x = sequence(101)-50;
+
+    eval { $w->plot($x**2); };
+    ok(!$@, "plot a parabola to an X11 window");
+    
+    print STDERR "Is there an X11 window and does it show a parabola? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "parabola looks OK");
+
+    print STDERR "Mouse over the X11 window.  Are there metrics at bottom that update? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "parabola has metrics");
+
+    print STDERR "Try to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
+
+    $w->plot( {title => "Parabola with error bars"},
+	      with=>"xyerrorbars", legend=>"Parabola",
+	      $x**2 * 10, abs($x)/10, abs($x)*5 );
+    print STDERR "Are there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "error bars are OK");
+
+    $xy = zeros(21,21)->ndcoords - pdl(10,10);
+    $z = inner($xy, $xy);
+    eval { $w->plot({title  => 'Heat map', '3d' => 1,
+		  extracmds => 'set view 0,0'},
+		 with => 'image', $z*2); };
+    ok(!$@, "3-d plot didn't crash");
+
+    print STDERR "Do you see a purple-yellow colormap image of a radial target, in 3-D? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "3-D heat map plot works OK");
+    
+    print STDERR "Try to rotate, pan, and zoom the 3-D image.  Work OK? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "Interact with 3-D image");
+
+    $pi    = 3.14159;
+    $theta = zeros(200)->xlinvals(0, 6*$pi);
+    $z     = zeros(200)->xlinvals(0, 5);
+    eval { $w->plot3d(cos($theta), sin($theta), $z); };
+    ok(!$@, "plot3d works");
+
+    print STDERR "See a nice 3-D plot of a spiral? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "See a nice 3-D plot of a spiral?");
+
+    if(0) {
+	$x = xvals(5);
+	$y = xvals(5)**2;
+	$labels = ['one','two','three','four','five'];
+	eval { $w->plot(with=>'labels',$x,$y,$labels); };
+	print STDERR "See the labels with words 'one','two','three','four', and 'five'? (Y/n)";
+	$a = <STDIN>;
+	ok($a !~ m/n/i, "labels plot is OK");
+    } else {
+	ok(1,"skipping labels test for now");
+    }
+
+    $x = xvals(51)-25; $y = $x**2;
+    eval { $w->plot({title=>"Parabolic fit"},
+		 with=>"yerrorbars", legend=>"data", $x, $y+(random($y)-0.5)*2*$y/20, pdl($y/20),
+		 with=>"lines",      legend=>"fit",  $x, $y); };
+    ok(!$@, "mocked-up fit plot works");
+    print STDERR "See a parabola (should be green) with error bar points on it (should be red)? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "parabolic plot is OK");
+
+    $pi    = 3.14159;
+    $theta = xvals(201) * 6 * $pi / 200;
+    $z     = xvals(201) * 5 / 200;
+
+    eval { $w->plot( {'3d' => 1, title => 'double helix'},
+	  { with => 'linespoints pointsize variable pointtype 2 palette',
+	    legend => ['spiral 1','spiral 2'] },
+	  pdl( cos($theta), -cos($theta) ),       # x
+	  pdl( sin($theta), -sin($theta) ),       # y
+	  $z,                                     # z
+	  (0.5 + abs(cos($theta))),               # pointsize
+	  sin($theta/3)                           # color
+	       ); };
+    ok(!$@, "double helix plot worked");
+    
+    print STDERR "See a double helix plot with variable point sizes and variable color? (Y/n)";
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "double helix plot is OK");
+
+
+}

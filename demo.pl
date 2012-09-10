@@ -29,7 +29,7 @@ my $z_3d = PDL::flat( sin($ph) * $th->ones );
 # arguments, packed in piddles, etc
 plot($x**2);
 plot(-$x, $x**3);
-plot(-$x, $x**3,
+plot(-$x, $x**3,{},
      $x,  $x**2);
 plot(PDL::cat($x**2, $x**3));
 plot(-$x,
@@ -37,20 +37,21 @@ plot(-$x,
 
 # some more varied plotting, using the object-oriented interface
 {
-  my $plot = PDL::Graphics::Gnuplot->new(binary => 1,
-                                         globalwith => 'linespoints', xmin => -10,
-                                         title => 'Error bars and other things');
+  my $plot = PDL::Graphics::Gnuplot->new("x11", 
+                                         title => 'Error bars and other things',
+					 {binary => 1, globalwith => 'linespoints', xmin => -10});
 
   $plot->plot(with => 'lines lw 4',
-              y2 => 1, legend => 'a parabola',
+	      legend => ['Parabola A','Parabola B','Parabola C'],
+              y2 => 1,
               PDL::cat($x, $x*2, $x*3), $x**2 - 300,
 
               y2 => 0,
-              with => 'xyerrorbars', tuplesize => 4,
+              with => 'xyerrorbars',
               $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
 
-              {with => '', legend => 'cubic', tuplesize => 2},
-              {legend => 'shifted cubic'},
+              {with => 'line', legend => 'cubic', tuplesize => 2},
+              {legend => ['shifted cubic A','shifted cubic B']},
               $x, PDL::cat($x**3, $x**3 - 100) );
 }
 
