@@ -3023,6 +3023,12 @@ our $pOptionsTable =
     'cbrange'   => ['l','range',['colorbox'], undef,
 		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'
     ],
+    'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
+		    'sets minimum end of cbrange'
+    ],
+    'cbmax'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[1]=$n; return undef},sub{''},undef,undef,
+		    'sets maximum end of cbrange'
+    ],
     'cbtics'    => ['lt','l',  ['colorbox'], undef,
 		    'controls major (labelled) ticks on the color box axis (see docs)'
     ],

@@ -1,12 +1,11 @@
 #!/usr/bin/perl
-use strict;
-use warnings;
 use lib 'lib';
 
 use PDL;
 use PDL::NiceSlice;
-use PDL::Graphics::Gnuplot qw(plot plot3d);
+use PDL::Graphics::Gnuplot qw(plot plot3d gpwin);
 
+@windows = ();
 
 use feature qw(say);
 
@@ -54,29 +53,41 @@ plot(-$x,
               {with => 'line', legend => 'cubic', tuplesize => 2},
               {legend => ['shifted cubic A','shifted cubic B']},
               $x, PDL::cat($x**3, $x**3 - 100) );
+  push(@windows,$plot);
 }
 
 # a way to control the point size
-plot(binary => 1,
-     {cbmin => -600, cbmax => 600}, {with => 'points pointtype 7 pointsize variable palette', tuplesize => 4},
-     $x**2, abs($x)/2, $x*50);
+$w=gpwin(x11,title=>"variable pointsize");
+$w->plot(binary => 1, cbmin => -600, cbmax => 600, title=>"Variable pointsize",
+     {with => 'points pointtype 7 pointsize variable'},
+	 $x, $x/2, (10-abs($x))/2);
+push(@windows,$w);
 
 ################################
 # some 3d stuff
 ################################
 
 # plot a sphere
-plot3d( binary => 1,
-        globalwith => 'points', title  => 'sphere',
-        square => 1,
-
-        {legend => 'sphere'}, $x_3d, $y_3d, $z_3d,
+$w=gpwin(x11,title=>"3d sphere");
+$w->plot3d( binary => 1,
+	    {with=>'points'},
+	    $x_3d, $y_3d, $z_3d,
       );
+push(@windows,$w);
+
+
+print "Press RETURN to end demo...";
+$a=<>;
+
+
+__END__
+
+# TO DO: fix syntax in the rest...
 
 # sphere, ellipse together
+$w=gpwin(x11,title=>"sphere and ellipse");
 plot3d( binary => 1,
-        globalwith => 'points', title  => 'sphere, ellipse',
-        square => 1,
+        j=>1,
 
         {legend => 'sphere'}, {legend => 'ellipse'},
         $x_3d->cat($x_3d*2),
