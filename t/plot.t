@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 69;
+use Test::More tests => 71;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -270,6 +270,16 @@ ok($@ =~ m/only 1-D PDLs are allowed to be mixed with array/, "Can't thread with
 eval { $w->plot(legend=>['line 1','line 2'], pdl([2,3,4],[1,2,3]),[3,4]) };
 ok($@ =~ m/only 1-D PDLs/, "Mismatched arguments are rejected");
 
+
+##############################
+# Test esoteric argument parsing
+
+eval { $w->plot(with=>'lines',y2=>3,xvals(5)); };
+ok($@ =~ m/known keyword/ ,"y2 gets rejected");
+
+eval { $w->plot(with=>'lines',xvals(5),{lab2=>['foo',at=>[2,3]]}); };
+ok(!$@, "label is accepted ($@)");
+
 undef $w;
 unlink $testoutput;
 
@@ -302,16 +312,18 @@ SKIP: {
     $a = <STDIN>;
     ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
 
-    $w->plot( {title => "Parabola with error bars"},
+    eval { $w->reset; $w->plot( {title => "Parabola with error bars"},
 	      with=>"xyerrorbars", legend=>"Parabola",
-	      $x**2 * 10, abs($x)/10, abs($x)*5 );
+				$x**2 * 10, abs($x)/10, abs($x)*5 ); };
+
     print STDERR "Are there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "error bars are OK");
+    
 
     $xy = zeros(21,21)->ndcoords - pdl(10,10);
     $z = inner($xy, $xy);
-    eval { $w->plot({title  => 'Heat map', '3d' => 1,
+    eval {     $w->reset; $w->plot({title  => 'Heat map', '3d' => 1,
 		  extracmds => 'set view 0,0'},
 		 with => 'image', $z*2); };
     ok(!$@, "3-d plot didn't crash");
@@ -327,7 +339,7 @@ SKIP: {
     $pi    = 3.14159;
     $theta = zeros(200)->xlinvals(0, 6*$pi);
     $z     = zeros(200)->xlinvals(0, 5);
-    eval { $w->plot3d(cos($theta), sin($theta), $z); };
+    eval { $w->reset; $w->plot3d(cos($theta), sin($theta), $z); };
     ok(!$@, "plot3d works");
 
     print STDERR "See a nice 3-D plot of a spiral? (Y/n)";
@@ -337,13 +349,13 @@ SKIP: {
     $x = xvals(5);
     $y = xvals(5)**2;
     $labels = ['one','two','three','four','five'];
-    eval { $w->plot(xr=>[-1,6],yr=>[-1,26],with=>'labels',$x,$y,$labels); };
+    eval { $w->reset; $w->plot(xr=>[-1,6],yr=>[-1,26],with=>'labels',$x,$y,$labels); };
     print STDERR "See the labels with words 'one','two','three','four', and 'five'? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "labels plot is OK");
     
     $x = xvals(51)-25; $y = $x**2;
-    eval { $w->plot({title=>"Parabolic fit"},
+    eval { $w->reset; $w->plot({title=>"Parabolic fit"},
 		 with=>"yerrorbars", legend=>"data", $x, $y+(random($y)-0.5)*2*$y/20, pdl($y/20),
 		 with=>"lines",      legend=>"fit",  $x, $y); };
     ok(!$@, "mocked-up fit plot works");
@@ -355,7 +367,7 @@ SKIP: {
     $theta = xvals(201) * 6 * $pi / 200;
     $z     = xvals(201) * 5 / 200;
 
-    eval { $w->plot( {'3d' => 1, title => 'double helix'},
+    eval { $w->reset; $w->plot( {'3d' => 1, title => 'double helix'},
 	  { with => 'linespoints pointsize variable pointtype 2 palette',
 	    legend => ['spiral 1','spiral 2'] },
 	  pdl( cos($theta), -cos($theta) ),       # x

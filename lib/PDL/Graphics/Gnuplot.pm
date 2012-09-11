@@ -2116,6 +2116,7 @@ sub plot
 	    $chunk{options} = dclone( 
 		_parseOptHash( $lastOptions, $cOpt, @args[$argIndex..$nextDataIdx-1] )
 		);
+
 	    $chunk{options}->{data}="dummy"; # force emission of the data field
 
 	    # Find the data for this chunk...
@@ -2787,6 +2788,9 @@ sub _expand_abbrev {
 #     * "C" for cumulative list of options; scalar values OK
 #     * "H" for a hash list of options 
 #     * "N" for multivalue with optional first-parameter index
+#            (NOTE this is explicitly hardwired into _parseOptHash to accept trailing numbers
+#             in the keyword itself, to enable passing multiple multivalue numbers with different labels
+#             in a hash ref -- search for "HARDWIRED-N" to find the place)
 #     * code ref for code checker: gets ($old-val, $new-param, $hash); returns new values 
 #               (with possible side effects on the object, e.g. for "device")
 #   - output form:
@@ -2794,7 +2798,7 @@ sub _expand_abbrev {
 #     * ",":     output list values as a comma-separated list on a single line (default is with spaces)
 #     * "1":     output list values one per line
 #     * "H":     output hash-of-lists, one list per line, with leading key
-#     * "N":     output list-of-lists, one list per line, with leading index
+#     * "N":     output list-of-lists, one list per line, with leading index  
 #     * code ref for code emitter: accepts key, value, source options hash, and object; returns 
 #                                  (potentially multiline) string of commands.
 #     * hash ref for value context switch: keys are
@@ -3538,11 +3542,26 @@ sub _parseOptHash {
 	# Expand abbreviations and get the table entry for the option
 	# (throws an exception on failure)
 	my ($kk,$knum) = _expand_abbrev($k, $AbbrevTable, $name); # throws exception on failure
+
+	# Evil DWIMmery.  'N' type parameters take a numeric argument that is
+	# allowed to trail the keyword itself in the keyword part of the specifier.
+	# So if we got a number we have to check that the corresponding keyword 
+	# in fact is 'N' type - else we leave the number in the keyword itself and
+	# revalidate.
 	if(defined $knum) {
-	    if(ref $v eq 'ARRAY') {
-		unshift(@$v, $knum);
+	    if($OptTable->{$kk}->[0] eq 'N') { # HARDWIRED-N parsing
+		if(ref $v eq 'ARRAY') {
+		    unshift(@$v, $knum);
+		} else {
+		    $v = [$knum, $v];
+		
+		}
 	    } else {
-		$v = [$knum, $v];
+		$kk = "$kk$knum";
+		$knum = undef;
+		unless($AbbrevTable->{$kk}) {
+		    barf "Error: $name '$k' expanded to '$kk', which isn't a known keyword.\n";
+		}
 	    }
 	}
 	
@@ -4211,10 +4230,12 @@ our $_OptionEmitters = {
 		 return join ("", map { my $l;
 					if(defined($v->[$_])) {
 					    $l = "set   $k $_ ";
-					    if(ref $v->[$_] eq 'ARRAY') {
-						$v->[$_]->[0] = "\"$v->[$_]->[0]\""
-						    unless($v->[$_]->[0] =~ m/^\".*\"$/);
-						$l .= join(" ",@{$v->[$_]});
+					    if(ref $v->[$_] eq 'ARRAY') {                      # It's an array
+						$v->[$_]->[0] = "\"$v->[$_]->[0]\""            # quote the first element
+						    unless($v->[$_]->[0] =~ m/^\".*\"$/);      # unless it's already quoted
+						$l .= join(" ", map {                          
+						    (ref($_) eq 'ARRAY') ? join(",",@$_) : $_; # Nested arrays get connected with ','
+							   } @{$v->[$_]});
 					    } elsif(ref $v->[$_] eq 'HASH') {
 						$l .= join(" ",(%{$v->[$_]}));
 					    } else {
@@ -5188,17 +5209,13 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =over 3
 
-=item test suite needs work
+=item dump and tee don't work yet.
 
-=item some plot options need better parsing
-
-=item labels don't work (PDL vs array of strings)
+=item some plot options need better parsing 
 
 =over 3
 
 =item - options to "with" selection: accept a list ref instead of a string with args
-
-=item - better description of 
 
 =back
 
