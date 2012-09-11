@@ -41,13 +41,14 @@ plot(-$x,
                                          title => 'Error bars and other things',
 					 {binary => 1, globalwith => 'linespoints', xmin => -10});
 
-  $plot->plot(with => 'lines lw 4',
+  $plot->plot( y2tics=>10,
+	       with => 'lines lw 4',
 	      legend => ['Parabola A','Parabola B','Parabola C'],
-              y2 => 1,
+              axes => 'x1y2',
               PDL::cat($x, $x*2, $x*3), $x**2 - 300,
 
-              y2 => 0,
               with => 'xyerrorbars',
+	      axes=>'x1y1',
               $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
 
               {with => 'line', legend => 'cubic', tuplesize => 2},

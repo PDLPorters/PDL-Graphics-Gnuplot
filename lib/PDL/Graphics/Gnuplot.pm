@@ -1350,7 +1350,7 @@ sub new
   _startGnuplot($this,'main');
   _startGnuplot($this,'syntax') if($check_syntax);
 
-  _logEvent($this, "startGnuplot() finished") if ($this->{options}{log});
+  _logEvent($this, "startGnuplot() finished") if ($this->{options}{tee});
 
   return $this;
 }
@@ -1420,13 +1420,25 @@ Called with no arguments, C<restart> applies to the global plot object.
 *grestart = \&restart;
 sub restart {
     my $this = _obj_or_global(\@_);
-    _killGnuplot($this);
+    my $dumpswitch = shift;
+    my $localdumpvar = $this->{options}->{dump};
+    {
+	# We restart the process when the dump option is switched on or off.
+	# Since _killGnuplot uses _printGnuplotPipe, we have
+	# to hold the old state briefly while the old process is killed.
+	local($this->{options}->{dump}) = 
+	    ($dumpswitch ? $this->{dumping} : $localdumpvar);
+	
+	_killGnuplot($this);
+    }
+    # When starting Gnuplot we use the {options}->{dump} flag as it should be.
     _startGnuplot($this,'main');
     _startGnuplot($this,'syntax') if($check_syntax);
     $this->{options}->{multiplot} = 0;
     undef $PDL::Graphics::Gnuplot::last_plotcmd;
     undef $PDL::Graphics::Gnuplot::last_testcmd;
 }
+
 
 =head2 reset - clear all state from the gnuplot backend
 
@@ -2875,8 +2887,21 @@ our $pOptionsTable =
 		     '[pseudo] Shorthand for device spec.: standard image formats inferred by suffix'
     ],
 
-    'dump'      => ['b', sub { "" },undef, undef,
-		    '[pseudo] Redirect gnuplot commands to stdout for inspection'
+    'dump'      => [
+	sub { my $newval = ( (defined $_[1]) ? ($_[1] ? 1 : 0) : undef); # same as boolean code
+	      if($newval && !$_[2]->{dump}) {
+		  print STDERR "WARNING - dumping ON - gnuplot commands go to the terminal only.\n";
+	      } elsif($_[2]->{dump} && !$newval) {
+		  print STDERR "WARNING - dumping OFF - gnuplot commands will be used for plotting.\n";
+	      }
+	      return $newval;
+	},
+	                 sub { "" },undef, undef,
+	            '[pseudo] Redirect gnuplot commands to stdout for inspection'
+    ],
+
+    'tee'       => ['b', sub { "" }, undef, undef,
+		    '[pseudo] Tee gnuplot commands to stdout for inspection'
     ],
 
       # topcmds/extracmds/bottomcmds: contain explicit strings for gnuplot.
@@ -3371,7 +3396,7 @@ our $cOptionsTable = {
 # legend is a special case -- it gets parsed as a list but emitted as a quoted scalar.
     'legend'   => ['l', sub { if(defined($_[1]) and $_[1]->[0]) {return "title \"$_[1]->[0]\"";} else {return "notitle"}},
 		   undef, 7],
-    'axes'     => [['x1y1','x1y2','x2y1','x2y2'],'cs',undef,8],
+    'axes'     => [['(x[12])(y[12])'],'cs',undef,8],
     'smooth'   => ['s','cs',undef,8.1],
     'with'     => ['l', 'cl', undef, 9],
     'tuplesize'=> ['s',sub { return ""}]    # holds tuplesize option for explicit setting
@@ -3576,25 +3601,26 @@ sub _parseOptHash {
 	    }
 	    $parser = $p;
 	} elsif(ref $parser eq 'ARRAY') {
-	    # If the parser entry is an array ref, it is interpreted as a list of routines to call in order.
-	    # This enables certain types of error checking (notably multiplot interlocks) without too much 
-	    # extra hassle in the parse table.
-	    my $p = $parser;
-	    $parser = sub { 
-		my $ret;
-		for my $pp(@$p) { 
-
-		    if(ref $pp eq 'CODE') {
-			$ret = &$pp(@_);
-		    } elsif (ref($_pOHInputs->{$pp}) eq 'CODE') {
-			$ret = &{$_pOHInputs->{$pp}}(@_);
+	    # If the parser entry is an array ref, its first element is a regexp to match for
+	    # successful enumeration.is treated as an enumerated list of regexps to match
+	    # (if it contains scalars) or a sequence of code refs to call (if it contains CODE refs).
+	    if(ref($parser->[0]) || (0+@$parser != 1)) {
+		barf("HELP!  Parser is confused.  This is a bug, please report it.\n");
+	    } else {
+		# normal case: a list ref with a single element containing a regexp
+		my $a = $parser->[0];
+		my $p = sub {
+		    my ($old, $newparam, $hash) = @_;
+		    if($newparam =~ m/$a/) {
+			return $newparam;
 		    } else {
-			barf "The parser blew up while trying to parse data type '$TableEntry->[0]'! Help!\n";
+			barf("Unknown field $newparam (must match m/$a/)\n");
 		    }
-		}
-		return $ret;
-	    };
-	} 
+		};
+		$parser = $p;
+	    }
+	}
+
 	unless(ref $parser eq 'CODE') {
 	    barf "HELP!";
 	}
@@ -4754,12 +4780,18 @@ sub _startGnuplot
 	_killGnuplot($this,$suffix);
     }
     
+    $this->{replottable} = 0;
+    $this->{options}->{multiplot} = 0;
+
     if( $this->{options}->{dump} ) {
 	$this->{"in-$suffix"} = \*STDOUT;
 	$this->{"pid-$suffix"} = undef; 
+	$this->{dumping} = 1;
 	return $this;
+    } else {
+	$this->{dumping} = 0;
     }
-    
+
     my @gnuplot_options = $gnuplotFeatures{persist} ? qw(--persist) : ();
     
     my $in  = gensym();
@@ -4778,33 +4810,42 @@ sub _startGnuplot
     ## This uses the same chintzy read-one-byte-at-a-time logic as checkpoint --
     ## it's more or less cut-and-pasted from there
     my $s = "";
-    print $in "show version\n";
-    do {
-	if($errSelector->can_read(8)) {
-	    my $byte;
-	    sysread $err, $byte, 1;
-	    $s .= $byte;
-	} else {
-	    print STDERR <<"EOM"
+    my $version;
+    if(!$this->{dumping}) {
+	print $in "show version\n";
+	do {
+	    if($errSelector->can_read(8)) {
+		my $byte;
+		sysread $err, $byte, 1;
+		$s .= $byte;
+	    } else {
+		print STDERR <<"EOM"
 WARNING: Hmmm,  gnuplot didn't respond for 8 seconds.  I was expecting to read 
    a version number.  Ah, well, I'm returning the object anyway -- but don't 
    be surprised if it doesn't work.
 EOM
 ;
-	    return $this;
-	}
-    } until($s =~ m/Version (.*) patchlevel/i);
-    
-    my $version = $1;
+		return $this;
+	    }
+	} until($s =~ m/Version (.*) patchlevel/i);
+	
+	$version = $1;
 
-    if($version < $gnuplot_req_v) {
-	print STDERR <<"EOM"
+	if($version < $gnuplot_req_v) {
+	    print STDERR <<"EOM"
 WARNING: Gnuplot version ($version) is earlier than recommended ($gnuplot_req_v).
-    Proceed with caution.  (data xfer is now ASCII by default; this will slow things
-    down a bit.  Images may not work.  Some plot styles may not work.)
+Proceed with caution.  (data xfer is now ASCII by default; this will slow things
+down a bit.  Images may not work.  Some plot styles may not work.)
 EOM
 			    ;
-	$this->{early_gnuplot} = 1;
+	    $this->{early_gnuplot} = 1;
+	}
+    } else {
+	print STDERR <<"EOM"
+WARNING: Gnuplot commands are being dumped to stdout.
+EOM
+;
+	$this->{early_gnuplot} = 0;
     }
 
     _checkpoint($this, "main");
@@ -4852,21 +4893,41 @@ sub _printGnuplotPipe
   my $suffix = shift;
   my $string = shift;
 
+
+  # Autodetect the dump option
+  # If it get set or unset, restart gnuplot
+  if(($this->{options}->{dump} && !$this->{dumping})  or  
+     ($this->{dumping} && !$this->{options}->{dump})
+      ) {
+      $this->restart(1);
+
+      if($this->{dumping}) {
+	  print STDERR "(killed gnuplot)\n";
+      } else {
+	  print STDERR "(restarted gnuplot)\n";
+      }
+  }
+
   my $pipein = $this->{"in-$suffix"};
-  print "_printGnuplotPipe-$suffix: $string" if($this->{debug});
 
-  syswrite($pipein,$string);
-
-  if($this->{debug}) {
+  syswrite($pipein,$string) unless($this->{dumping});
+  
+  
+  # Various debugging options. 
+  if($this->{dumping}) {
       my $ss = $string;
 
       # Replace non-printable ASCII characters with '?'
       $ss =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
       
-      print "_printGnuplotPipe-$suffix: ".length($string)." chars: '$ss'\n";
+      if($this->{tee}) {
+	  print "_printGnuplotPipe-$suffix: ".length($string)." chars: '$ss'\n";
+      } elsif($this->{dumping}) {
+	  print $ss;
+      }
   }
 
-  if( $this->{options}{log} )
+  if( $this->{options}{tee} )
   {
     my $len = length $string;
     _logEvent($this,
@@ -4903,38 +4964,36 @@ sub _checkpoint {
     return unless defined $pipeerr;
     
     my $fromerr = '';
-    
-    do
-    { 
-	# if no data received in a few seconds, the gnuplot process is stuck. This
-	# usually happens if the gnuplot process is not in a command mode, but in
-	# a data-receiving mode. I'm careful to avoid this situation, but bugs in
-	# this module and/or in gnuplot itself can make this happen
-	my $terminal =$this->{options}->{terminal};
-	my $delay = ($terminal && $termTab->{$terminal}->{delay}) || 8;
-	
-	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{log};
-	
-	if( $this->{"errSelector-$suffix"}->can_read($delay) )
-	{
-	    # read a byte into the tail of $fromerr. I'd like to read "as many bytes
-	    # as are available", but I don't know how to this in a very portable way
-	    # (I just know there will be windows users complaining if I simply do a
-	    # non-blocking read). Very little data will be coming in anyway, so
-	    # doing this a byte at a time is (these days) an irrelevant inefficiency
-	    my $byte;
-	    sysread $pipeerr, $byte, 1;
-	    $fromerr .= $byte;
+    if( !($this->{dumping}) ) {
+	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
+	do
+	{ 
+	    # if no data received in a few seconds, the gnuplot process is stuck. This
+	    # usually happens if the gnuplot process is not in a command mode, but in
+	    # a data-receiving mode. I'm careful to avoid this situation, but bugs in
+	    # this module and/or in gnuplot itself can make this happen
+	    my $terminal =$this->{options}->{terminal};
+	    my $delay = ($terminal && $termTab->{$terminal}->{delay}) || 8;
 	    
-	    _logEvent($this, "Read byte '$byte' (0x" . unpack("H2", $byte) . ") from gnuplot $suffix process") if $this->{options}{log};
-	}
-	else
-	{
-	    _logEvent($this, "Gnuplot $suffix read timed out") if $this->{options}{log};
-	    
-	    $this->{"stuck-$suffix"} = 1;
-	    
-	    barf <<"EOM";
+	    if( $this->{"errSelector-$suffix"}->can_read($delay) )
+	    {
+		# read a byte into the tail of $fromerr. I'd like to read "as many bytes
+		# as are available", but I don't know how to this in a very portable way
+		# (I just know there will be windows users complaining if I simply do a
+		# non-blocking read). Very little data will be coming in anyway, so
+		# doing this a byte at a time is (these days) an irrelevant inefficiency
+		my $byte;
+		sysread $pipeerr, $byte, 1;
+		$fromerr .= $byte;
+		
+	    }
+	    else
+	    {
+		_logEvent($this, "Gnuplot $suffix read timed out") if $this->{options}{tee};
+		
+		$this->{"stuck-$suffix"} = 1;
+		
+		barf <<"EOM";
 Hmmm, my $suffix Gnuplot process didn't respond for $delay seconds.
 This could be a bug in PDL::Graphics::Gnuplot or gnuplot itself -- 
 although for some terminals (like x11) it could be because of a 
@@ -4942,48 +5001,55 @@ slow network.  If you don't think it is a network problem, please
 report it as a PDL::Graphics::Gnuplot bug.  You might be able to 
 ignore this message, or you might have to restart() the object.
 EOM
-	}
-    } until $fromerr =~ /\s*(.*?)\s*$checkpoint.*$/ms;
-    
-    $fromerr = $1;
-    
-    my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
-    
-    if(defined $flags && $flags =~ /printwarnings/)
-    {
-	while($fromerr =~ s/$warningre//gm)
-	{ print STDERR "Gnuplot warning: $1\n"; }
-    }
-    
-    
-    # I've now read all the data up-to the checkpoint. Strip out all the warnings
-    $fromerr =~ s/$warningre//gm;
-    
-    # Grab everything after the first prompt
-    if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
+	    }
+	} until $fromerr =~ /\s*(.*?)\s*$checkpoint.*$/ms;
+
+	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
+
 	$fromerr = $1;
-    }
-
-    # Replace non-printable ASCII characters with '?'
-    $fromerr =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
-
-    if($fromerr =~ m/^\s+\^\s*$/m) {
-	if($this->{early_gnuplot}) {
-	    print STDERR "WARNING the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n";
-	} else {
-	    print STDERR "WARNING: the gnuplot backend issued an error:\n";
+    
+	my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
+	
+	if(defined $flags && $flags =~ /printwarnings/)
+	{
+	    while($fromerr =~ s/$warningre//gm)
+	    { print STDERR "Gnuplot warning: $1\n"; }
 	}
-	print STDERR $fromerr."\n";
-	if($this->{early_gnuplot}) {
-	    print STDERR "Please try this command with gnuplot >= v$gnuplot_req_v before griping about it.\n";
+	
+	
+	# I've now read all the data up-to the checkpoint. Strip out all the warnings
+	$fromerr =~ s/$warningre//gm;
+    
+	# Grab everything after the first prompt
+	if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
+	    $fromerr = $1;
 	}
-    }
+
+
+	# Replace non-printable ASCII characters with '?'
+	$fromerr =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
+	
+	if($fromerr =~ m/^\s+\^\s*$/m) {
+	    if($this->{early_gnuplot}) {
+		print STDERR "WARNING the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n";
+	    } else {
+		print STDERR "WARNING: the gnuplot backend issued an error:\n";
+	    }
+	    print STDERR $fromerr."\n";
+	    if($this->{early_gnuplot}) {
+		print STDERR "Please try this command with gnuplot >= v$gnuplot_req_v before griping about it.\n";
+	    }
+	}
 		       
-    # strip whitespace
-    $fromerr =~ s/^\s*//s;
-    $fromerr =~ s/\s*$//s;
-
-    return $fromerr;
+	# strip whitespace
+	$fromerr =~ s/^\s*//s;
+	$fromerr =~ s/\s*$//s;
+	
+	return $fromerr;
+    } else {
+	# dumping - never generate an error.
+	return "";
+    }
 }
 
 sub _getGnuplotFeatures
@@ -5034,10 +5100,10 @@ sub _logEvent
   my $this  = shift;
   my $event = shift;
 
-  return unless($this->{options}->{log}); # only log when asked.
+  return unless($this->{options}->{tee}); # only log when asked.
 
   my $t1 = tv_interval( $this->{t0}, [gettimeofday] );
-  printf STDERR "==== PDL::Graphics::Gnuplot PID %d at t=%.4f: %s\n", $this->{pid},$t1,$event;
+  printf STDERR "==== PDL::Graphics::Gnuplot t=%.4f: %s\n", $t1, $event;
 }
 
 1;
