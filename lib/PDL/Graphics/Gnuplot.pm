@@ -2,20 +2,19 @@
 #
 # PDL::Graphics::Gnuplot
 #
-# This glue module is complicated because it connects
-# a complicated syntax (Perl) to another complicated syntax
-# (Gnuplot).  Here is a quick overview to get your bearings.
+# This glue module is complicated because it connects a complicated
+# syntax (Perl) to another complicated syntax (Gnuplot).  Here is a
+# quick internal overview to get your bearings, above the usual POD.
 #
-# PDL::Graphics::Gnuplot (P:G:G) objects generally
-# are associated with an external gnuplot process, and data are
-# passed to the process through a pipe.  It is possible to 
-# intercept the data going through the pipe, either by diverting
-# (dumping) data to stdout instead of gnuplot, or by teeing the
-# data to stdout as well as gnuplot.  Further, you can turn on 
-# syntax checking to validate P:G:G itself.  Syntax checking
-# is performed in a second P:G:G process, since screwing up the
-# synchronization between Gnuplot and the P:G:G state is hazardous 
-# in the event of syntax error.
+# PDL::Graphics::Gnuplot (P:G:G) objects generally are associated with
+# an external gnuplot process, and data are passed to the process
+# through a pipe.  It is possible to intercept the data going through
+# the pipe, either by diverting (dumping) data to stdout instead of
+# gnuplot, or by teeing the data to stdout as well as gnuplot.
+# Further, you can turn on syntax checking to validate P:G:G itself.
+# Syntax checking is performed in a second P:G:G process, since
+# screwing up the synchronization between Gnuplot and the P:G:G state
+# is hazardous in the event of syntax error.
 #
 # The perl P:G:G object attempts to store and manage essentially
 # all of the state that is also held inside the gnuplot program. 
@@ -24,39 +23,40 @@
 #      - Plot options     - setup per-plot
 #      - Curve options    - setup per-curve within a plot
 #
-# Option parsing uses branch tables.  Plot and curve options are 
+# Option parsing uses branch tables.  Plot and curve options are
 # parsed using the $pOptionsTable and $cOptionsTable respectively -
 # these are big global hashes that describe the gnuplot syntax.
-# Terminal options are "worser" - the options that are accepted
-# depend on the terminal device, so the table $termTab contains #
-# a description of which terminal options are allowed for each of the
-# supported gnuplot terminals.  
+# Terminal options are "worser" - the options that are accepted depend
+# on the terminal device, so the table $termTab contains # a
+# description of which terminal options are allowed for each of the
+# supported gnuplot terminals.
 #
 # All options handling is performed through parsing and emitter
-# routines that are pointed to from those three tables.  That
-# is handled with _parseOptHash(), which accepts an input parameter
-# and a particular option description table, and parses the input
-# according to the table.  The opposite (used for command generation)
-# s _emitOpts(), which takes a parsed hash and emits an appropriate
+# routines that are pointed to from those three tables.  That is
+# handled with _parseOptHash(), which accepts an input parameter and a
+# particular option description table, and parses the input according
+# to the table.  The opposite (used for command generation) s
+# _emitOpts(), which takes a parsed hash and emits an appropriate
 # (sub)command into its returned string.
 #
-# There are some plot modes that we want to support, and that 
-# gnuplot itself does not yet support.  These are "mocked up" 
-# using data prefrobnicators.  Currently there is only one of 
-# those - FITS imagery.
+# There are some plot modes that we want to support, and that gnuplot
+# itself does not yet support.  These are "mocked up" using data
+# prefrobnicators.  Currently there is only one of those - FITS
+# imagery.
 #
-# The gnuplot syntax is more than a little byzantine, and this 
-# is reflected in the code - specifically, in the code in plot(), 
-# which is the main workhorse.
+# The gnuplot syntax is more than a little byzantine, and this is
+# reflected in the code - specifically, in the code in plot(), which
+# is the main workhorse.
 #
 # plot() pulls plot arguments off the front and back of the argument
 # list, and relies on its sub-routine parseArgs to break the remaining
-# parameters into chunks of parameters, each of which represents a 
-# single curve (including curve options and actual data to be plotted).
-# Because we allow threading, a given batch of curve option arguments
-# and data can yield many chunks.  Those chunks are then passed through 
-# a number of steps back in the main plot() routine, and turned into
-# a colllection of gnuplot commands suitable for plot generation.
+# parameters into chunks of parameters, each of which represents a
+# single curve (including curve options and actual data to be
+# plotted).  Because we allow threading, a given batch of curve option
+# arguments and data can yield many chunks.  Those chunks are then
+# passed through a number of steps back in the main plot() routine,
+# and turned into a colllection of gnuplot commands suitable for plot
+# generation.
 # 
 
 =head1 NAME
@@ -326,20 +326,21 @@ coordinates with
  gplot( with=>'fits', $fitsdata );
 
 Because of the bug in the underlying Gnuplot engine, FITS
-rectification is handled using resampling from the L<PDL::Transform> package;
-future versions may switch to full distorted-grid rendering if the Gnuplot
-render bug is fixed.
+rectification is handled using resampling from the L<PDL::Transform>
+package; this is correct but very slow.  Future versions may switch to
+full distorted-grid rendering if the Gnuplot render bug is fixed.
 
 =head2 Interactivity
 
-The graphical backends of Gnuplot are interactive, allowing the user
-to pan, zoom, rotate and measure the data in the plot window. See the
-Gnuplot documentation for details about how to do this. Some terminals
-(such as wxt) are persistently interactive, and the rest of this
-section does not apply to them. Other terminals (such as x11) maintain
-their interactivity only while the underlying gnuplot process is
-active -- i.e. until another plot is created with the same PDL::Graphics::Gnuplot
-object, or until the perl process exits (whichever comes first).
+Several of the graphical backends of Gnuplot are interactive, allowing
+the user to pan, zoom, rotate and measure the data in the plot
+window. See the Gnuplot documentation for details about how to do
+this. Some terminals (such as wxt) are persistently interactive. Other
+terminals (such as x11) maintain their interactivity only while the
+underlying gnuplot process is active -- i.e. until another plot is
+created with the same PDL::Graphics::Gnuplot object, or until the perl
+process exits (whichever comes first).  Still others (the hardcopy 
+devices) aren't inteactive at all.
 
 =head1 PLOT OPTIONS
 
@@ -1427,6 +1428,21 @@ sub DESTROY
   _killGnuplot($this);
 }
 
+
+=head2 close - close gnuplot process (actually just a synonym for restart)
+
+=for ref
+
+Some of the gnuplot terminals (e.g. pdf) don't write out a file
+promptly.  The close method closes the associated gnuplot subprocess,
+forcing the file to be written out.  It is implemented as a simple
+restart operation.
+
+The object preserves the plot state, so C<replot> and similar methods
+still work with the new subprocess.
+
+=cut
+
 sub close
 {
     my $this = shift;
@@ -1471,7 +1487,8 @@ sub options {
 
 Occasionally the gnuplot backend can get into an unknown state.  
 C<reset> kills the gnuplot backend and starts a new one, preserving
-options state in the object.  
+state in the object.  (i.e. C<replot> and similar functions work even
+with the new subprocess).
 
 Called with no arguments, C<restart> applies to the global plot object.
 
@@ -1548,9 +1565,12 @@ sub reset {
 
 =for ref
 
-The main plotting routine in PDL::Graphics::Gnuplot.
+This is the main plotting routine in PDL::Graphics::Gnuplot.
 
-By default, each C<gplot()> call creates a new plot in a new window.
+Each C<gplot()> call creates a new plot from whole cloth, either creating
+or overwriting the output for that device.
+
+If you want to add features to an existing plot, use C<replot>.  
 
 =for usage
 
@@ -1560,6 +1580,8 @@ By default, each C<gplot()> call creates a new plot in a new window.
        {temp_plot_options});
 
 Most of the arguments are optional.
+
+All of the extensive array of gnuplot plot styles are supported, including images and 3-D plots.
 
 =for example
 
@@ -1865,7 +1887,7 @@ sub plot
 	    
     
     ##########
-    # Second: Emit the plot options lines that go above the plot command.  We do this 
+    # Emit the plot options lines that go above the plot command.  We do this 
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = _emitOpts($this->{options}, $pOpt);
     my $testOptionsString;
@@ -1877,7 +1899,7 @@ sub plot
     
 
     ##########
-    # Third: generate the plot command with the fences in it. (fences are emitted in _emitOpts)
+    # Generate the plot command with the fences in it. (fences are emitted in _emitOpts)
     my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
 	join( ", ", 
 	      map { 
@@ -1886,14 +1908,14 @@ sub plot
 	);
 
     ##########
-    # Fourth:  Break up the plot command so we can insert data specifiers in each location
+    # Break up the plot command so we can insert data specifiers in each location
     my @plotcmds = split /$cmdFence/, $plotcmd;
     if(@plotcmds != @$chunks+1) {
 	barf "This should never happen, but it did.  That's odd.  I give up.";
     }
 
     ##########
-    # Fifth: rebuild the plot command by inserting the format string and data spec for each piece,
+    # Rebuild the plot command by inserting the format string and data spec for each piece,
     # instead of the placeholder fence strings.
     #
     # Image-style formats use binary matrix format rather than ordinary binary format and must
@@ -1967,23 +1989,13 @@ sub plot
     $plotcmd .= "\n";
 
 
-#    { 
-#	my $tc = $this->{options}->{topcmds};
-#	if(defined($tc)) {
-#	    $plotcmd = (   ((ref $tc) eq 'ARRAY') ? 
-#			   join("\n",@$tc,$plotcmd) : 
-#			   $tc."\n".$plotcmd
-#		);
-#	}
-#    }
-
     my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
     my $print_checkpoint = "; print \"$postTestplotCheckpoint\"";
     $testcmd .= "$print_checkpoint\n" if($check_syntax);
 
 
     ##########
-    # Fifth: put data and final checkpointing on the test command
+    # Put data and final checkpointing on the test command
     $testcmd .= join("", map { $_->{testdata} } @$chunks) if($check_syntax);
 
     # Stash this plot command in the debugging variable
@@ -1995,7 +2007,7 @@ sub plot
     }
 
     #######
-    # Sixth: the commands are assembled.  Now test 'em by sending the test command down the pipe.
+    # The commands are assembled.  Now test 'em by sending the test command down the pipe.
     my $checkpointMessage;
     if($check_syntax) {
 	_printGnuplotPipe( $this, "syntax", $testcmd );
@@ -2441,7 +2453,9 @@ sub plot
     } # end of ParseArgs nested sub
 
 
-    # nested sub inside plot
+    ##########
+    # matchDims: nested sub inside plot - kludge up thread style matching across 
+    # the data arguments to a given chunk.
     sub matchDims
     {
 	my @data = @_;
@@ -2602,7 +2616,7 @@ Generates plots with lines, by default. Shorthand for C<plot(globalwith =E<gt> '
 *line = \&lines;
 sub lines {
     my $this = _obj_or_global(\@_);
-    local($this->{options}->{'globalwith'}) = 'lines';
+    local($this->{options}->{'globalwith'}) = ['lines'];
     plot($this,@_);
 }
 
@@ -2616,7 +2630,7 @@ Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 
 
 sub points {
     my $this = _obj_or_global(\@_);
-    local($this->{options}->{'globalwith'}) = 'points';
+    local($this->{options}->{'globalwith'}) = ['points'];
     plot($this,@_);
 }
 
@@ -2630,7 +2644,7 @@ Displays an image (either greyscale or RGB)
 
 sub image {
     my $this = _obj_or_global(\@_);
-    local($this->{options}->{'globalwith'}) = "image";
+    local($this->{options}->{'globalwith'}) = ["image"];
     plot($this, @_);
 }
     
@@ -2991,7 +3005,7 @@ our $pOptionsTable =
 		     '[pseudo] extra gnuplot commands after all plot commands'
     ],
 
-    'globalwith'=> ['lc', sub { "" }, undef, undef,
+    'globalwith'=> ['l', sub { "" }, undef, undef,
 		    '[pseudo] default plot style (overridden by "with" in curve options)'
     ],
 
