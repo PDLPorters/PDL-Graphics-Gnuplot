@@ -1,3 +1,64 @@
+##############################
+#
+# PDL::Graphics::Gnuplot
+#
+# This glue module is complicated because it connects
+# a complicated syntax (Perl) to another complicated syntax
+# (Gnuplot).  Here is a quick overview to get your bearings.
+#
+# PDL::Graphics::Gnuplot (P:G:G) objects generally
+# are associated with an external gnuplot process, and data are
+# passed to the process through a pipe.  It is possible to 
+# intercept the data going through the pipe, either by diverting
+# (dumping) data to stdout instead of gnuplot, or by teeing the
+# data to stdout as well as gnuplot.  Further, you can turn on 
+# syntax checking to validate P:G:G itself.  Syntax checking
+# is performed in a second P:G:G process, since screwing up the
+# synchronization between Gnuplot and the P:G:G state is hazardous 
+# in the event of syntax error.
+#
+# The perl P:G:G object attempts to store and manage essentially
+# all of the state that is also held inside the gnuplot program. 
+# This takes the form of:
+#      - Terminal options - setup for a given terminal output
+#      - Plot options     - setup per-plot
+#      - Curve options    - setup per-curve within a plot
+#
+# Option parsing uses branch tables.  Plot and curve options are 
+# parsed using the $pOptionsTable and $cOptionsTable respectively -
+# these are big global hashes that describe the gnuplot syntax.
+# Terminal options are "worser" - the options that are accepted
+# depend on the terminal device, so the table $termTab contains #
+# a description of which terminal options are allowed for each of the
+# supported gnuplot terminals.  
+#
+# All options handling is performed through parsing and emitter
+# routines that are pointed to from those three tables.  That
+# is handled with _parseOptHash(), which accepts an input parameter
+# and a particular option description table, and parses the input
+# according to the table.  The opposite (used for command generation)
+# s _emitOpts(), which takes a parsed hash and emits an appropriate
+# (sub)command into its returned string.
+#
+# There are some plot modes that we want to support, and that 
+# gnuplot itself does not yet support.  These are "mocked up" 
+# using data prefrobnicators.  Currently there is only one of 
+# those - FITS imagery.
+#
+# The gnuplot syntax is more than a little byzantine, and this 
+# is reflected in the code - specifically, in the code in plot(), 
+# which is the main workhorse.
+#
+# plot() pulls plot arguments off the front and back of the argument
+# list, and relies on its sub-routine parseArgs to break the remaining
+# parameters into chunks of parameters, each of which represents a 
+# single curve (including curve options and actual data to be plotted).
+# Because we allow threading, a given batch of curve option arguments
+# and data can yield many chunks.  Those chunks are then passed through 
+# a number of steps back in the main plot() routine, and turned into
+# a colllection of gnuplot commands suitable for plot generation.
+# 
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -2984,7 +3045,20 @@ our $pOptionsTable =
 		    sub { '' }, undef, undef,
 		    '[pseudo] Set aspect ratio (equivalent to: size=>["ratio",<r>])'
     ],
-
+    'square'    => [sub { my($old, $new, $opt) = @_;
+			  if($new) {
+			      $opt->{'size'} = ["ratio -1"];
+			      $opt->{'view'} = [] unless defined($opt->{'view'});
+			      @{$opt->{'view'}}[2..5] = ($new, $new, "equal", "xyz");
+			      return undef;
+                          } else {
+			      delete($opt->{'size'}) if(exists($opt->{'size'}));
+			      delete $opt->{'view'} if(exists($opt->{'view'}));
+			  }
+		    },
+                    sub { return '' }, undef, undef,
+		    '[pseudo] Set aspect ratio to square (equivalent to: size=["ratio",1])'
+    ],
     ##############################		    
     # These are all the "plot" (top-level) options recognized by gnuplot 4.4.
     'angles'    => ['s','s',undef,undef,
