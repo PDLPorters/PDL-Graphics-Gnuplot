@@ -2139,7 +2139,7 @@ sub plot
 
 	    # Make sure we know our "with" style...
 	    unless($chunk{options}{with}) {
-		$chunk{options}{with} = [$this->{options}->{'globalwith'} || "lines"];
+		$chunk{options}{with} = $this->{options}->{'globalwith'} // ["lines"];
 	    }
 
 	    # validate "with" and get imgFlag and tupleSizes.
@@ -2238,7 +2238,12 @@ sub plot
 		    barf $s;
 		}
 	    }
-	
+
+	    ##############################
+	    # Implicit dimensions in 3-D plots require imgFlag to be set...
+	    $imgFlag |= ($tuplematch[0]<0 && !!$is3d);
+
+
 	    ##############################
 	    # A little aside:  streamline the common optimization case -- 
 	    # if the user specified "image" but handed in an RGB or RGBA image, 
@@ -2925,7 +2930,7 @@ our $pOptionsTable =
 		     '[pseudo] extra gnuplot commands after all plot commands'
     ],
 
-    'globalwith'=> ['l', sub { "" }, undef, undef,
+    'globalwith'=> ['lc', sub { "" }, undef, undef,
 		    '[pseudo] default plot style (overridden by "with" in curve options)'
     ],
 
@@ -2969,6 +2974,8 @@ our $pOptionsTable =
     'justify'   => [sub { my($old,$new,$opt) = @_;
 			  if($new > 0) {
 			      $opt->{'size'} = ["ratio ".(-$new)];
+			      $opt->{'view'} = [] unless defined($opt->{'view'});
+			      @{$opt->{'view'}}[2..5] = ($new,$new,"equal","xyz");
 			      return undef;
 			  } else {
 			      die "justify: positive value needed\n";
@@ -3206,9 +3213,9 @@ our $pOptionsTable =
 			       return "set view 60,30,1.0,1.0\nset view noequal\n" unless( ref $v eq 'ARRAY' ); # default value from manual
 			       my @numbers = ();
 			       my @v = @$v;
-
-			       while( defined($v[0]) and ($v[0] =~ m/^\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*$/ ) ) {
-				   push(@numbers, shift @v);
+			       
+			       while( @v && (($v[0]//"") =~ m/^(\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*)?$/ )) {
+				   push(@numbers, (shift(@v)//""));
 			       }
 			       my $s = "";
 			       $s .= "set view ".join(",",@numbers)."\n" if(@numbers);
@@ -3450,37 +3457,37 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 #              While it has access to plot options, it probably shouldn't modify them.
 
 our $plotStyleProps ={
-### key                ts         3dts  img  bin
-    boxerrorbars   => [ [3,4,5],  0,      0, undef ],
-    boxes          => [ [2,3],    0,      0, undef ],
-    boxxyerrorbars => [ [4,6],    0,      0, undef ],
-    candlesticks   => [ [5],      0,      0, undef ],
-    circles        => [ [3],      0,      0, undef ],
-    dots           => [ [-1,2],   [3],    0, undef ],
-    filledcurves   => [ [-2,3],   0,      0, undef ],
-    financebars    => [ [5],      0,      0, undef ],
-    fsteps         => [ [-1,2],   0,      0, undef ],
-    histeps        => [ [-1,2],   0,      0, undef ],
-    histogram      => [ [2,3],    0,      0, undef ],
-    newhistogram   => [ [2,3],    0,      0, undef ],
-    fits           => [ [-1],     [-1],   1, 1     , \&_with_fits_prefrobnicator ],
-    image          => [ [-1,3],   [-1,4], 1, 1     ],
-    impulses       => [ [-1,2,3], [3,4],  0, undef ],
-    labels         => [ [3],      [4],    0, 0     ], 
-    lines          => [ [-1,2],   [3],    0, undef ],
-    linespoints    => [ [-1,2],   [3],    0, undef ],
-    points         => [ [-1,2],   [3],    0, undef ],
-    rgbalpha       => [ [-4,6],   [-4,7], 1, 1     ],
-    rgbimage       => [ [-3,5],   [-3,6], 1, 1     ],
-    steps          => [ [-1,2],   0,      0, undef ],
-    vectors        => [ [4],      [6],    0, undef ],
-    xerrorbars     => [ [-2,3,4], 0,      0, undef ],
-    xyerrorbars    => [ [-3,4,6], 0,      0, undef ],
-    yerrorbars     => [ [-2,3,4], 0,      0, undef ],
-    xerrorlines    => [ [-3,4],   0,      0, undef ],
-    xyerrorlines   => [ [-4,6],   0,      0, undef ],
-    yerrorlines    => [ [-3,4],   0,      0, undef ],
-    pm3d           => [ 0,        [-1,4], 1, 1 ]
+### key                ts         3dts         img  bin
+    boxerrorbars   => [ [3,4,5],  0,            0, undef ],
+    boxes          => [ [2,3],    0,            0, undef ],
+    boxxyerrorbars => [ [4,6],    0,            0, undef ],
+    candlesticks   => [ [5],      0,            0, undef ],
+    circles        => [ [3],      0,            0, undef ],
+    dots           => [ [-1,2],   [3],          0, undef ],
+    filledcurves   => [ [-2,3],   0,            0, undef ],
+    financebars    => [ [5],      0,            0, undef ],
+    fsteps         => [ [-1,2],   0,            0, undef ],
+    histeps        => [ [-1,2],   0,            0, undef ],
+    histogram      => [ [2,3],    0,            0, undef ],
+    newhistogram   => [ [2,3],    0,            0, undef ],
+    fits           => [ [-1],     [-1],         1, 1     , \&_with_fits_prefrobnicator ],
+    image          => [ [-1,3],   [-1,4],       1, 1     ],
+    impulses       => [ [-1,2,3], [-1,-2,3,4],  0, undef ],
+    labels         => [ [3],      [4],          0, 0     ], 
+    lines          => [ [-1,2],   [-1,3],       0, undef ],
+    linespoints    => [ [-1,2],   [-1,3],       0, undef ],
+    points         => [ [-1,2],   [-1,3],       0, undef ],
+    rgbalpha       => [ [-4,6],   [-4,7],       1, 1     ],
+    rgbimage       => [ [-3,5],   [-3,6],       1, 1     ],
+    steps          => [ [-1,2],   0,            0, undef ],
+    vectors        => [ [4],      [6],          0, undef ],
+    xerrorbars     => [ [-2,3,4], 0,            0, undef ],
+    xyerrorbars    => [ [-3,4,6], 0,            0, undef ],
+    yerrorbars     => [ [-2,3,4], 0,            0, undef ],
+    xerrorlines    => [ [-3,4],   0,            0, undef ],
+    xyerrorlines   => [ [-4,6],   0,            0, undef ],
+    yerrorlines    => [ [-3,4],   0,            0, undef ],
+    pm3d           => [ 0,        [-1,4],       1, 1 ]
 };
 
 ##############################

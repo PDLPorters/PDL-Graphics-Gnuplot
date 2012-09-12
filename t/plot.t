@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 71;
+use Test::More tests => 72;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -228,8 +228,11 @@ ok(!$@, "2-D plot with one variable parameter takes three PDLs");
 eval { $w->plot(with=>'points pointsize variable',xvals(10),xvals(10),xvals(10),xvals(10)) };
 ok($@ =~ m/Found 4 PDLs for 2D/, "2-D plot with one variable parameter rejects four PDLs");
 
-eval { $w->plot3d(xvals(10)); };
-ok($@ =~ m/Found 1 PDL for 3D/, "3-D plot rejects one PDL");
+eval { $w->plot3d(xvals(10)); };                                   
+ok($@ =~ m/Image plot types require/, "3-D plot rejects one PDL if it isn't an image");
+
+eval { $w->plot3d(xvals(10,10))};
+ok(!$@, "3-D plot accepts one PDL if it is an image");
 
 eval { $w->plot3d(xvals(10),xvals(10)); };
 ok($@ =~ m/Found 2 PDLs for 3D/,"3-D plot rejects two PDLs");

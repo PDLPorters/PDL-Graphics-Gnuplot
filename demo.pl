@@ -13,11 +13,12 @@ use feature qw(say);
 my $x = sequence(21) - 10;
 
 # data I use for 3D testing
-my $th   = zeros(30)->           xlinvals( 0,          3.14159*2);
-my $ph   = zeros(30)->transpose->ylinvals( -3.14159/2, 3.14159/2);
-my $x_3d = PDL::flat( cos($ph)*cos($th));
-my $y_3d = PDL::flat( cos($ph)*sin($th));
-my $z_3d = PDL::flat( sin($ph) * $th->ones );
+my($th,$ph,$x_3d,$y_3d,$z_3d);
+$th   = zeros(30)->xlinvals( 0,          3.14159*2)->transpose;
+$ph   = zeros(30)->xlinvals( -3.14159/2, 3.14159/2);
+$x_3d = (cos($ph)*cos($th))->flat->glue(0, (cos($ph)*cos($th))->transpose->flat);
+$y_3d = (cos($ph)*sin($th))->flat->glue(0, (cos($ph)*sin($th))->transpose->flat);
+$z_3d = (sin($ph)*$th->ones)->flat->glue(0,(sin($ph)*$th->ones)->transpose->flat);
 
 
 #################################
@@ -26,136 +27,138 @@ my $z_3d = PDL::flat( sin($ph) * $th->ones );
 
 # first, some very basic stuff. Testing implicit domains, multiple curves in
 # arguments, packed in piddles, etc
-plot($x**2);
-plot(-$x, $x**3);
-plot(-$x, $x**3,{},
-     $x,  $x**2);
-plot(PDL::cat($x**2, $x**3));
-plot(-$x,
-     PDL::cat($x**2, $x**3));
 
-# some more varied plotting, using the object-oriented interface
-{
-  my $plot = PDL::Graphics::Gnuplot->new("x11", 
-                                         title => 'Error bars and other things',
-					 {binary => 1, globalwith => 'linespoints', xmin => -10});
-
-  $plot->plot( y2tics=>10,
-	       with => 'lines lw 4',
-	      legend => ['Parabola A','Parabola B','Parabola C'],
-              axes => 'x1y2',
-              PDL::cat($x, $x*2, $x*3), $x**2 - 300,
-
-              with => 'xyerrorbars',
-	      axes=>'x1y1',
-              $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
-
-              {with => 'line', legend => 'cubic', tuplesize => 2},
-              {legend => ['shifted cubic A','shifted cubic B']},
-              $x, PDL::cat($x**3, $x**3 - 100) );
-  push(@windows,$plot);
+sub prompt {
+    print $_[0]. "   (Press <RETURN> to continue)";
+    $a=<>;
 }
 
+$w=gpwin(x11);
+
+
+$w->plot($x**2);
+prompt("A simple parabola");
+
+$w->plot(-$x, $x**3);
+prompt("A cubic");
+
+$w->plot(-$x, $x**3,{},
+     $x,  $x**2);
+prompt("Parabola and cubic");
+
+$w->plot(PDL::cat($x**2, $x**3));
+prompt("Another way to plot a parabola and cubic");
+
+$w->plot(-$x,
+     PDL::cat($x**2, $x**3));
+prompt("Yet another way");
+
+push(@windows,$w);
+
+# some more varied plotting, using the object-oriented interface
+$w->options(globalwith => 'linespoints', xmin => -10);
+
+$w->plot( title => 'Error bars and other things',
+	  y2tics=>10,
+	  with => 'lines lw 4',
+	  legend => ['Parabola A','Parabola B','Parabola C'],
+	  axes => 'x1y2',
+	  PDL::cat($x, $x*2, $x*3), $x**2 - 300,
+	  
+	  with => 'xyerrorbars',
+	  axes=>'x1y1',
+	  $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
+	  
+	  {with => 'line', legend => 'cubic', tuplesize => 2},
+	  {legend => ['shifted cubic A','shifted cubic B']},
+	  $x, PDL::cat($x**3, $x**3 - 100) );
+
+
+prompt("Error bars and other things");
+
 # a way to control the point size
-$w=gpwin(x11,title=>"variable pointsize");
+
 $w->plot(binary => 1, cbmin => -600, cbmax => 600, title=>"Variable pointsize",
      {with => 'points pointtype 7 pointsize variable'},
 	 $x, $x/2, (10-abs($x))/2);
-push(@windows,$w);
+prompt("Variable pointsize");
+
 
 ################################
 # some 3d stuff
 ################################
 
 # plot a sphere
-$w=gpwin(x11,title=>"3d sphere");
-$w->plot3d( binary => 1,
-	    {with=>'points'},
+$w->reset;
+$w->plot3d( binary => 1, j=>1, zrange=>[-1,1],yrange=>[-1,1],xrange=>[-1,1],
+	    {with=>'linespoints'},
 	    $x_3d, $y_3d, $z_3d,
       );
-push(@windows,$w);
+prompt("A sphere");
 
 
-print "Press RETURN to end demo...";
-$a=<>;
-
-
-__END__
-
-# TO DO: fix syntax in the rest...
 
 # sphere, ellipse together
-$w=gpwin(x11,title=>"sphere and ellipse");
-plot3d( binary => 1,
-        j=>1,
 
-        {legend => 'sphere'}, {legend => 'ellipse'},
+$w->plot3d( binary => 1,
+        j=>1,
+        {legend => ['sphere', 'ellipsoid']},
         $x_3d->cat($x_3d*2),
         $y_3d->cat($y_3d*2), $z_3d );
-
-
-
-# similar, written to a png
-plot3d (binary => 1,
-        globalwith => 'points', title    => 'sphere, ellipse',
-        square   => 1,
-        hardcopy => 'spheres.png',
-
-        {legend => 'sphere'}, {legend => 'ellipse'},
-        $x_3d->cat($x_3d*2), $y_3d->cat($y_3d*2), $z_3d );
+prompt("A sphere and an ellipsoid");
 
 
 # some paraboloids plotted on an implicit 2D domain
 {
-  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
-  my $z = inner($xy, $xy);
-
-  my $xy_half = zeros(11,11)->ndcoords;
-  my $z_half = inner($xy_half, $xy_half);
-
-  plot3d( binary => 1,
-          globalwith => 'points', title  => 'gridded paraboloids',
-          {legend => 'zplus'} , {legend=>'zminus'}, $z->cat(-$z),
-          {legend => 'zplus2'}, $z*2);
+    my($xy,$z,$xy_half,$z_half);
+    $xy = zeros(21,21)->ndcoords - pdl(10,10);
+    $z = inner($xy, $xy);
+    $xy_half = zeros(11,11)->ndcoords;
+    $z_half = inner($xy_half, $xy_half);
+    
+    $w->plot3d( binary => 1,
+	    globalwith => 'points', title  => 'gridded paraboloids',tuplesize=>1,
+	    {legend => ['zplus','zminus']}, $z->cat(-$z),
+	    {legend => 'zplus2'}, $z*2);
+    prompt("Some paraboloids");
+    $w->reset;
 }
 
 # 3d, variable color, variable pointsize
 {
- my $pi   = 3.14159;
- my $theta = zeros(200)->xlinvals(0, 6*$pi);
- my $z     = zeros(200)->xlinvals(0, 5);
+    my($pi,$theta,$z);
+    $pi   = 3.14159;
+    $theta = zeros(200)->xlinvals(0, 6*$pi);
+    $z     = zeros(200)->xlinvals(0, 5);
 
- plot3d( binary => 1,
-         title => 'double helix',
-
-         { with => 'points pointsize variable pointtype 7 palette', tuplesize => 5,
-           legend => 'spiral 1'},
-         { legend => 'spiral 2' },
-
-         # 2 sets of x, y, z:
-         cos($theta)->cat(-cos($theta)),
-         sin($theta)->cat(-sin($theta)),
-         $z,
-
-         # pointsize, color
-         0.5 + abs(cos($theta)), sin(2*$theta) );
+ $w->plot3d( binary => 1,
+	     title => 'double helix',
+	     
+	     { with => 'linespoints pointsize variable pointtype 7 palette', tuplesize => 5,
+	       legend => ['spiral 1','spiral 2']},
+	     # 2 sets of x, y, z:
+	     cos($theta)->cat(-cos($theta)),
+	     sin($theta)->cat(-sin($theta)),
+	     $z,
+	     
+	     # pointsize, color
+	     0.5 + abs(cos($theta)), sin(2*$theta) );
+    prompt("A double helix");
 }
 
 # implicit domain heat map
 {
-  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
-  plot3d(binary => 1,
+  my $xy;
+  $xy = zeros(21,21)->ndcoords - pdl(10,10);
+
+  $w->plot3d(binary => 1,
          title  => 'Paraboloid heat map',
          extracmds => 'set view 0,0',
          with => 'image', inner($xy, $xy));
+  prompt("An image");
 }
 
-################################
-# testing some error detection
-################################
 
-say STDERR "\n\n\n";
-say STDERR "==== Testing error detection ====";
 say STDERR 'I should complain about an invalid "with":';
 say STDERR "=================================";
 eval( <<'EOM' );
