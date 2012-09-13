@@ -1346,19 +1346,18 @@ sub new
 
   our $termTabSource;
 
-  if(@_) {
-      $terminal = lc shift;
-      if(!exists($termTab->{$terminal})) {
-	  my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
-	      "Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n";
-	  barf($s);
-      }
-      
-      # Generate abbrevs on first invokation for each terminal type.
-      unless($termTab->{$terminal}->{opt}->[1]) {
-	  $termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
-	  $termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
-      }
+  $terminal = lc(shift() // "x11");
+  if(!exists($termTab->{$terminal})) {
+      my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
+	  "Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n".
+	  "(default type for PDL::Graphics::Gnuplot is 'x11')\n";
+      barf($s);
+  }
+  
+  # Generate abbrevs on first invokation for each terminal type.
+  unless($termTab->{$terminal}->{opt}->[1]) {
+      $termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
+      $termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
   }
 
   # Check if the last passed-in parameter is a hash ref -- if it is, then it is plot options
@@ -1385,27 +1384,23 @@ sub new
 
 
   # parse "terminal" options
-  if($terminal) {
-      if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
-
-	  # Stuff the default size unit into the options hash, so that the parser has access to it.
-	  $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
-
-	  _parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
-
-	  $this->{options}->{output} = $termOptions->{output};
-	  delete $termOptions->{output};
-
-	  ## Emit the terminal options line for this terminal.
-	  $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
-
-
-	  
-      } else {
-	  barf "PDL::Graphics::Gnuplot doesn't yet support this device, sorry\n";
-      }
+  if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
+      
+      # Stuff the default size unit into the options hash, so that the parser has access to it.
+      $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
+      
+      _parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
+      
+      $this->{options}->{output} = $termOptions->{output};
+      delete $termOptions->{output};
+      
+      ## Emit the terminal options line for this terminal.
+      $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
+      $this->{terminal} = $terminal;
+      $this->{mouse} = $termTab->{$terminal}->{mouse} || 0;
+  } else {
+      barf "PDL::Graphics::Gnuplot doesn't yet support this device, sorry\n";
   }
-
   
   # now that options are parsed, start up a gnuplot
   # and copy the keys into the object
@@ -2806,7 +2801,78 @@ sub end_multi {
 
     $this->{options}->{multiplot} = 0;
 }
-	     
+
+
+
+######################################################################
+##
+## Input support
+##
+
+=head2 read_mouse - get a mouse click or keystroke from the active interactive plot window.
+
+=for usage 
+
+  ($x,$y,$char,$modstring) = $w->read_mouse($message);
+  $hash = $w->read_mouse($message);
+
+=for ref 
+
+For interactive devices (e.g. x11, xwt, aqua), get_click lets you accept a 
+keystroke or mouse button input from the gnuplot window.  In list context, it
+returns four arguments containing the reported X, Y, keystroke character, and 
+modifiers packed in a string.  In scalar context, it returns a hash ref containing
+those things.
+
+read_mouse blocks execution for input, but responds gracefully to interrupts.
+
+=cut
+my $mouse_serial = 0;
+sub read_mouse {
+    my $this = shift;
+    my $message = shift // "Click mouse in plot to continue...";
+
+    barf "read_mouse: This plot uses the '$this->{terminal}' terminal, which doesn't support mousing\n"
+	unless($this->{mouse});
+
+    barf "read_mouse: no existing plot to mouse on!\n"
+	unless($this->{replottable});
+
+    $mouse_serial++;
+    my $string = _checkpoint($this, "main", "read_mouse: prepare-to-mouse ($mouse_serial)");
+    print STDERR $message;
+
+    _printGnuplotPipe($this, "main", <<"EOC"
+pause mouse any
+if( exists("MOUSE_BUTTON") ) but=MOUSE_BUTTON; else but=0;
+print "Mouse: ",MOUSE_KEY," at xy:",MOUSE_X, ",", MOUSE_Y, " button:",but," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL
+EOC
+	);
+    my $string = _checkpoint($this, "main", "read_mouse: read",1);
+ 
+    $string =~ m/Mouse: (\d*) +at xy:([^\s\,]+),([^\s\,]+) button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+)/ 
+	|| barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
+    my($ch,$x,$y,$b,$sft,$alt,$ctl) = ($1,$2,$3,$4,$5,$6,$7);
+
+
+
+    if(wantarray) {
+	return ($x,$y, ($ch>=32)?chr($ch):undef, 
+		{
+		    'b'=>$b,
+		    'm'=>($sft?"S":"").($alt?"A":"").($ctl?"C":"")
+		}
+	    );
+    } else {
+	return {
+	    'x' => $x,
+	    'y' => $y,
+            'b' => $b,
+	    'k' => (($ch>32)?chr($ch):undef),
+	    'm' => ($sft?"S":"").($alt?"A":"").($ctl?"C":"")
+	};
+    }
+}
 
 ######################################################################
 ######################################################################
@@ -4726,12 +4792,12 @@ our $termTabSource = {
 		 opt=>[ qw/color monochrome font title size/,
 			['position','l','csize','pixel location of the window'],
 			'output']},
-    'wxt'     =>{unit=>"px",
+    'wxt'     =>{unit=>"px", mouse=>1,
 		 opt=>[ qw/size enhanced font title dashed solid dashlength persist raise/,
 			['ctrl',  'b','cf','enable (or disable) control-Q to quit window'],
 			['close', 'b','cf','close window on completion?']
                  ]},
-    'x11'     =>{unit=>"px",desc=>"X Windows display",
+    'x11'     =>{unit=>"px",desc=>"X Windows display", mouse=>1,
 		 opt=>[ 'output_',
 			['title','s','cq','Window title (in title bar)'],
 			qw/enhanced font linewidth solid dashed persist raise/,
@@ -4772,6 +4838,7 @@ for my $k(keys %$termTabSource) {
 
     $termTab->{$k} = { desc => $termTabSource->{$k}->{desc},
 		       unit => $termTabSource->{$k}->{unit},
+		       mouse => $termTabSource->{$k}->{mouse} // 0,
 		       opt  => [ $terminalOpt, 
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
@@ -5041,10 +5108,12 @@ sub _printGnuplotPipe
 # _checkpoint() returns, we know that we have read all the data from
 # the child. Extra data that represents errors is returned. Warnings
 # are explicitly stripped out
+our $cp_serial = 0;
 
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
+    my $notimeout = shift;
     my $pipeerr = $this->{"err-$suffix"};
     
     # string containing various options to this function
@@ -5055,7 +5124,8 @@ sub _checkpoint {
     # yet arrived. I thus print out a checkpoint message and keep reading the
     # child's STDERR pipe until I get that message back. Any errors would have
     # been printed before this
-    my $checkpoint = "xxxxxxx Synchronizing gnuplot i/o xxxxxxx";
+    $cp_serial++;
+    my $checkpoint = "xxxxxxx Synchronizing gnuplot i/o $cp_serial xxxxxxx";
     
     _printGnuplotPipe( $this, $suffix, "\n\nprint \"$checkpoint\"\n" );
     
@@ -5076,7 +5146,7 @@ sub _checkpoint {
 	    my $terminal =$this->{options}->{terminal};
 	    my $delay = ($terminal && $termTab->{$terminal}->{delay}) || 8;
 	    
-	    if( $this->{"errSelector-$suffix"}->can_read($delay) )
+	    if( $this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay) )
 	    {
 		# read a byte into the tail of $fromerr. I'd like to read "as many bytes
 		# as are available", but I don't know how to this in a very portable way

@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 72;
+use Test::More tests => 73;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -387,3 +387,11 @@ SKIP: {
 
 
 }
+
+##############################
+# Mousing tests
+#
+
+$w=gpwin(x11); 
+eval { print $w->read_mouse(); };
+ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn't work");
