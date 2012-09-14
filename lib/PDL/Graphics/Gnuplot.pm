@@ -58,6 +58,16 @@
 # and turned into a colllection of gnuplot commands suitable for plot
 # generation.
 # 
+# Because option parsing is slightly more complicated than simply
+# interpreting values and assigning defaults, we do not use a
+# pre-existing package (such as PDL::Options) for option parsing - we
+# use a dual parse table scheme.  Each option set has an "abbrev"
+# table that is generated at compile time and resolves unique
+# abbreviations; and a "parse" table that indicates what to do with 
+# each option.  Since this mechanism is near at hand, we use it 
+# even for routines (such as read_polygon) that could and would use
+# PDL::Options in other circumstances.
+#
 
 =head1 NAME
 
@@ -1601,7 +1611,6 @@ sub plot
 
     my $this = _obj_or_global(\@_);
 
-
     ##############################
     # Parse optional plot options - must be an array or hash ref, if present.
     # Cheesy but hopefully effective method (from Dima): parse as plot options
@@ -1707,10 +1716,18 @@ sub plot
     # Store the current arguments into the state array for next time.
     # (This has to be done here because plot options need to be stripped out first).
     # 
-    # Storing the hash ref to options, rather than making a deep copy, is a bit dangerous  - 
-    # but only if the user digs inside the object. The parsing methods copy the hash.
-    $this->{last_plot}->{args}  = [@_];
-    $this->{last_plot}->{options} = $this->{options};
+    # Because of all the local-variable shenanigans with overlain configs for this and that,
+    # we unfortunately have to make a deep copy of the plot options for the last_plot.
+    # The variables we deliberately do *not* deep copy, in case someone wants to use the
+    # modify-and-replot trick that is in the gnuplot documentation.  (That trick uses
+    # file modification, but in-place modification of PDLs "feels right" too)
+    # 
+    # We don't store the arguments if we're carrying the "ephemeral" flag - that is
+    # so we can do ephemeral markup of plots, without adding to the replot list.
+    unless($this->{ephemeral}) {
+	$this->{last_plot}->{args}  = [@_];
+	$this->{last_plot}->{options} = dclone($this->{options});
+    }
 
     # Now parse the rest of the arguments into chunks.
     # parseArgs is a nested sub at the bottom of this one.
@@ -2562,11 +2579,9 @@ sub plot
 #
 ##############################
 
-=head2 replot
+=head2 replot - Replot the last plot (possibly with new arguments)
 
 =for ref
-
-Replot the last plot (possibly with a new device and/or new arguments)
 
 C<replot> is similar to gnuplot's "replot" command - it allows you to
 regenerate the last plot made with this object.  You can change the
@@ -2574,9 +2589,15 @@ plot by adding new elements to it, modifying options, or even (with the
 "device" method) changing the output device.  C<replot> takes the same
 arguments as C<plot>.
 
+If you give no arguments at all (or only a plot object) then the plot 
+is simply redrawn.  If you give plot arguments, they are added to the 
+new plot exactly as if you'd included them in the original plot 
+element list, and maintained for subsequent replots.
+
+(Compare to 'markup').
+
 =cut
 
-*greplot = \&replot;
 sub replot {
     my $this = _obj_or_global(\@_);
     if($this->{replottable}) {
@@ -2587,6 +2608,28 @@ sub replot {
     }
 }
 
+=head2 markup - Add ephemeral markup to the last plot
+
+=for ref
+
+C<markup> works exactly the same as C<replot>, except that any 
+new arguments are not added to the replot list - so you can 
+add temporary markup to a plot and regenerate the plot later
+without it.
+
+=cut
+
+sub markup {
+    my $this = _obj_or_global(\@_);
+    if($this->{replottable}) {
+	local($this->{replotting}) = 1;
+	local($this->{ephemeral}) = 1;
+	$this->plot(@_);
+    } else {
+	die "PDL::Graphics::Gnuplot::markup: you must have already plotted something!\n";
+    }
+}
+    
 =head2 plot3d, splot
 
 =for ref
@@ -2704,6 +2747,9 @@ of each plot within the grid.
 =back
 
 =cut
+
+# This table describes gnuplot option parsing for the multiplot command.
+# Its format is the same as the $plotOptionsTable, below.
 
 our $mpOptionsTable = {
     'layout' => [sub { my($old, $new, $h) = @_;
@@ -2840,21 +2886,20 @@ sub read_mouse {
 
     $mouse_serial++;
     my $string = _checkpoint($this, "main", "read_mouse: prepare-to-mouse ($mouse_serial)");
+
     print STDERR $message;
 
     _printGnuplotPipe($this, "main", <<"EOC"
 pause mouse any
-if( exists("MOUSE_BUTTON") ) but=MOUSE_BUTTON; else but=0;
-print "Mouse: ",MOUSE_KEY," at xy:",MOUSE_X, ",", MOUSE_Y, " button:",but," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL
+if( exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y") )  print "Key: -1 at xy:",MOUSE_X,",",MOUSE_Y," button:",MOUSE_BUTTON," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL; else print "Key: ",MOUSE_KEY;
 EOC
 	);
-    my $string = _checkpoint($this, "main", "read_mouse: read",1);
- 
-    $string =~ m/Mouse: (\d*) +at xy:([^\s\,]+),([^\s\,]+) button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+)/ 
+
+    $string = _checkpoint($this, "main", "read_mouse: read",1);
+
+    $string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+),([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?/ 
 	|| barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
-    my($ch,$x,$y,$b,$sft,$alt,$ctl) = ($1,$2,$3,$4,$5,$6,$7);
-
-
+    my($ch,$x,$y,$b,$sft,$alt,$ctl) = map { $_ // "" } ($1,$3,$4,$5,$6,$7,$8);
 
     if(wantarray) {
 	return ($x,$y, ($ch>=32)?chr($ch):undef, 
@@ -2868,10 +2913,208 @@ EOC
 	    'x' => $x,
 	    'y' => $y,
             'b' => $b,
-	    'k' => (($ch>32)?chr($ch):undef),
+	    'k' => ($ch<0) ? "" : ($ch > 32 && $ch != 127) ? chr($ch) : sprintf("#%3.3d",$ch),
 	    'm' => ($sft?"S":"").($alt?"A":"").($ctl?"C":"")
 	};
     }
+}
+
+=head2 read_polygon
+
+=for usage
+
+  $points = $w->read_polygon(%opt)
+
+=for ref
+
+Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN PDL of ($x,$y) values in scientific units. Acceptable options are:
+
+=over 3
+
+=item message - what to print before collecting points
+
+There are some printf-style escapes for the prompt:
+    
+=over 3
+
+=item %c - expands to "an open" or "a closed" 
+
+=item %n - number of points currently in the polygon
+
+=item %N - number of points expected for the polygon
+
+=item %k - list of all keys accepted
+
+=item %% - %
+
+=back
+
+=item prompt - what to print to prompt hte user for the next point
+
+=item n_points - number of points to accept (or 0 for indefinite)
+
+With 0 value, points are accepted until the user presses 'q' or 'ESC' on the keyboard with focus
+on the graph.  With other value, points are accepted until that happens *or* until the number
+of points is at least n_points.
+
+=item actions - hash of callback code refs indexed by character for action
+
+You can optionally call a callback routine when any particular
+character is pressed.  The actions table is a hash ref whose keys are
+characters and whose values are either code refs (to be called on the
+associated keypress) or array refs containing a short description string
+followed by a code ref.
+
+The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
+   $obj is the plot object
+   $c is the character (or "BUTTON<n>" string),
+   $poly is a scalar ref; $$poly is the current polygon before the action,
+   $x and $y are the current scientific coordinate
+   $mods is the modifier string.
+
+You can't override the 'q', or '\033' (ESC) callbacks.  You *can* override
+the BUTTON1 and DEL callbacks, potentially preventing the user from entering points
+at all!  You should do that with caution.
+
+Button events get the special events "BUTTON1", "BUTTON2", and "BUTTON3".
+
+=item close - (default true): generate a closed polygon
+
+=item markup - (default 'linespoints'): style to use to render the polygon on the fly
+
+If this is set to a true value, it should be a valid 'with' specifier (curve option).  
+The routine will call markup after each click.  
+
+=back
+
+=cut
+
+
+# This table describes option parsing for read_polygon.  Its format is the same as for the large
+# $plotOptionsTable, below.  Full Gnuplot options parsing is perhaps a bit overblown for this 
+# application, but it's present in the module so what the heck...
+
+our $rpOptionsTable = {
+    map { ( $_->[0] => ['ps',undef,undef,undef,$_->[1]] ) }
+    ( ['message'  =>  "Message to print before reading in polygon"    ],
+      ['prompt'   =>  "Message to print for each point",              ],
+      ['n_points' =>  "Number of points (or 0 for indefinite)"        ],
+      ['actions'  =>  "Hash ref containing callbacks for keystrokes"  ],
+      ['close',   =>  "Flag: close polygon by copying first point"    ],
+      ['markup'   =>  "Plot option for rendering, or undefined for none" ]
+    ) };
+our $rpOpt = [$rpOptionsTable, _gen_abbrev_list(keys %$rpOptionsTable), "read_polygon option"];
+
+sub read_polygon {
+    my $this = _obj_or_global(\@_);
+    
+    barf "read_polygon: $this->{terminal} terminal doesn't support mousing\n"
+	unless($this->{mouse});
+
+    my $u_opt = shift;
+
+    my $poly = zeroes(2,0); # list of zero 2-D points
+    local($this->{quit}) = 0;
+
+    my $opt = {
+	message  => <<'EOMSG'
+Click points on the plot to form %c polygon.  Use keys in window:
+%k
+EOMSG
+,
+	prompt   => "(%n points in polygon) Waiting for plot input....",
+        n_points => 0,
+	close    => 1,
+	markup   => "linespoints",
+	actions=> {
+	    # These defaults can be overridden.
+	    'd'        => ['Delete last point (or DEL or backspace or shift-button)', \&__del],
+	    "#127"     => \&__del,  # DEL
+	    "#008"     => \&__del,  # BS
+	    'BUTTON1S' => \&__del,  # shift-click
+	    'BUTTON1'  => ['Add a point',\&__add],
+	}
+    };
+
+    _parseOptHash( $opt, $rpOpt, @_ );
+
+    my $a = $opt->{actions};
+    $a->{"q"}    = ['Quit / finish entry (or ESC)', \&__quit ];
+    $a->{"#027"} = \&__quit;
+
+    ### Parsing is complete, actions are in place.
+
+    my $pstring = sub {
+	my $s = shift;
+	my $z = ($opt->{close}) ? "a closed" : "an open";
+	$s =~ s/\%c/$z/g;
+
+	$z = $poly->dim(1);
+	$s =~ s/\%n/$z/g;
+	
+	$z = $opt->{n_points} || "indefinite";
+	$s =~ s/\%N/$z/g;
+
+	if($s =~ m/\%k/) {
+	    $z = "INPUT ACTIONS:\n";
+	    for my $k(sort { (length($a) <=> length($b))  ||  ($a cmp $b) } keys %$a) {
+		if(ref($a->{$k}) eq 'ARRAY') {
+		    $z .= sprintf("%10s: %s\n",$k,$a->{$k}->[0]);
+		}
+	    }
+	    $s =~ s/\%k/$z/g;
+	}
+
+	$s =~ s/\%\%/\%/g;
+	return $s;
+    };
+
+    print &$pstring($opt->{message});
+    
+    my $h;
+    do {
+	$h = $this->read_mouse(&$pstring($opt->{prompt}));
+	my $key = $h->{'b'} ? "BUTTON".$h->{'b'}.$h->{'m'} : $h->{'k'};
+
+	if(ref $a->{$key}) {
+	    my $z = (ref($a->{$key}) eq 'CODE') ? $a->{$key} : $a->{$key}->[1];
+	    &$z($this, $key, \$poly, $h->{x}, $h->{y}, $h->{'m'});
+	} else {
+	    print "$key! ";
+	}
+	print "\n";
+
+	if($opt->{markup}){
+	    $this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
+	}
+    } while(($h->{'b'} || $h->{'k'}) and !$this->{quit} and ($opt->{n_points}==0  or $poly->dim(1)<$opt->{n_points}));
+    
+    print "\n";
+    
+    if($opt->{'close'}) {
+	$poly = $poly->glue(1,$poly->slice(":,(0)"));
+	if($opt->{markup}) {
+	    $this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
+	}
+    }
+
+    return $poly;
+
+use PDL::NiceSlice;
+    sub __del { my($w, $c, $p) = @_;
+	   return unless( (ref($$p) eq 'PDL')  and  ($$p->dim(1)>0) );
+	   $$p = $$p->(:,xvals($$p->dim(1)-1))->sever;
+	   return;
+    }
+
+    sub __quit { $_[0]->{quit} = 1; }
+    
+    sub __add { my($w,$c,$p,$x,$y,$m) = @_;
+		$$p = $$p->glue(1,pdl($x,$y));
+    }
+
+no PDL::NiceSlice;
+		    
 }
 
 ######################################################################
@@ -2970,6 +3213,7 @@ sub _expand_abbrev {
 #
 #   - sort-order
 #     * a number: numbered options, if present appear at the beginning of the option dump, in numerical order.
+#   - documentation-string (optional)
 #
 # keywords with capital-letter value types are recognized even with a trailing number in the keyword;
 # this is to allow multiple values to be set in a single hash.  In the default scalar output, the
