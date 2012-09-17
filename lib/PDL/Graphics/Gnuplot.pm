@@ -68,7 +68,6 @@
 # even for routines (such as read_polygon) that could and would use
 # PDL::Options in other circumstances.
 #
-
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -284,6 +283,14 @@ PDL::Graphics::Gnuplot will use a 2D grid as a domain. Example:
 Here the only given piddle has dimensions (21,21). This is a 3D plot, so we are
 exactly 2 piddles short. Thus, PDL::Graphics::Gnuplot generates an implicit
 domain, corresponding to a 21-by-21 grid.
+
+C<PDL::Graphics::Gnuplot> will group arguments greedily, so you need
+to add separators when overplotting two separate curves on an implicit
+domain.  For example, C<plot($a,$b)> is intepreting as plotting C<$b>
+vs. C<$a>.  If you actually want to plot an overlay of both C<$a> and
+C<$b> against array index, you want C<plot($a,{},$b)> instead.  The 
+C<{}> is an empty hash ref. It serves to separate the argument list into
+two curves.
 
 =head2 Images
 
@@ -5690,13 +5697,15 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =over 3
 
-=item dump and tee don't work yet.
-
-=item some plot options need better parsing 
+=item some plot and curve options need better parsing
 
 =over 3
 
 =item - options to "with" selection: accept a list ref instead of a string with args
+
+=over 3
+
+=item - "at" for labels needs attention.
 
 =back
 
@@ -5704,7 +5713,7 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011 Dima Kogan and Craig DeForest
+Copyright 2011,2012 Dima Kogan and Craig DeForest
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
