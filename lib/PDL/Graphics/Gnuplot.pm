@@ -113,6 +113,11 @@ basic, or even complex, plots - though the full syntax is available
 for advanced users who want to take advantage of the full flexibility
 of the Gnuplot backend.
 
+Gnuplot recognizes both hard-copy and interactive plotting devices,
+and on interactive devices (like X11) it is possible to pan, scale,
+and rotate both 2-D and 3-D plots interactively.  You can also enter 
+graphical data through mouse clicks on the device window.
+
 The main subroutine that C<PDL::Graphics::Gnuplot> exports by default
 is C<gplot()>, which produces one or more overlain plots and/or images
 in a single plotting window.  Depending on options, C<gplot()> can 
@@ -357,7 +362,10 @@ terminals (such as x11) maintain their interactivity only while the
 underlying gnuplot process is active -- i.e. until another plot is
 created with the same PDL::Graphics::Gnuplot object, or until the perl
 process exits (whichever comes first).  Still others (the hardcopy 
-devices) aren't inteactive at all.
+devices) aren't interactive at all.
+
+Interactive devices also support mouse input: you can write PDL scripts
+that accept and manipulate graphical input from the plotted window.
 
 =head1 PLOT OPTIONS
 
@@ -1103,8 +1111,10 @@ If true, requests that this curve be plotted on the y2 axis instead of the main 
 
 =item tuplesize
 
-Specifies how many values represent each data point. For 2D plots this defaults
-to 2; for 3D plots this defaults to 3.
+Specifies how many values represent each data point.  Normally you
+don't need to set this as individual C<with> styles implicitly set a
+tuple size (which is automatically extended if you specify additional
+modifiers such as C<palette> that require more data). 
 
 =back
 
@@ -1346,6 +1356,53 @@ C<$plot-E<gt>plot()> multiple times reuses the plot window instead of
 creating a new one, and you can switch devices and use replot() on the
 object to output a single plot several different ways.
 
+After you have created an object, you can change its terminal/output device
+with the C<output> method. See C<output> for a description of terminal options
+and how to format them.
+
+=cut
+
+our $termTab;
+
+sub new
+{
+  my $classname = shift;
+
+  # Declare & bless minimal object to hold everything.
+  my $this = { t0          => [gettimeofday],   # last access
+	       options     => {multiplot=>0},   # multiplot option actually holds multiplotting state flag
+	       replottable => 0,                # small amount of state...
+	       interactive => 0,
+              };
+  bless($this,$classname);
+
+  output($this, @_);
+
+  # now that options are parsed, start up a gnuplot
+  # and copy the keys into the object
+  _startGnuplot($this,'main');
+  _startGnuplot($this,'syntax') if($check_syntax);
+  
+  _logEvent($this, "startGnuplot() finished") if ($this->{options}{tee});
+
+  return $this;
+}
+
+##############################
+# output - set output terminal and options.
+
+=head2 output - set the output device and options for a Gnuplot object
+
+=for usage
+
+    $window->output( device, %device_options, {plot_options} );
+
+=for ref
+
+You can control the output device of a PDL::Graphics::Gnuplot object on
+the fly.  That is useful, for example, to replot several versions of the 
+same plot to different output devices (interactive and hardcopy).
+
 Gnuplot interprets plot options differently per device.
 PDL::Graphics::Gnuplot attempts to interpret some of the more common
 ones in a common way.  In particular:
@@ -1392,81 +1449,62 @@ unique string -- so (e.g.) "size" can generally be abbreviated "si" and
 
 =cut
 
-our $termTab;
-
-sub new
-{
-  my $classname = shift;
-  
-  # Check that, if there is at least one more option, it is recognizable as a terminal
-  my $terminal;
-
-  our $termTabSource;
-
-  $terminal = lc(shift() // "x11");
-  if(!exists($termTab->{$terminal})) {
-      my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
-	  "Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n".
-	  "(default type for PDL::Graphics::Gnuplot is 'x11')\n";
-      barf($s);
-  }
-  
-  # Generate abbrevs on first invokation for each terminal type.
-  unless($termTab->{$terminal}->{opt}->[1]) {
-      $termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
-      $termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
-  }
-
-  # Check if the last passed-in parameter is a hash ref -- if it is, then it is plot options
-  my $poh;
-  if( (0+@_) && ref($_[$#_]) eq 'HASH') {
-      $poh = pop @_;
-  }
-
-  # Declare & bless minimal object to hold everything.
-  my $this = { t0          => [gettimeofday],   # last access
-	       options     => {multiplot=>0},   # multiplot option actually holds multiplotting state flag
-	       replottable => 0,                # small amount of state...
-	       interactive => 0,
-              };
-  bless($this,$classname);
-
-  # parse plot options
-  if($poh) {
-      options($this,$poh);
-  }
-
-  my $termOptions = {};
-  my $outputString;
-
-
-  # parse "terminal" options
-  if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
-      
-      # Stuff the default size unit into the options hash, so that the parser has access to it.
-      $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
-      
-      _parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
-      
-      $this->{options}->{output} = $termOptions->{output};
-      delete $termOptions->{output};
-      
-      ## Emit the terminal options line for this terminal.
-      $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
-      $this->{terminal} = $terminal;
+sub output {
+    my $this = _obj_or_global(\@_);
+    
+    # Check that, if there is at least one more option, it is recognizable as a terminal
+    
+    my $terminal;
+    $terminal = lc(shift() // "x11");
+    if(!exists($termTab->{$terminal})) {
+	my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
+	    "Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n".
+	    "(default type for PDL::Graphics::Gnuplot is 'x11')\n";
+	barf($s);
+    }
+    
+    # Generate abbrevs on first invokation for each terminal type.
+    unless($termTab->{$terminal}->{opt}->[1]) {
+	$termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
+	$termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
+    }
+    
+    # Check if the last passed-in parameter is a hash ref -- if it is, then it is plot options
+    my $poh;
+    if( (0+@_) && ref($_[$#_]) eq 'HASH') {
+	$poh = pop @_;
+    }
+    
+    
+    # parse plot options
+    if($poh) {
+	options($this,$poh);
+    }
+    
+    my $termOptions = {};
+    my $outputString;
+    
+    
+    # parse "terminal" options
+    if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
+	
+	# Stuff the default size unit into the options hash, so that the parser has access to it.
+	$termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
+	
+	_parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
+	
+	$this->{options}->{output} = $termOptions->{output};
+	delete $termOptions->{output};
+	
+	## Emit the terminal options line for this terminal.
+	$this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
+	$this->{terminal} = $terminal;
       $this->{mouse} = $termTab->{$terminal}->{mouse} || 0;
-  } else {
-      barf "PDL::Graphics::Gnuplot doesn't yet support this device, sorry\n";
-  }
-  
-  # now that options are parsed, start up a gnuplot
-  # and copy the keys into the object
-  _startGnuplot($this,'main');
-  _startGnuplot($this,'syntax') if($check_syntax);
-
-  _logEvent($this, "startGnuplot() finished") if ($this->{options}{tee});
-
-  return $this;
+    } else {
+	barf "PDL::Graphics::Gnuplot doesn't support the device '$terminal', sorry\n\n     Run PDL::Graphics::Gnuplot::terminfo() for a list of devices.\n\n";
+    }
+        
+    return $this;
 }
 
 ##############################
@@ -1710,7 +1748,17 @@ sub plot
 
     # If we're replotting, start with the last_plot options - which may not be "persistent" in the
     # object but persist in the last_plot stored state.
-    my $o = ($this->{replotting}) ? $this->{last_plot}->{options} : $this->{options};
+    # 
+    # *but* if we're replotting we have to preserve the current terminal, *not* the last terminal.
+    my $o;
+    if($this->{replotting}) {
+	$o = $this->{last_plot}->{options};
+	$o->{terminal} = $this->{options}->{terminal};
+	$o->{output}   = $this->{options}->{output};
+    } else {
+	$o = $this->{options};
+    }
+
 
     # Now parse the initial hash of plot options (if there is one)
     if(  (ref $_[0]) =~ m/^(HASH|ARRAY)/ ) {
@@ -1804,10 +1852,6 @@ sub plot
     # data specifiers and build a complete command line.
     #
     
-
-
-
-
     ##########
     # Check binary mode operation.  We normally let everything default to binary, but 
     # if certain bug-triggering conditions are identified we switch to ASCII.  This is
@@ -5231,7 +5275,6 @@ sub _startGnuplot
 	_killGnuplot($this,$suffix);
     }
     
-    $this->{replottable} = 0;
     $this->{options}->{multiplot} = 0;
 
     if( $this->{options}->{dump} ) {
@@ -5715,14 +5758,15 @@ sub _with_fits_prefrobnicator {
 
 =head1 COMPATIBILITY
 
-Everything should work on all platforms that support Gnuplot and Perl. That
-said, I<ONLY> Debian GNU/Linux has been tested to work. Please report successes
-or failures on other platforms to the author. A transcript of a failed run with
-{log => 1} would be most helpful.
+Everything should work on all platforms that support Gnuplot and Perl.
+Currently, only MacOS, Fedora Linux, and Debian Linux have been tested
+to work.  Please report successes or failures on other platforms to
+the authors. A transcript of a failed run with {tee => 1} would be most
+helpful.
 
 =head1 REPOSITORY
 
-L<https://github.com/dkogan/PDL-Graphics-Gnuplot>
+L<https://github.com/drzowie/PDL-Graphics-Gnuplot>
 
 =head1 AUTHOR
 
@@ -5754,7 +5798,8 @@ Copyright 2011,2012 Dima Kogan and Craig DeForest
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Perl Artistic License.
+by the Free Software Foundation; or the Perl Artistic License included with
+the Perl language.
 
 See http://dev.perl.org/licenses/ for more information.
 
