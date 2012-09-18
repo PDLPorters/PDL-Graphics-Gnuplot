@@ -512,8 +512,7 @@ scalar; if you want to set its parameters, you can feed in a list ref
 containing linewidth, linestyle, and linetype (with appropriate
 parameters for each), e.g.  C<< xzeroaxis=>[linewidth=>2] >>.
 
-=head2 Axis ranging and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
-=head2 POs for axis ranging: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
+=head2 POs for axis range and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
 accepts a list ref with (min, max).  If either min or max is missing, then
@@ -562,7 +561,7 @@ Axis tick marks are called "tics" within Gnuplot, and they are extensively
 controllable via the "<axis>tics" options.  In particular, major and minor
 ticks are supported, as are arbitrarily variable length ticks, non-equally
 spaced ticks, and arbitrarily labelled ticks.  Support exists for time formatted
-ticks (see "Time data" below).
+ticks (see C<POs for time data values> below).
 
 By default, gnuplot will automatically place major and minor ticks.
 You can turn off ticks on an axis by setting the appropriate <foo>tics
@@ -632,10 +631,10 @@ or
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
-=head2 POs for Time/date values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
+=head2 POs for time data values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
 
-Gnuplot contains support for plotting time, date, or elapsed time on
-any of its axes.  There are three main methods, which are mutually exclusive
+Gnuplot contains support for plotting absolute time and date on any of its axes,
+with conventional formatting. There are three main methods, which are mutually exclusive
 (i.e. you should not attempt to use two at once on the same axis).
 
 =over 3
@@ -645,28 +644,71 @@ any of its axes.  There are three main methods, which are mutually exclusive
 You can set any axis to plot timestamps rather than numeric values by
 setting the corresponding "data" plot option to "time",
 e.g. C<xdata=>"time">.  If you do so, then numeric values in the
-corresponding data are interpreted as UNIX times (seconds since the
-UNIX epoch).  No provision is made for UTC->TAI conversion (yet).  You
-can format how the times are plotted with the "format" option in the
-various "tics" options(above).  Output specifiers should be in
-UNIX strftime(3) format -- for example, 
- 
- xdata=>"time",xtics=>['format "%G-%m-%dT%H:%M:%S"']
-
+corresponding data are interpreted as UNIX time (seconds since the
+UNIX epoch, neglecting leap seconds).  No provision is made for
+UTC<->TAI conversion.  You can format how the times are plotted with
+the "format" option in the various "tics" options(above).  Output
+specifiers should be in UNIX strftime(3) format -- for example,
+C<xdata=>"time",xtics=>{format=>"%Y-%b-%dT%H:%M:%S"}>
 will plot UNIX times as ISO timestamps in the ordinate.
+
+Due to limitations within gnuplot, the time resolution in this mode is 
+limited to 1 second - if you want fractional seconds, you must use numerically
+formatted times (and/or create your own tick labels using the C<labels> suboption 
+to the C<?tics> option.
+
+B<Timestamp format specifiers>
+
+Time format specifiers use the following printf-like codes:
+
+=over 3
+
+=item Year A.D.: C<%Y> is 4-digit year; C<%y> is 2-digit year (1969-2068)
+
+=item Month of year: C<%m>: 01-12; C<%b> or C<%h>: abrev. name; C<%B>: full name
+
+=item Week of year: C<%W> (week starting Monday); C<%U> (week starting Sunday)
+
+=item Day of year: C<%j> (1-366; boundary is midnight)
+
+=item Day of month: C<%d> (01-31)
+
+=item Day of week: C<%w> (0-6, Sunday=0), %a (abrev. name), %A (full name)
+
+=item Hour of day: C<%k> (0-23); C<%H> (00-23); C<%l> (1-12); C<%I> (01-12)
+
+=item Am/pm: C<%p> ("am" or "pm")
+
+=item Minute of hour: C<%M> (00-60)
+
+=item Second of minute: C<%S> (0-60)
+
+=item Total seconds since start of 2000 A.D.: C<%s>
+
+=item Timestamps: C<%T> (same as C<%H:%M:%S>); C<%R> (same as C<%H:%M>); C<%r> (same as C<%I:%M:%S %p>)
+
+=item Datestamps: C<%D> (same as C<%m/%d/%y>); C<%F> (same as C<%Y-%m-%d>)
+
+=item ISO timestamps: use C<%DT%T>.
+
+=back
 
 =item B<day-of-week plotting>
 
-If you just want to plot named days of the week, you can instead use 
-the dtics options set plotting to day of week, where 0 is Sunday and 6
-is Saturday; values are interpreted modulo 7.  For example,
-C<< xmtics=>1,xrange=>[-4,9] >> will plot two weeks from Wednesday to
-Wednesday.
+If you just want to plot named days of the week, you can instead use
+the C<dtics> options set plotting to day of week, where 0 is Sunday and 6
+is Saturday; values are interpreted modulo 7.  For example, C<<
+xmtics=>1,xrange=>[-4,9] >> will plot two weeks from Wednesday to
+Wednesday. As far as output format goes, this is exactly equivalent to 
+using the C<%w> option with full formatting - but you can treat the 
+numeric range in terms of weeks rather than seconds.
 
 =item B<month-of-year plotting>
 
-The mtics options set plotting to months of the year, where 1 is January and 12 is 
+The C<mtics> options set plotting to months of the year, where 1 is January and 12 is 
 December, so C<< xdtics=>1, xrange=>[0,4] >> will include Christmas through Easter.
+This is exactly equivalent to using the C<%d> option with full formatting - but you 
+can treat the numeric range in terms of months rather than seconds.
 
 =back
 
@@ -1228,9 +1270,8 @@ our @EXPORT = qw(gpwin gplot greplot greset grestart);
 our $check_syntax = 0;
 our $gnuplot_req_v = 4.4;
 
-# when testing plots with ASCII i/o, this is the unit of test data
-my $testdataunit_ascii = "10 ";       # for ascii I/O - not around any more...
-my $testdataunit_binary = "........"; # 8 bytes - length of a double
+# when testing plots with binary i/o, this is the unit of test data
+my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
 
 # if I call plot() as a global function I create a new PDL::Graphics::Gnuplot
 # object. I would like the gnuplot process to persist to keep the plot
@@ -1254,7 +1295,6 @@ our $cmdFence = "cmdFENCEcmd";
 # Constructor(s)
 #
 # gpwin & new - constructor
-#
 # DESTROY - destructor kills gnuplot task
 #
 # _startGnuplot - helper for new
@@ -1461,33 +1501,6 @@ sub close
     restart($this);
 }
 
-
-=head2 options - set/get persistent plot options for a plot object
-
-=for usage
-
-  $w = new PDL::Graphics::Gnuplot();
-  $w->options( globalwith=>'lines' );
-  print %{$w->options()};
-
-=for ref
-  
-The options method parses plot options into a gnuplot object on a
-cumulative basis, and returns the resultant options hash.
-
-If called as a sub rather than a method, options() changes the 
-global gnuplot object.
-
-=cut
-
-*option = \&options;
-sub options {
-    my($me) = _obj_or_global(\@_);
-    $me->{options} = {} unless defined($me->{options});
-    _parseOptHash($me->{options}, $pOpt, @_);
-    return $me->{options};
-}
-
 =head2 restart - restart the gnuplot backend for a plot object
 
 =for usage
@@ -1564,6 +1577,38 @@ sub reset {
     $this->{replottable} = 0;
     delete $this->{last_plot};
     return $this;
+}
+
+
+##############################
+# 
+# Options setting routines
+# 
+
+=head2 options - set/get persistent plot options for a plot object
+
+=for usage
+
+  $w = new PDL::Graphics::Gnuplot();
+  $w->options( globalwith=>'lines' );
+  print %{$w->options()};
+
+=for ref
+  
+The options method parses plot options into a gnuplot object on a
+cumulative basis, and returns the resultant options hash.
+
+If called as a sub rather than a method, options() changes the 
+global gnuplot object.
+
+=cut
+
+*option = \&options;
+sub options {
+    my($me) = _obj_or_global(\@_);
+    $me->{options} = {} unless defined($me->{options});
+    _parseOptHash($me->{options}, $pOpt, @_);
+    return $me->{options};
 }
 
 ######################################################################
@@ -1759,13 +1804,14 @@ sub plot
     # data specifiers and build a complete command line.
     #
     
+
+
+
+
     ##########
-    # Zeroth: fix up some of the option defaults based on context.  In particular, gnuplot 4.4 
-    # doesn't handle image scaling anything like correctly, so unless an xrange/yrange is specified
-    # we have to take care of it ourselves.  
-    
-    # Check binary mode operation.  We normally do everything in binary, but 
-    # if certain bug-triggering conditions are identified we can default to ASCII.
+    # Check binary mode operation.  We normally let everything default to binary, but 
+    # if certain bug-triggering conditions are identified we switch to ASCII.  This is
+    # the "global" mode calculation, which can be overridden on a per-chunk basis.
 
     my $binary_mode = $this->{options}->{binary};
     unless(defined $binary_mode) {
@@ -1790,23 +1836,24 @@ sub plot
 	}
     }
 
+
+
+
+    ##########
+    # Figure per-curve binary/ASCII mode, and fix up some of the option defaults based on context.  
+    # In particular, gnuplot 4.4-4.6 don't handle image scaling correctly, so unless an xrange/yrange 
+    # is specified we have to take care of it ourselves.  
+    
     my ($cbmin,$cbmax) = (undef, undef);
     for my $i(0..$#$chunks) {
 
-	# Figure out, per-curve, whether to use binary or ASCII for that curve.
-	# Some 'with' formats require either binary or ASCII, and these
-	# are set in the chunks by parseArgs.  Others don't care; for
-	# those we use the global $binary_mode.  
-	#
-	# This line would be clearer with //, but ternary operator is used to 
-	# make it work with 5.8.8.
-	$chunks->[$i]->{binaryCurveFlag} = (defined $chunks->[$i]->{binaryWith}) ? $chunks->[$i]->{binaryWith} : $binary_mode;
+	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
+	$chunks->[$i]->{binaryCurveFlag} = $chunks->[$i]->{binaryWith} // $binary_mode;
 
 	# Everything else is an image fix
 	next if( !($chunks->[$i]->{imgFlag}) );
 	
 	# Fix up gnuplot ranging bug for images
-
 	if(defined($this->{options}->{xrange}) and !defined($chunks->[$i]->{options}->{xrange})) {
 	    $chunks->[$i]->{options}->{xrange} = $this->{options}->{xrange};
 	}
@@ -1827,7 +1874,7 @@ sub plot
 		$chunks->[$i]->{options}->{yrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
 	    } else {
 		# Autorange using x and y ranging -- sleaze out of matching gnuplot's algorithm by
-		# guessing at dx and dy.
+		# calculating dx and dy.
 		my($xmin,$xmax) = $chunks->[$i]->{data}->[0]->slice("(0)")->minmax;
 		my($ymin,$ymax) = $chunks->[$i]->{data}->[0]->slice("(1)")->minmax;
 		
@@ -1854,11 +1901,10 @@ sub plot
 	    $cbmin = $cmin if( !defined($cbmin)   or    $cbmin > $cmin );
 	    $cbmax = $cmax if( !defined($cbmax)   or    $cbmax < $cmax );
 	}
-
-
     }
 
-    # This is the cbrange kludge.  We use the same localization trick
+    ##############################
+    # Fix up cbrange if necessary.  We use the same localization trick
     # as for the whole options hash, only this time on just the single
     # keyword (in case we're not using a dcloned copy of the hash).
     $o = $this->{options}->{cbrange};
@@ -1869,15 +1915,11 @@ sub plot
 	$this->{options}->{cbrange} = $o;
     }
 
-    # Since we accept ranges as curve options, but they are only
+    ##############################
+    # Since we accept axis ranges as curve options, but they are only
     # allowed in the first curve of a single multi-curve plot, we
-    # don't allow ranges in later curves to be emitted.  This is a
-    # hack, since the alternatives are (a) disallowing all curve
-    # option ranges (inconvenient), or (b) trying to merge all ranges,
-    # which in turn requires parsing all the available tuple sizes to
-    # figure matrix values (which is tedious and I'm too lazy right
-    # now).
-    {
+    # don't allow ranges in later curves to be emitted.  
+    { 
 	my $rangeflag = 0;
 	for my $i(1..$#$chunks) {
 	    my $h = $chunks->[$i]->{options};
@@ -1888,22 +1930,16 @@ sub plot
 		}
 	    }
 	}
-	if($rangeflag) {
-	    print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n";
-	}
+	print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n"
+	    if($rangeflag);
     }
 
+
+    ##############################
     # If we're working with time data, and timefmt isn't set, then default it to '%s'.
-    my $using_times = 0;
-    for my $axis(qw/x x2 y y2 z cb/) {
-	$using_times++ if( defined($this->{options}->{$axis."data"}) and
-			           $this->{options}->{$axis."data"} =~ m/^time/i
-	    );
-    }
-    if($using_times and !defined($this->{options}->{timefmt})) {
-	$this->{options}->{timefmt} = '%s';
-    }
-	    
+    $this->{options}->{timefmt} = '%s'
+	if ( !defined($this->{options}->{timefmt}) and  
+	     grep { ($this->{options}->{$_."data"} // "") =~ m/^time/i }  qw/x x2 y y2 z cb/ );
     
     ##########
     # Emit the plot options lines that go above the plot command.  We do this 
@@ -1915,10 +1951,10 @@ sub plot
 	local($this->{options}->{output}) = ' ';
 	$testOptionsString = _emitOpts($this->{options}, $pOpt);
     }
-    
 
     ##########
-    # Generate the plot command with the fences in it. (fences are emitted in _emitOpts)
+    # Generate the plot command with the fences in it instead of data specifiers. 
+    # (The fences are emitted in _emitOpts and contained in the clobal $cmdFence)
     my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
 	join( ", ", 
 	      map { 
@@ -1968,6 +2004,8 @@ sub plot
 	    } ( join(",", ($chunks->[$i]->{data}->[0]->slice("(0)")->dims)),
 		join(",", (("1") x ($chunks->[$i]->{data}->[0]->ndims - 1)))
 	      );
+
+	    # Mock up test data - just a single data point for each (8 is the size of an IEEE double)
 	    $chunks->[$i]->{testdata} = "." x ($chunks->[$i]->{tuplesize} * 8);
 
 	} else {
@@ -1995,7 +2033,6 @@ sub plot
 	    } else {		
 		# ASCII transfer has been specified - plot command is easier, but the data are in ASCII.
 		$pchunk = $tchunk =   " '-' ".$plotcmds[$i];
-
 		$chunks->[$i]->{testdata} = " 1 " x ($chunks->[$i]->{tuplesize}) . "\ne\n";
 	    }
 	}
@@ -2057,9 +2094,7 @@ sub plot
 
 	} elsif( $chunk->{binaryCurveFlag}  ) {
 	    # Send in binary if the binary flag is set.
-
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
-
 	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
 
@@ -2106,10 +2141,11 @@ sub plot
     
 
     ##############################
-    # Finally, finally ...  send cleanup commands...
-    my $cleanup_cmd = "";
+    # Finally, finally ...  send any required cleanup commands.  This 
+    # starts with {bottomcmds} and includes several things we don't want to persist,
+    # but that do by default.
 
-    # Set any persistent values back to defaults here...
+    my $cleanup_cmd = "";
     {
 	my $bc = $this->{options}->{bottomcmds};
 	if(defined($bc)){
@@ -2121,12 +2157,9 @@ sub plot
 
     } 
 
-    # Clean up several things that we don't want to persist, but that do in gnuplot itself.  
-    # Don't issue a "reset" because we may want to replot or perform interactive operations,
-    # or may be inside a multiplot.
     $cleanup_cmd .= "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
 
-    # Mark the gnuplot as replottable.
+    # Mark the gnuplot as replottable - we now have a full set of plot parameters stashed away.
     $this->{replottable} = 1;
 
     if($check_syntax) {
@@ -2169,8 +2202,6 @@ sub plot
     # the same options.  As a special case, you can pass an array ref into the 
     # "legend" or "color" options in that case, and thereby specify a different legend/color 
     # for each of those threaded plots.
-    #
-    # Plot elements that are to be treated
     #
     sub parseArgs
     {
@@ -2969,8 +3000,12 @@ of points is at least n_points.
 You can optionally call a callback routine when any particular
 character is pressed.  The actions table is a hash ref whose keys are
 characters and whose values are either code refs (to be called on the
-associated keypress) or array refs containing a short description string
-followed by a code ref.
+associated keypress) or array refs containing a short description
+string followed by a code ref.  Non-printable characters (e.g. ESC,
+BS, DEL) are accessed via a hash followed by a three digit decimal
+ASCII code -- e.g. "#127" for DEL. Button events are indexed with the
+strings "BUTTON1", "BUTTON2", and "BUTTON3", and modifications must be 
+entered as well for shift, control, and 
 
 The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
    $obj is the plot object
@@ -2979,11 +3014,9 @@ The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
    $x and $y are the current scientific coordinate
    $mods is the modifier string.
 
-You can't override the 'q', or '\033' (ESC) callbacks.  You *can* override
+You can't override the 'q', or '#027' (ESC) callbacks.  You *can* override
 the BUTTON1 and DEL callbacks, potentially preventing the user from entering points
 at all!  You should do that with caution.
-
-Button events get the special events "BUTTON1", "BUTTON2", and "BUTTON3".
 
 =item close - (default true): generate a closed polygon
 
@@ -2995,7 +3028,6 @@ The routine will call markup after each click.
 =back
 
 =cut
-
 
 # This table describes option parsing for read_polygon.  Its format is the same as for the large
 # $plotOptionsTable, below.  Full Gnuplot options parsing is perhaps a bit overblown for this 
@@ -5553,7 +5585,10 @@ sub _obj_or_global {
 ##############################
 ##############################
 ### Prefrobnicators - preprocess data before plotting, for custom plot styles
-
+###
+### Currently there is only one - used for FITS image plotting.  It's
+### necessary because FITS images often have nonlinear mappings
+### between pixel and scientific coordinates.
 
 ##############################
 # _with_fits_prefrobnicator
@@ -5697,7 +5732,7 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =over 3
 
-=item some plot and curve options need better parsing
+=item some plot and curve options need better parsing:
 
 =over 3
 
