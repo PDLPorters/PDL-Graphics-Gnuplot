@@ -859,12 +859,12 @@ C<mapping> is used to set 3-D polar plots, either cylindrical or spherical
 =head2 POs for Markup - label, arrow, object
 
 You specify plot markup in advance of the plot command, with plot
-options.  The options give you access to a collection of (separately)
-numbered descriptions that are accumulated into the plot object.  To
-add a markup object to the next plot, supply the appropriate options
-as a list ref or as a single string.  To specify all markup objects
-at once, supply the appropriate options for all of them as a nested 
-list-of-lists.
+options (or add it later with the C<replot> method).  The options give
+you access to a collection of (separately) numbered descriptions that
+are accumulated into the plot object.  To add a markup object to the
+next plot, supply the appropriate options as a list ref or as a single
+string.  To specify all markup objects at once, supply the appropriate
+options for all of them as a nested list-of-lists.
 
 To modify an object, you can specify it by number, either by appending
 the number to the plot option name (e.g. C<arrow3>) or by supplying it
@@ -5740,7 +5740,9 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =over 3
 
-=item - "at" for labels needs attention.
+=item - labels need attention 
+
+Should they be handled as hashes? Further, deeply nested options (e.g. "at" for labels) need attention.
 
 =back
 
