@@ -1990,7 +1990,7 @@ sub plot
     # (e.g. prefrobnicators can set plot options via $this->{tmp_options}).  This is OK since 
     # we've already localized $this->{options}.
     if(exists($this->{tmp_options})) {
-	for my $k(%$this->{tmp_options}) {
+	for my $k(%{$this->{tmp_options}}) {
 	    $this->{options}->{$k} = $this->{tmp_options}->{$k};
 	}
     }
@@ -3452,8 +3452,10 @@ our $pOptionsTable =
     'justify'   => [sub { my($old,$new,$opt) = @_;
 			  if($new > 0) {
 			      $opt->{'size'} = ["ratio ".(-$new)];
-			      $opt->{'view'} = [] unless defined($opt->{'view'});
-			      @{$opt->{'view'}}[2..5] = ($new,$new,"equal","xyz");
+#			      if($new==1){
+#				  $opt->{'view'} = [] unless defined($opt->{'view'});
+#				  @{$opt->{'view'}}[2..5] = ($new,$new,"equal","xyz");
+#			      }
 			      return undef;
 			  } else {
 			      die "justify: positive value needed\n";
@@ -3653,7 +3655,7 @@ our $pOptionsTable =
     'rrange'    => ['l','range',undef,undef,
 		    'radial coordinate range in polar mode: rrange=>[<lo>,<hi>]'
     ],
-    'size'      => ['l','l',undef,undef,
+    'size'      => ['l','l',['view'],undef,
 		    'sets the size of the plot pane relative to the main window (see also "justify")'
     ],
     'style'     => ['H','H',undef,undef,
@@ -5692,15 +5694,17 @@ sub _with_fits_prefrobnicator {
 	$ymin = $this->{options}->{yrange}->[0];
 	$ymax = $this->{options}->{yrange}->[1];
     }
+
     unless(defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
-	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0)-1,$data->dim(1)-1);
+	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0),$data->dim(1)) - 0.5;
 	my $corners = $pix_corners->apply(t_fits($h));
-	
+
 	$xmin = $corners->slice("(0)")->min unless defined($xmin);
 	$xmax = $corners->slice("(0)")->max unless defined($xmax);
 	$ymin = $corners->slice("(1)")->min unless defined($ymin);
 	$ymax = $corners->slice("(1)")->max unless defined($ymax);
     }
+
     if($ymin > $ymax) {
 	my $a = $ymin; $ymin = $ymax; $ymax = $a;
     }
@@ -5710,10 +5714,10 @@ sub _with_fits_prefrobnicator {
     
     our $dest_hdr = {NAXIS=>2,
 		    NAXIS1=> $fitsmap_size,         NAXIS2=>$fitsmap_size,
-		    CRPIX1=> 1,                     CRPIX2=>1,
+		    CRPIX1=> 0.5,                   CRPIX2=>0.5,
 		    CRVAL1=> $xmin,                 CRVAL2=>$ymin,
-		    CDELT1=> ($xmax-$xmin)/($fitsmap_size-1),
-		    CDELT2=> ($xmax-$xmin)/($fitsmap_size-1),
+		    CDELT1=> ($xmax-$xmin)/($fitsmap_size),
+		    CDELT2=> ($ymax-$ymin)/($fitsmap_size),
 		    CTYPE1=> $h->{CTYPE1},	    CTYPE2=> $h->{CTYPE2},
 		    CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
     };
