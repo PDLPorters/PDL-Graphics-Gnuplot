@@ -5747,8 +5747,6 @@ sub _with_fits_prefrobnicator {
 				       )];
     }
 
-    print" ndc is ".join("x",$ndc->dims)."; data is ".join("x",$d2->dims)."\n";
-    
     if($d2->ndims == 2) {
 	$with->[0] = 'image';
 	$chunk->{options}->{with} = [@$with];
