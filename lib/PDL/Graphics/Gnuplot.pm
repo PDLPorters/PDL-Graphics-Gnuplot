@@ -1986,6 +1986,16 @@ sub plot
 	     grep { ($this->{options}->{$_."data"} // "") =~ m/^time/i }  qw/x x2 y y2 z cb/ );
     
     ##########
+    # Merge in any temporary options that have been set by the argument parsing.
+    # (e.g. prefrobnicators can set plot options via $this->{tmp_options}).  This is OK since 
+    # we've already localized $this->{options}.
+    if(exists($this->{tmp_options})) {
+	for my $k(%$this->{tmp_options}) {
+	    $this->{options}->{$k} = $this->{tmp_options}->{$k};
+	}
+    }
+
+    ##########
     # Emit the plot options lines that go above the plot command.  We do this 
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = _emitOpts($this->{options}, $pOpt);
@@ -5715,19 +5725,19 @@ sub _with_fits_prefrobnicator {
 
     # Now update plot options to set the axis labels, if they haven't been updated already...
     unless(defined $this->{options}->{xlabel}) {
-	$this->{options}->{xlabel} = [join(" ",
+	$this->{tmp_options}->{xlabel} = [join(" ",
 					  $h->{CTYPE1} || "X",
 					  $h->{CUNIT1} ? "($h->{CUNIT1})" : "(pixels)"
 				      )];
     }
     unless(defined $this->{options}->{ylabel}) {
-	$this->{options}->{ylabel} = [join(" ",
+	$this->{tmp_options}->{ylabel} = [join(" ",
 					  $h->{CTYPE2} || "Y",
 					  $h->{CUNIT2} ? "($h->{CUNIT2})" : "(pixels)"
 				      )];
     }
     unless(defined $this->{options}->{cblabel}) {
-	$this->{options}->{cblabel} = [join(" ",
+	$this->{tmp_options}->{cblabel} = [join(" ",
 					    $h->{BTYPE} || "Value",
 					    $h->{BUNIT} ? "($h->{BUNIT})" : ""
 				       )];
