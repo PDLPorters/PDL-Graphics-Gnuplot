@@ -347,10 +347,19 @@ coordinates with
 
  gplot( with=>'fits', $fitsdata );
 
-Because of the bug in the underlying Gnuplot engine, FITS
-rectification is handled using resampling from the L<PDL::Transform>
-package; this is correct but very slow.  Future versions may switch to
-full distorted-grid rendering if the Gnuplot render bug is fixed.
+The fits plot style accepts a modifier "resample" (which may be
+abbreviated), that allows you to downsample and/or rectify the image
+before it is passed to Gnuplot.  This is useful either to cut down on 
+the burden of transferring large blocks of image data or to rectify
+images with nonlinear World Coordinate System (WCS) transformations
+in their headers.  You can say
+
+ gplot( with=>'fits res 200', $fitsdata );
+ gplot( with=>'fits res 100,400',$fitsdata );
+
+to specify that the output are to be resampled onto a square 200x200
+grid or a 100x400 grid, respectively.  The resample sizes must be
+positive integers.
 
 =head2 Interactivity
 
@@ -5650,14 +5659,31 @@ sub _obj_or_global {
 #
 # We support a "with fits" image style that produces output in scientific
 # coordinates from a FITS file.  Ideally, we would simply produce an (x,y) grid
-# that supplies scientific coordinates for each pixel -- but that doesn't work,
-# due to shortcomings with gnuplot itself.  So instead we resample FITS files into
-# scientific coordinates with autoscaling.  Grids that are rectangular but scaled
-# seem to work OK.
-# 
+# that supplies scientific coordinates for each pixel -- but that doesn't work
+# in the general case due to shortcomings with gnuplot itself: the three-element
+# tuple form of "with image" only works for affine transformations between 
+# pixel coordinates and scientific plane coordinates.
+#
+#  
 our $fitsmap_size = 1024;
 sub _with_fits_prefrobnicator {
     my( $with, $this, $chunk, @data ) = @_;
+    my $resample_flag = 0;
+    my @resample_dims = ($fitsmap_size,$fitsmap_size);
+
+    # search for fits-specific 'with' options
+    my $i;
+    for($i=0;$i<@$with;$i++) {
+	if( ($with->[$i]) =~ m/^re(s(a(m(p(l(e)?)?)?)?)?)?/i ) {
+	    splice @$with, $i,1; # remove 'resample' from list
+	    $resample_flag = 1;
+	    if( ($with->[$i]) =~ m/(\d+)(\,(\d+))?/ ) {
+		@resample_dims = ($1, $3 // $1);
+		splice @$with, $i, 1;
+	    }
+	    $i--;
+	}
+    }
 
     eval "use PDL::Transform;";
     barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option" if($@);
@@ -5671,7 +5697,8 @@ sub _with_fits_prefrobnicator {
 	    warn("PDL::Graphics::Gnuplot: 'with fits' expected a FITS header.  Using pixel coordinates...\n");
 		 $h = {
 		     NAXIS=>2,
-		     NAXIS1 => $data->dim(0),    NAXIS2 => $data->dim(1),
+		     NAXIS1 => $data->dim(0), 
+		     NAXIS2 => $data->dim(1),
 		     CRPIX1=>1,		         CRPIX2=>1,
 		     CRVAL1=>0,   		 CRVAL2=>0,
 		     CDELT1=>1,                  CDELT2=>1,
@@ -5697,7 +5724,7 @@ sub _with_fits_prefrobnicator {
 
     unless(defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
 	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0),$data->dim(1)) - 0.5;
-	my $corners = $pix_corners->apply(t_fits($h));
+	my $corners = $pix_corners->apply(t_fits($data));
 
 	$xmin = $corners->slice("(0)")->min unless defined($xmin);
 	$xmax = $corners->slice("(0)")->max unless defined($xmax);
@@ -5713,19 +5740,25 @@ sub _with_fits_prefrobnicator {
     }
     
     our $dest_hdr = {NAXIS=>2,
-		    NAXIS1=> $fitsmap_size,         NAXIS2=>$fitsmap_size,
+		    NAXIS1=> $resample_dims[0],     NAXIS2=>$resample_dims[1],
 		    CRPIX1=> 0.5,                   CRPIX2=>0.5,
 		    CRVAL1=> $xmin,                 CRVAL2=>$ymin,
-		    CDELT1=> ($xmax-$xmin)/($fitsmap_size),
-		    CDELT2=> ($ymax-$ymin)/($fitsmap_size),
+		    CDELT1=> ($xmax-$xmin)/($resample_dims[0]),
+		    CDELT2=> ($ymax-$ymin)/($resample_dims[1]),
 		    CTYPE1=> $h->{CTYPE1},	    CTYPE2=> $h->{CTYPE2},
 		    CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
     };
-    
-    my $d2 = $data->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
 
-#    my $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($data) ); 
-    my $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($d2) );
+    my ($d2,$ndc);
+    if($resample_flag) {
+	my $d1 = double $data;
+	unless($data->hdrcpy) {$d1->sethdr($data->gethdr);} # no copying - ephemeral value
+	$d2 = $d1->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
+	$ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($d2) );
+    } else {
+	$d2 = $data;
+	$ndc = ndcoords($data->dim(0),$data->dim(1))->apply(t_fits($data));
+    }
 
     # Now update plot options to set the axis labels, if they haven't been updated already...
     unless(defined $this->{options}->{xlabel}) {
