@@ -132,6 +132,77 @@ this will plot X vs. sqrt(X):
  $y->inplace->sqrt;
  $w->replot($x,$y);
 
+=head2 Plot styles supported
+
+Gnuplot itself supports a wide range of plot styles, and all are supported by 
+PDL::Graphics::Gnuplot.  They are:
+
+=over 3
+
+=item * C<boxerrorbars> - combo of C<boxes> and C<yerrorbars>, below (2D)
+
+=item * C<boxes> - simple boxes around regions on the plot (2D)
+
+=item * C<boxxyerrorbars> - Render X and Y error bars as boxes (2D)
+
+=item * C<candlesticks> - Y error bars with inner and outer limits (2D)
+
+=item * C<circles> - circles with variable radius at each point: X/Y/radius (2D)
+
+=item * C<dots> - tiny points ("dots") at each point, e.g. for scatterplots (2D/3D)
+
+=item * C<ellipses> - ellipses.  Accepts X/Y/major/minor/angle (2D)
+
+=item * C<filledcurves> - closed polygons or axis-to-line filled shapes (2D)
+
+=item * C<financebars> - financial style plot. Accepts date/open/low/high/close (2D)
+
+=item * C<fsteps> - square bin plot; delta-Y, then delta-X (see C<steps>, C<histeps>) (2D)
+
+=item * C<histeps> - square bin plot; plateaus centered on X coords (see C<fsteps>, C<steps>) (2D)
+
+=item * C<histogram> - binned histogram of dataset (not direct plot; see C<newhistogram>) (2D)
+
+=item * C<fits> - (PDL-specific) renders FITS image files in scientific coordinates
+
+=item * C<image> - Takes (i), (x,y,i), or (x,y,z,i).  See C<rgbimage>, C<rgbalpha>, C<fits>. (2D/3D)
+
+=item * C<impulses> - vertical line from axis to the plotted point (2D/3D)
+
+=item * C<labels> - Text labels at specified locations all over the plot (2D/3D)
+
+=item * C<lines> - regular line plot (2D/3D)
+
+=item * C<linespoints> - line plot with symbols at plotted points (2D/3D)
+
+=item * C<newhistogram> - multiple-histogram-friendly histogram style (see C<histogram>) (2D)
+
+=item * C<points> - symbols at plotted points (2D/3D)
+
+=item * C<rgbalpha> - R/G/B color image with variable transparency (2D/3D)
+
+=item * C<rgbimage> - R/G/B color image (2D/3D)
+
+=item * C<steps> - square bin plot; delta-X, then delta-Y (see C<fsteps>, C<histeps>) (2D)
+
+=item * C<vectors> - Small arrows: (x,y,[z]) -> (x+dx,y+dy,[z+dz]) (2D/3D)
+
+=item * C<xerrorbars> - points with X error bars ("T" form) (2D)
+
+=item * C<xyerrorbars> - points with both X and Y error bars ("T" form) (2D)
+
+=item * C<yerrorbars> - points with Y error bars ("T" form) (2D)
+
+=item * C<xerrorlines> - line plot with X errorbars at each point.  (2D)
+
+=item * C<xyerrorlines> - line plot with XY errorbars at each point. (2D)
+
+=item * C<yerrorlines> - line plot with Y error limits at each point. (2D)
+
+=item * C<pm3d> - three-dimensional variable-position surface plot
+
+=back
+
 =head2 Options arguments
 
 The plot options are parameters that affect the whole plot, like the title of
@@ -1667,6 +1738,10 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 =item - labels need attention 
 
 Should they be handled as hashes? Further, deeply nested options (e.g. "at" for labels) need attention.
+
+=item - new plot styles
+
+The "boxplot" plot style (new to 4.6?) requires a different using syntax and will require some hacking to support.
 
 =back
 
