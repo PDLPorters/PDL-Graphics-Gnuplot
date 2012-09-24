@@ -136,13 +136,13 @@ interface. Plot objects track individual gnuplot subprocesses.  Direct
 calls to C<gplot()> are tracked through a global object that stores
 globally set configuration variables.
 
-Gnuplot collects two kinds of options hash: B<plot options>, which
-describe the overall structure of the plot being produced (e.g. axis
-specifications, window size, and title), and B<curve options>, which
-describe the behavior of individual traces or collections of points
-being plotted.  In addition, the module itself supports options that
-allow direct pass-through of plotting commands to the underlying
-gnuplot process.
+The C<gplot()> sub (or the C<plot()> method) collects two kinds of
+options hash: B<plot options>, which describe the overall structure of
+the plot being produced (e.g. axis specifications, window size, and
+title), and B<curve options>, which describe the behavior of
+individual traces or collections of points being plotted.  In
+addition, the module itself supports options that allow direct
+pass-through of plotting commands to the underlying gnuplot process.
 
 =head2 Basic plotting
 
@@ -299,8 +299,7 @@ two curves.
 
 =head2 Images
 
-PDL::Graphics::Gnuplot supports image plotting in four styles via the "with"
-curve option. 
+PDL::Graphics::Gnuplot supports four styles of image plot, via the "with" curve option.
 
 The "image" style accepts a single image plane and displays it using
 the palette (pseudocolor map) that is specified in the plot options for that plot.
@@ -341,18 +340,20 @@ but this appears not to work properly for anything more complicated
 than a trivial matrix of X and Y values.
 
 PDL::Graphics::Gnuplot provides a "fits" plot style that interprets
-WCS information in a supplied FITS header, to display image data in 
-rectified scientific cooedinates.   You can plot FITS images in scientific
-coordinates with
+World Coordinate System (WCS) information supplied in the header of
+the scientific image format FITS. The image is displayed in rectified
+scientific coordinates, rather than in pixel coordinates.  You can plot
+FITS images in scientific coordinates with
 
  gplot( with=>'fits', $fitsdata );
 
 The fits plot style accepts a modifier "resample" (which may be
 abbreviated), that allows you to downsample and/or rectify the image
-before it is passed to Gnuplot.  This is useful either to cut down on 
-the burden of transferring large blocks of image data or to rectify
-images with nonlinear World Coordinate System (WCS) transformations
-in their headers.  You can say
+before it is passed to the Gnuplot back-end.  This is useful either to
+cut down on the burden of transferring large blocks of image data or
+to rectify images with nonlinear WCS transformations in their headers.
+(gnuplot itself has a bug that prevents direct rendering of images in
+nonlinear coordinates).
 
  gplot( with=>'fits res 200', $fitsdata );
  gplot( with=>'fits res 100,400',$fitsdata );
@@ -1663,7 +1664,7 @@ sub options {
 #
 # plot - the main API function to generate a plot. 
 
-=head2 gplot - exported plot method (synonym for "PDL::Graphics::Gnuplot::plot")
+=head2 gplot - plot method exported by default (synonym for "PDL::Graphics::Gnuplot::plot")
 
 =head2 plot - method to generate a plot
 
@@ -1671,14 +1672,15 @@ sub options {
 
 This is the main plotting routine in PDL::Graphics::Gnuplot.
 
-Each C<gplot()> call creates a new plot from whole cloth, either creating
+Each C<plot()> call creates a new plot from whole cloth, either creating
 or overwriting the output for that device.
 
 If you want to add features to an existing plot, use C<replot>.  
 
 =for usage
 
- gplot({temp_plot_options},                 # optional
+ $w=gpwin();
+ $w->plot({temp_plot_options},                 # optional
       curve_options, data, data, ... ,      # curve_options are optional for the first plot
       curve_options, data, data, ... ,
        {temp_plot_options});
@@ -3071,11 +3073,18 @@ strings "BUTTON1", "BUTTON2", and "BUTTON3", and modifications must be
 entered as well for shift, control, and 
 
 The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
-   $obj is the plot object
-   $c is the character (or "BUTTON<n>" string),
-   $poly is a scalar ref; $$poly is the current polygon before the action,
-   $x and $y are the current scientific coordinate
-   $mods is the modifier string.
+
+=over 3
+
+=item C<$obj> is the plot object
+
+=item C<$c> is the character (or "BUTTONC<n>" string),
+
+=item C<$poly> is a scalar ref; $$poly is the current polygon before the action,
+
+=item C<$x> and C<$y> are the current scientific coordinates, and
+
+=item C<$mods> is the modifier string.
 
 You can't override the 'q', or '#027' (ESC) callbacks.  You *can* override
 the BUTTON1 and DEL callbacks, potentially preventing the user from entering points

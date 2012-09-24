@@ -34,6 +34,7 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
  pdl> $z     = zeros(200)->xlinvals(0, 5);
  pdl> $w->plot3d(cos($theta), sin($theta), $z);
 
+
 =head1 DESCRIPTION
 
 This module allows PDL data to be plotted using Gnuplot as a backend
@@ -50,12 +51,17 @@ basic, or even complex, plots - though the full syntax is available
 for advanced users who want to take advantage of the full flexibility
 of the Gnuplot backend.
 
+Gnuplot recognizes both hard-copy and interactive plotting devices,
+and on interactive devices (like X11) it is possible to pan, scale,
+and rotate both 2-D and 3-D plots interactively.  You can also enter 
+graphical data through mouse clicks on the device window.
+
 The main subroutine that C<PDL::Graphics::Gnuplot> exports by default
 is C<gplot()>, which produces one or more overlain plots and/or images
 in a single plotting window.  Depending on options, C<gplot()> can 
 produce line plots, scatterplots, error boxes, "candlesticks", images,
 or any overlain combination of these elements; or perspective views
-of 3-D renderings such as surface plots.
+of 3-D renderings such as surface plots.  
 
 A call to C<gplot()> looks like:
 
@@ -68,13 +74,13 @@ interface. Plot objects track individual gnuplot subprocesses.  Direct
 calls to C<gplot()> are tracked through a global object that stores
 globally set configuration variables.
 
-Gnuplot collects two kinds of options hash: B<plot options>, which
-describe the overall structure of the plot being produced (e.g. axis
-specifications, window size, and title), and B<curve options>, which
-describe the behavior of individual traces or collections of points
-being plotted.  In addition, the module itself supports options that
-allow direct pass-through of plotting commands to the underlying
-gnuplot process.
+The C<gplot()> sub (or the C<plot()> method) collects two kinds of
+options hash: B<plot options>, which describe the overall structure of
+the plot being produced (e.g. axis specifications, window size, and
+title), and B<curve options>, which describe the behavior of
+individual traces or collections of points being plotted.  In
+addition, the module itself supports options that allow direct
+pass-through of plotting commands to the underlying gnuplot process.
 
 =head2 Basic plotting
 
@@ -231,8 +237,7 @@ two curves.
 
 =head2 Images
 
-PDL::Graphics::Gnuplot supports image plotting in four styles via the "with"
-curve option.
+PDL::Graphics::Gnuplot supports four styles of image plot, via the "with" curve option.
 
 The "image" style accepts a single image plane and displays it using
 the palette (pseudocolor map) that is specified in the plot options for that plot.
@@ -262,7 +267,7 @@ directly.  These are the "with" styles "rgbimage" and "rgbalpha".  For each
 of them you must specify the channels as separate PDLs:
 
  gplot( with=>'rgbimage', $rgbim->dog );           # RGB  the long way
- gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way
+ gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way 
 
 According to the gnuplot specification you can also give X and Y
 values for each pixel, as in
@@ -273,16 +278,27 @@ but this appears not to work properly for anything more complicated
 than a trivial matrix of X and Y values.
 
 PDL::Graphics::Gnuplot provides a "fits" plot style that interprets
-WCS information in a supplied FITS header, to display image data in 
-rectified scientific cooedinates.   You can plot FITS images in scientific
-coordinates with
+World Coordinate System (WCS) information supplied in the header of
+the scientific image format FITS. The image is displayed in rectified
+scientific coordinates, rather than in pixel coordinates.  You can plot
+FITS images in scientific coordinates with
 
  gplot( with=>'fits', $fitsdata );
 
-Because of the bug in the underlying Gnuplot engine, FITS
-rectification is handled using resampling from the L<PDL::Transform>
-package; this is correct but very slow.  Future versions may switch to
-full distorted-grid rendering if the Gnuplot render bug is fixed.
+The fits plot style accepts a modifier "resample" (which may be
+abbreviated), that allows you to downsample and/or rectify the image
+before it is passed to the Gnuplot back-end.  This is useful either to
+cut down on the burden of transferring large blocks of image data or
+to rectify images with nonlinear WCS transformations in their headers.
+(gnuplot itself has a bug that prevents direct rendering of images in
+nonlinear coordinates).
+
+ gplot( with=>'fits res 200', $fitsdata );
+ gplot( with=>'fits res 100,400',$fitsdata );
+
+to specify that the output are to be resampled onto a square 200x200
+grid or a 100x400 grid, respectively.  The resample sizes must be
+positive integers.
 
 =head2 Interactivity
 
@@ -294,7 +310,10 @@ terminals (such as x11) maintain their interactivity only while the
 underlying gnuplot process is active -- i.e. until another plot is
 created with the same PDL::Graphics::Gnuplot object, or until the perl
 process exits (whichever comes first).  Still others (the hardcopy 
-devices) aren't inteactive at all.
+devices) aren't interactive at all.
+
+Interactive devices also support mouse input: you can write PDL scripts
+that accept and manipulate graphical input from the plotted window.
 
 =head1 PLOT OPTIONS
 
@@ -311,7 +330,7 @@ convenience.
 =head2 POs for Output: terminal, termoption, output, device, hardcopy
 
 C<terminal> sets the output device type for Gnuplot, and C<output> sets the 
-actual output file or window number.
+actual output file or window number.  
 
 C<device> and C<hardcopy> are for convenience.  C<device> offers a 
 PGPLOT-style device specifier in "filename/device" format (the "filename"
@@ -324,11 +343,12 @@ For finer grained control of the plotting environment, you can send
 plot options, you can include terminal options by interpolating them 
 into a string, as in C<terminal jpeg interlace butt crop>, or you can
 use the constructor C<new> (also exported as C<gpwin>), which parses
-terminal options as an argument list.
+terminal options as an argument list.  
 
 The routine C<PDL::Graphics::Gnuplot::terminfo> prints a list of all
 availale terminals or, if you pass in a terminal name, options accepted
 by that terminal.
+
 
 =head2 POs for Titles: title, (x|x2|y|y2|z|cb)label, key
 
@@ -384,7 +404,7 @@ containing (x,y): C<key=>[at=>[0.5,0.5]]>) is an exact location to place the key
 
 =item * font "<face>,<size>" - set font for the labels
 
-=item * textcolor <colorspec>
+=item * textcolor <colorspec> 
 
 =item * [no]box linestyle <ls> linetype <lt> linewidth <lw> - control box around the key
 
@@ -407,6 +427,7 @@ in the order given.
 
 =item * <integer> - packed bit flags for which border lines to draw
 
+
 The default if you set a true value for C<border> is to draw all border lines. 
 You can feed in a single integer value containing a bit mask, to draw only some
 border lines.  From LSB to MSB, the coded lines are bottom, left, top, right for 
@@ -421,7 +442,7 @@ top plane edges.
 
 =item * ( back | front ) - draw borders first or last (controls hidden line appearance)
 
-=item * linewidth <lw>, linestyle <ls>, linetype <lt>
+=item * linewidth <lw>, linestyle <ls>, linetype <lt> 
 
 These are Gnuplot's usual three options for line control.
 
@@ -438,6 +459,7 @@ vertical (X) and horizontal (Y) grid lines on major tics.
 To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more 
 control, feed in a list ref with zero or more of the following parameters, in order:
 
+
 The C<zeroaxis> keyword indicates whether to actually draw each axis
 line at the corresponding zero along its indicated dimension.  For
 example, to draw the X axis (y=0), use C<< xzeroaxis=>1 >>.  If you just
@@ -446,8 +468,7 @@ scalar; if you want to set its parameters, you can feed in a list ref
 containing linewidth, linestyle, and linetype (with appropriate
 parameters for each), e.g.  C<< xzeroaxis=>[linewidth=>2] >>.
 
-=head2 Axis ranging and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
-=head2 POs for axis ranging: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
+=head2 POs for axis range and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
 accepts a list ref with (min, max).  If either min or max is missing, then
@@ -473,7 +494,7 @@ range on that axis.  C<autoscale> allows more explicit control of how
 autoscaling is performed, on an axis-by-axis basis.  It accepts a list
 ref, each element of which specifies how a single axis should be
 autoscaled.  Each element contains an axis name followed by one of
-"fix,"min","max","fixmin", or "fixmax", e.g.
+"fix,"min","max","fixmin", or "fixmax", e.g. 
 
  autoscale=>['xmax','yfix']
 
@@ -496,13 +517,13 @@ Axis tick marks are called "tics" within Gnuplot, and they are extensively
 controllable via the "<axis>tics" options.  In particular, major and minor
 ticks are supported, as are arbitrarily variable length ticks, non-equally
 spaced ticks, and arbitrarily labelled ticks.  Support exists for time formatted
-ticks (see "Time data" below).
+ticks (see C<POs for time data values> below).
 
 By default, gnuplot will automatically place major and minor ticks.
 You can turn off ticks on an axis by setting the appropriate <foo>tics
 option to a defined, false scalar value (e.g. C<< xtics=>0 >>), and turn them
 on with default values by setting the option to a true scalar value
-(e.g. C<< xtics=>1 >>).
+(e.g. C<< xtics=>1 >>). 
 
 If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
@@ -511,11 +532,11 @@ of a unit).
 Each tics option can accept a list or hash ref containing options to
 pass to Gnuplot.  If you want PDL::Graphics::Gnuplot to parse your options
 for you (inserting commas and quotes, for example, where the gnuplot backend 
-wants them), then you must pass in a hash ref.
+wants them), then you must pass in a hash ref.  
 
 If you are comfortable with the Gnuplot backend's syntax, then you can 
 pass in a scalar string or a list ref that is interpolated into a single
-space-separated string to be passed to the gnuplot backend.
+space-separated string to be passed to the gnuplot backend.  
 
 The keywords accepted by the hash are:
 
@@ -531,7 +552,7 @@ The keywords accepted by the hash are:
 
 =item * out - set this to 1 to draw tics outward from the axis/border
 
-=item * scale - multiplier on tic length.
+=item * scale - multiplier on tic length.  
 
 If you pass in undef, tics get the default length.  If you pass in a scalar, major tics get scaled.  You can pass in a list ref to scale minor tics too.
 
@@ -541,7 +562,7 @@ If you pass in undef, tics get the default length.  If you pass in a scalar, maj
 
 =item * locations - sets tic locations.  list ref: [incr], [start, incr], or [start, incr, stop].
 
-=item * labels - sets tic locations explicitly, with text labels for each.
+=item * labels - sets tic locations explicitly, with text labels for each. 
 
 The labels should be a nested list ref that is a collection of duals
 or triplets.  Each dual or triplet should contain
@@ -566,10 +587,10 @@ or
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
-=head2 POs for Time/date values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
+=head2 POs for time data values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
 
-Gnuplot contains support for plotting time, date, or elapsed time on
-any of its axes.  There are three main methods, which are mutually exclusive
+Gnuplot contains support for plotting absolute time and date on any of its axes,
+with conventional formatting. There are three main methods, which are mutually exclusive
 (i.e. you should not attempt to use two at once on the same axis).
 
 =over 3
@@ -579,28 +600,71 @@ any of its axes.  There are three main methods, which are mutually exclusive
 You can set any axis to plot timestamps rather than numeric values by
 setting the corresponding "data" plot option to "time",
 e.g. C<xdata=>"time">.  If you do so, then numeric values in the
-corresponding data are interpreted as UNIX times (seconds since the
-UNIX epoch).  No provision is made for UTC->TAI conversion (yet).  You
-can format how the times are plotted with the "format" option in the
-various "tics" options(above).  Output specifiers should be in
-UNIX strftime(3) format -- for example,
-
- xdata=>"time",xtics=>['format "%G-%m-%dT%H:%M:%S"']
-
+corresponding data are interpreted as UNIX time (seconds since the
+UNIX epoch, neglecting leap seconds).  No provision is made for
+UTC<->TAI conversion.  You can format how the times are plotted with
+the "format" option in the various "tics" options(above).  Output
+specifiers should be in UNIX strftime(3) format -- for example,
+C<xdata=>"time",xtics=>{format=>"%Y-%b-%dT%H:%M:%S"}>
 will plot UNIX times as ISO timestamps in the ordinate.
+
+Due to limitations within gnuplot, the time resolution in this mode is 
+limited to 1 second - if you want fractional seconds, you must use numerically
+formatted times (and/or create your own tick labels using the C<labels> suboption 
+to the C<?tics> option.
+
+B<Timestamp format specifiers>
+
+Time format specifiers use the following printf-like codes:
+
+=over 3
+
+=item Year A.D.: C<%Y> is 4-digit year; C<%y> is 2-digit year (1969-2068)
+
+=item Month of year: C<%m>: 01-12; C<%b> or C<%h>: abrev. name; C<%B>: full name
+
+=item Week of year: C<%W> (week starting Monday); C<%U> (week starting Sunday)
+
+=item Day of year: C<%j> (1-366; boundary is midnight)
+
+=item Day of month: C<%d> (01-31)
+
+=item Day of week: C<%w> (0-6, Sunday=0), %a (abrev. name), %A (full name)
+
+=item Hour of day: C<%k> (0-23); C<%H> (00-23); C<%l> (1-12); C<%I> (01-12)
+
+=item Am/pm: C<%p> ("am" or "pm")
+
+=item Minute of hour: C<%M> (00-60)
+
+=item Second of minute: C<%S> (0-60)
+
+=item Total seconds since start of 2000 A.D.: C<%s>
+
+=item Timestamps: C<%T> (same as C<%H:%M:%S>); C<%R> (same as C<%H:%M>); C<%r> (same as C<%I:%M:%S %p>)
+
+=item Datestamps: C<%D> (same as C<%m/%d/%y>); C<%F> (same as C<%Y-%m-%d>)
+
+=item ISO timestamps: use C<%DT%T>.
+
+=back
 
 =item B<day-of-week plotting>
 
-If you just want to plot named days of the week, you can instead use 
-the dtics options set plotting to day of week, where 0 is Sunday and 6
-is Saturday; values are interpreted modulo 7.  For example,
-C<< xmtics=>1,xrange=>[-4,9] >> will plot two weeks from Wednesday to
-Wednesday.
+If you just want to plot named days of the week, you can instead use
+the C<dtics> options set plotting to day of week, where 0 is Sunday and 6
+is Saturday; values are interpreted modulo 7.  For example, C<<
+xmtics=>1,xrange=>[-4,9] >> will plot two weeks from Wednesday to
+Wednesday. As far as output format goes, this is exactly equivalent to 
+using the C<%w> option with full formatting - but you can treat the 
+numeric range in terms of weeks rather than seconds.
 
 =item B<month-of-year plotting>
 
-The mtics options set plotting to months of the year, where 1 is January and 12 is 
+The C<mtics> options set plotting to months of the year, where 1 is January and 12 is 
 December, so C<< xdtics=>1, xrange=>[0,4] >> will include Christmas through Easter.
+This is exactly equivalent to using the C<%d> option with full formatting - but you 
+can treat the numeric range in terms of months rather than seconds.
 
 =back
 
@@ -627,7 +691,7 @@ are given in scientific (plotted) axis units.
 
 The C<origin> option lets you specify the origin (lower left corner)
 of an individual plot on the plotting window.  The coordinates are 
-screen coordinates -- i.e. fraction of the total plotting window.
+screen coordinates -- i.e. fraction of the total plotting window.  
 
 The size option lets you adjust the size and aspect ratio of the plot, 
 as an absolute fraction of the plot window size.  You feed in fractional
@@ -640,7 +704,7 @@ in favor of the pseudo-option C<justify>.
 
 C<justify> sets the scientific aspect ratio of a 2-D plot.  Unity 
 yields a plot with a square scientific aspect ratio.  Larger
-numbers yield taller plots.
+numbers yield taller plots. 
 
 C<clip> controls the border between the plotted data and the border of the plot.
 There are three clip types supported:   points, one, and two.  You can set them 
@@ -702,7 +766,7 @@ sets equal length scales on all three axes.
 
 The C<pm3d> option accepts several parameters to control the pm3d plot style,
 which is a palette-mapped 3d surface.  They are not documented here in this
-version of the module but are explained in the gnuplot manual.
+version of the module but are explained in the gnuplot manual.  
 
 C<hidden3d> accepts a list of parameters to control how hidden surfaces are
 plotted (or not) in 3D. It accepts a boolean argument indicating whether to hide
@@ -751,16 +815,16 @@ C<mapping> is used to set 3-D polar plots, either cylindrical or spherical
 =head2 POs for Markup - label, arrow, object
 
 You specify plot markup in advance of the plot command, with plot
-options.  The options give you access to a collection of (separately)
-numbered descriptions that are accumulated into the plot object.  To
-add a markup object to the next plot, supply the appropriate options
-as a list ref or as a single string.  To specify all markup objects
-at once, supply the appropriate options for all of them as a nested 
-list-of-lists.
+options (or add it later with the C<replot> method).  The options give
+you access to a collection of (separately) numbered descriptions that
+are accumulated into the plot object.  To add a markup object to the
+next plot, supply the appropriate options as a list ref or as a single
+string.  To specify all markup objects at once, supply the appropriate
+options for all of them as a nested list-of-lists.
 
 To modify an object, you can specify it by number, either by appending
 the number to the plot option name (e.g. C<arrow3>) or by supplying it
-as the first element of the option list for that object.
+as the first element of the option list for that object.  
 
 To remove all objects of a given type, supply undef (e.g. C<< arrow=>undef >>).
 
@@ -780,6 +844,7 @@ do this:
 
 where C<$w> is a Gnuplot object and C<$n> contains the label number
 you care about.
+
 
 =head3 label - add a text label to the plot.
 
@@ -830,7 +895,7 @@ in a future version), as in
 
 =item ( front | back ) - rendering order (last or first)
 
-=item textcolor <colorspec>
+=item textcolor <colorspec> 
 
 =item (point <pointstyle> | nopoint ) - control whether the exact position is marked
 
@@ -859,7 +924,7 @@ for details.
 =item ( to | rto ) <position>  - end of arrow line
 
 These work like C<from>.  For absolute placement, use "to".  For placement
-relative to the C<from> position, use "rto".
+relative to the C<from> position, use "rto". 
 
 =item (arrowstyle | as) <arrow_style>
 
@@ -893,7 +958,7 @@ The arguments, all of which are optional but which must be given in the order li
 
 =item <object-type> <object-properties> - type name of the shape and its type-specific properties
 
-The <object-type> is one of four words: "rectangle", "ellipse", "circle", or "polygon".
+The <object-type> is one of four words: "rectangle", "ellipse", "circle", or "polygon".  
 
 You can specify a rectangle with C<< from=>$pos1, [r]to=>$pos2 >>, with C<< center=>$pos1, size=>"$w,$h" >>,
 or with C<< at=>$pos1,size=>"$w,$h" >>.
@@ -902,7 +967,7 @@ You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$p
 by C<< angle=>$a >>.
 
 You can specify a circle with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed 
-by C<> size=>$radius>> and (optionally) C<< arc=>"[$begin:$end]" >>.
+by C<> size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
 
 You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with 
 C<< from=>$pos1,rto=>$diff1,rto=>$diff2,...rto=>$diffn >>.
@@ -969,7 +1034,9 @@ addition> to writing to a gnuplot process. This is I<not> a dry run: data is
 sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
 this log will contain binary data, if the 'binary' option is given (see below)
 
-=head1 CURVE OPTIONS
+=back
+
+=head1 CURVE OPTIONS 
 
 The curve options describe details of specific curves within a plot. 
 They are in a hash, whose keys are as follows:
@@ -992,8 +1059,10 @@ If true, requests that this curve be plotted on the y2 axis instead of the main 
 
 =item tuplesize
 
-Specifies how many values represent each data point. For 2D plots this defaults
-to 2; for 3D plots this defaults to 3.
+Specifies how many values represent each data point.  Normally you
+don't need to set this as individual C<with> styles implicitly set a
+tuple size (which is automatically extended if you specify additional
+modifiers such as C<palette> that require more data). 
 
 =back
 
@@ -1133,18 +1202,26 @@ one can do
 This command is equivalent to the C<hardcopy> shorthand used previously, but the
 fonts and sizes can be changed.
 
-=head1 Methods
+=head1 Methods 
 
+=cut
 =head2 gpwin - exported constructor (synonymous with new)
+
+=for usage
 
  use PDL::Graphics::Gnuplot;
  $w = gpwin( $options );
  $w->plot( @plot_args );
 
+=for ref 
+
 This is just a synonym for the "new" method.  It is exported into the
 current package by default for convenience.
 
+=cut
 =head2 new - object constructor
+
+=for usage
 
     $w = new PDL::Graphics::Gnuplot;
     $w->plot( @plot_args );
@@ -1152,20 +1229,41 @@ current package by default for convenience.
     $w = new PDL::Graphics::Gnuplot( device, %device_options, {plot_options} );
     $w->plot( @plot_args );
 
+=for ref
+
 Creates a PDL::Graphics::Gnuplot persistent plot object, and connects it to gnuplot.
+
+=for example
 
   my $plot = PDL::Graphics::Gnuplot->new({title => 'Object-oriented plot'});
   $plot->plot( legend => 'curve', sequence(5) );
 
 The plot options can be passed into the constructor as a trailing hash
-ref; the curve options and the data are passed into the method.
+ref; the curve options and the data are passed into the method. 
 
 One advantage of making plots this way is that there's a gnuplot process
 associated with each PDL::Graphics::Gnuplot instance, so as long as
 C<$plot> exists, the plot will be interactive. Also, calling
-C<< $plot-E<gt>plot() >> multiple times reuses the plot window instead of
+C<$plot-E<gt>plot()> multiple times reuses the plot window instead of
 creating a new one, and you can switch devices and use replot() on the
 object to output a single plot several different ways.
+
+After you have created an object, you can change its terminal/output device
+with the C<output> method. See C<output> for a description of terminal options
+and how to format them.
+
+=cut
+=head2 output - set the output device and options for a Gnuplot object
+
+=for usage
+
+    $window->output( device, %device_options, {plot_options} );
+
+=for ref
+
+You can control the output device of a PDL::Graphics::Gnuplot object on
+the fly.  That is useful, for example, to replot several versions of the 
+same plot to different output devices (interactive and hardcopy).
 
 Gnuplot interprets plot options differently per device.
 PDL::Graphics::Gnuplot attempts to interpret some of the more common
@@ -1182,7 +1280,7 @@ unit of length changes from device to device.
 
 The unit string can be in, cm, mm, px, or pt.  Pixels are taken to 
 be 1 point in size (72 pixels per inch) and dimensions are 
-computed accordingly.
+computed accordingly.  
 
 =item output
 
@@ -1211,7 +1309,10 @@ As with plot options, terminal options can be abbreviated to the shortest
 unique string -- so (e.g.) "size" can generally be abbreviated "si" and 
 "monochrome" can be abbreviated "mono" or "mo".
 
+=cut
 =head2 close - close gnuplot process (actually just a synonym for restart)
+
+=for ref
 
 Some of the gnuplot terminals (e.g. pdf) don't write out a file
 promptly.  The close method closes the associated gnuplot subprocess,
@@ -1221,22 +1322,15 @@ restart operation.
 The object preserves the plot state, so C<replot> and similar methods
 still work with the new subprocess.
 
-=head2 options - set/get persistent plot options for a plot object
-
-  $w = new PDL::Graphics::Gnuplot();
-  $w->options( globalwith=>'lines' );
-  print %{$w->options()};
-
-The options method parses plot options into a gnuplot object on a
-cumulative basis, and returns the resultant options hash.
-
-If called as a sub rather than a method, options() changes the 
-global gnuplot object.
-
+=cut
 =head2 restart - restart the gnuplot backend for a plot object
+
+=for usage
 
     $w->restart();
     PDL::Graphics::Gnuplot::restart();
+
+=for ref
 
 Occasionally the gnuplot backend can get into an unknown state.  
 C<reset> kills the gnuplot backend and starts a new one, preserving
@@ -1245,27 +1339,56 @@ with the new subprocess).
 
 Called with no arguments, C<restart> applies to the global plot object.
 
+=cut
 =head2 reset - clear all state from the gnuplot backend
 
+=for usage
+   
     $w->reset()
+
+=for ref
 
 Clears all plot option state from the underlying object.  All plot
 options except "terminal", "termoptions", "output", and "multiplot"
 are cleared.  This is similar to the "reset" command supported by
 gnuplot itself.
 
-=head2 gplot - exported plot method (synonym for "PDL::Graphics::Gnuplot::plot")
+
+=cut
+=head2 options - set/get persistent plot options for a plot object
+
+=for usage
+
+  $w = new PDL::Graphics::Gnuplot();
+  $w->options( globalwith=>'lines' );
+  print %{$w->options()};
+
+=for ref
+  
+The options method parses plot options into a gnuplot object on a
+cumulative basis, and returns the resultant options hash.
+
+If called as a sub rather than a method, options() changes the 
+global gnuplot object.
+
+=cut
+=head2 gplot - plot method exported by default (synonym for "PDL::Graphics::Gnuplot::plot")
 
 =head2 plot - method to generate a plot
 
+=for ref
+
 This is the main plotting routine in PDL::Graphics::Gnuplot.
 
-Each C<gplot()> call creates a new plot from whole cloth, either creating
+Each C<plot()> call creates a new plot from whole cloth, either creating
 or overwriting the output for that device.
 
-If you want to add features to an existing plot, use C<replot>.
+If you want to add features to an existing plot, use C<replot>.  
 
- gplot({temp_plot_options},                 # optional
+=for usage
+
+ $w=gpwin();
+ $w->plot({temp_plot_options},                 # optional
       curve_options, data, data, ... ,      # curve_options are optional for the first plot
       curve_options, data, data, ... ,
        {temp_plot_options});
@@ -1273,6 +1396,8 @@ If you want to add features to an existing plot, use C<replot>.
 Most of the arguments are optional.
 
 All of the extensive array of gnuplot plot styles are supported, including images and 3-D plots.
+
+=for example
 
  use PDL::Graphics::Gnuplot qw(plot);
  my $x = sequence(101) - 50;
@@ -1286,7 +1411,10 @@ If you pass both, the trailing hash ref is parsed last and overrides the leading
 For debugging and curiosity purposes, the last plot command issued to gnuplot
 is maintained in a package global: C<$PDL::Graphics::Gnuplot::last_plotcmd>.
 
+=cut
 =head2 replot - Replot the last plot (possibly with new arguments)
+
+=for ref
 
 C<replot> is similar to gnuplot's "replot" command - it allows you to
 regenerate the last plot made with this object.  You can change the
@@ -1301,30 +1429,48 @@ element list, and maintained for subsequent replots.
 
 (Compare to 'markup').
 
+=cut
 =head2 markup - Add ephemeral markup to the last plot
+
+=for ref
 
 C<markup> works exactly the same as C<replot>, except that any 
 new arguments are not added to the replot list - so you can 
 add temporary markup to a plot and regenerate the plot later
 without it.
 
+=cut
 =head2 plot3d, splot
 
-Generate 3D plots. Synonyms for C<< plot(trid =E<gt> 1, ...) >>
+=for ref
 
+Generate 3D plots. Synonyms for C<plot(trid =E<gt> 1, ...)>
+
+=cut
 =head2 lines
 
-Generates plots with lines, by default. Shorthand for C<< plot(globalwith =E<gt> 'lines', ...) >>
+=for ref
 
+Generates plots with lines, by default. Shorthand for C<plot(globalwith =E<gt> 'lines', ...)>
+
+=cut
 =head2 points
 
-Generates plots with points, by default. Shorthand for C<< plot(globalwith =E<gt> 'points', ...) >>
+=for ref
 
+Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 'points', ...)>
+
+=cut
 =head2 image
+
+=for ref
 
 Displays an image (either greyscale or RGB)
 
+=cut
 =head2 multiplot
+
+=for example
 
  $a = (xvals(101)/100) * 6 * 3.14159/180;
  $b = sin($a);
@@ -1335,10 +1481,12 @@ Displays an image (either greyscale or RGB)
  $w->plot({title=>"image"}, with=>"image", $a->(*1) * $b );
  $w->end_multi();
 
+=for ref
+
 The C<multiplot> method enables multiplot mode in gnuplot, which permits
 multiple plots on a single pane.  Plots can be lain out in a grid,
 or can be lain out freeform using the C<size> and C<origin> plot 
-options for each of the individual plots.
+options for each of the individual plots.  
 
 It is not possible to change the terminal or output device when in 
 multiplot mode; if you try to do that, by setting one of those plot
@@ -1367,7 +1515,7 @@ C<scale> takes either a scalar or a list ref containing one or two
 values.  If only one value is supplied, it is a general scale factor
 of each plot in the grid.  If two values are supplied, the first is an
 X stretch factor for each plot in the grid, and the second is a Y
-stretch factor for each plot in the grid.
+stretch factor for each plot in the grid.  
 
 =item offset - offset each plot from its grid origin
 
@@ -1376,10 +1524,15 @@ of each plot within the grid.
 
 =back
 
+=cut
 =head2 read_mouse - get a mouse click or keystroke from the active interactive plot window.
+
+=for usage 
 
   ($x,$y,$char,$modstring) = $w->read_mouse($message);
   $hash = $w->read_mouse($message);
+
+=for ref 
 
 For interactive devices (e.g. x11, xwt, aqua), get_click lets you accept a 
 keystroke or mouse button input from the gnuplot window.  In list context, it
@@ -1389,9 +1542,14 @@ those things.
 
 read_mouse blocks execution for input, but responds gracefully to interrupts.
 
+=cut
 =head2 read_polygon
 
+=for usage
+
   $points = $w->read_polygon(%opt)
+
+=for ref
 
 Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN PDL of ($x,$y) values in scientific units. Acceptable options are:
 
@@ -1400,10 +1558,10 @@ Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN P
 =item message - what to print before collecting points
 
 There are some printf-style escapes for the prompt:
-
+    
 =over 3
 
-=item %c - expands to "an open" or "a closed"
+=item %c - expands to "an open" or "a closed" 
 
 =item %n - number of points currently in the polygon
 
@@ -1428,51 +1586,67 @@ of points is at least n_points.
 You can optionally call a callback routine when any particular
 character is pressed.  The actions table is a hash ref whose keys are
 characters and whose values are either code refs (to be called on the
-associated keypress) or array refs containing a short description string
-followed by a code ref.
+associated keypress) or array refs containing a short description
+string followed by a code ref.  Non-printable characters (e.g. ESC,
+BS, DEL) are accessed via a hash followed by a three digit decimal
+ASCII code -- e.g. "#127" for DEL. Button events are indexed with the
+strings "BUTTON1", "BUTTON2", and "BUTTON3", and modifications must be 
+entered as well for shift, control, and 
 
 The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
-   $obj is the plot object
-   $c is the character (or "BUTTO" string),
-   $poly is a scalar ref; $$poly is the current polygon before the action,
-   $x and $y are the current scientific coordinate
-   $mods is the modifier string.
 
-You can't override the 'q', or '\033' (ESC) callbacks.  You *can* override
+=over 3
+
+=item C<$obj> is the plot object
+
+=item C<$c> is the character (or "BUTTONC<n>" string),
+
+=item C<$poly> is a scalar ref; $$poly is the current polygon before the action,
+
+=item C<$x> and C<$y> are the current scientific coordinates, and
+
+=item C<$mods> is the modifier string.
+
+You can't override the 'q', or '#027' (ESC) callbacks.  You *can* override
 the BUTTON1 and DEL callbacks, potentially preventing the user from entering points
 at all!  You should do that with caution.
-
-Button events get the special events "BUTTON1", "BUTTON2", and "BUTTON3".
 
 =item close - (default true): generate a closed polygon
 
 =item markup - (default 'linespoints'): style to use to render the polygon on the fly
 
 If this is set to a true value, it should be a valid 'with' specifier (curve option).  
-The routine will call markup after each click.
+The routine will call markup after each click.  
 
 =back
 
+=cut
 =head2 terminfo - print out information about gnuplot syntax
+
+=for usage
 
     use PDL::Graphics::Gnuplot qw/terminfo/
     terminfo
     terminfo 'aqua'
 
+=for ref
+
 terminfo is a reference tool to describe the Gnuplot terminal types
 and the options they accept.  It's mainly useful in interactive
 sessions.
 
+=cut
 =head1 COMPATIBILITY
 
-Everything should work on all platforms that support Gnuplot and Perl. That
-said, I<ONLY> Debian GNU/Linux has been tested to work. Please report successes
-or failures on other platforms to the author. A transcript of a failed run with
-{log => 1} would be most helpful.
+Everything should work on all platforms that support Gnuplot and Perl.
+Currently, only MacOS, Fedora Linux, and Debian Linux have been tested
+to work.  Please report successes or failures on other platforms to
+the authors. A transcript of a failed run with {tee => 1} would be most
+helpful.
 
 =head1 REPOSITORY
 
-L<https://github.com/dkogan/PDL-Graphics-Gnuplot>
+L<https://github.com/drzowie/PDL-Graphics-Gnuplot>
 
 =head1 AUTHOR
 
@@ -1482,7 +1656,7 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =over 3
 
-=item some plot and curve options need better parsing
+=item some plot and curve options need better parsing:
 
 =over 3
 
@@ -1490,9 +1664,9 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =over 3
 
-=item - "at" for labels needs attention.
+=item - labels need attention 
 
-=back
+Should they be handled as hashes? Further, deeply nested options (e.g. "at" for labels) need attention.
 
 =back
 
@@ -1504,7 +1678,9 @@ Copyright 2011,2012 Dima Kogan and Craig DeForest
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Perl Artistic License.
+by the Free Software Foundation; or the Perl Artistic License included with
+the Perl language.
 
 See http://dev.perl.org/licenses/ for more information.
 
+=cut
