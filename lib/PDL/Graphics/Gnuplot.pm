@@ -1235,7 +1235,8 @@ If true, requests that this curve be plotted on the y2 axis instead of the main 
 Specifies how many values represent each data point.  Normally you
 don't need to set this as individual C<with> styles implicitly set a
 tuple size (which is automatically extended if you specify additional
-modifiers such as C<palette> that require more data). 
+modifiers such as C<palette> that require more data); this option 
+lets you override PDL::Graphics::Gnuplot's parsing in case of irregularity.
 
 =back
 
@@ -1269,25 +1270,21 @@ To change point size and point type:
 
 To plot errorbars that show $y +- 1, plotted with an implicit domain
 
-  plot(with => 'yerrorbars', tuplesize => 3,
-       $y, $y->ones);
+  plot(with => 'yerrorbars', $y, $y->ones);
 
 Same with an explicit $x domain:
 
-  plot(with => 'yerrorbars', tuplesize => 3,
-       $x, $y, $y->ones);
+  plot(with => 'yerrorbars', $x, $y, $y->ones);
 
 Symmetric errorbars on both x and y. $x +- 1, $y +- 2:
 
-  plot(with => 'xyerrorbars', tuplesize => 4,
-       $x, $y, $x->ones, 2*$y->ones);
+  plot(with => 'xyerrorbars', $x, $y, $x->ones, 2*$y->ones);
 
 To plot asymmetric errorbars that show the range $y-1 to $y+2 (note that here
 you must specify the actual errorbar-end positions, NOT just their deviations
 from the center; this is how Gnuplot does it)
 
-  plot(with => 'yerrorbars', tuplesize => 4,
-       $y, $y - $y->ones, $y + 2*$y->ones);
+  plot(with => 'yerrorbars', $y, $y - $y->ones, $y + 2*$y->ones);
 
 =head3 More multi-value styles
 
@@ -1296,25 +1293,24 @@ Gnuplot that will hopefully get resolved.
 
 Plotting with variable-size circles (size given in plot units, requires Gnuplot >= 4.4)
 
-  plot(with => 'circles', tuplesize => 3,
-       $x, $y, $radii);
+  plot(with => 'circles', $x, $y, $radii);
 
 Plotting with an variably-sized arbitrary point type (size given in multiples of
 the "default" point size)
 
-  plot(with => 'points pointtype 7 pointsize variable', tuplesize => 3,
+  plot(with => 'points pointtype 7 pointsize variable', 
        $x, $y, $sizes);
 
 Color-coded points
 
-  plot(with => 'points palette', tuplesize => 3,
+  plot(with => 'points palette', 
        $x, $y, $colors);
 
 Variable-size AND color-coded circles. A Gnuplot (4.4.0) bug make it necessary to
 specify the color range here
 
   plot(cbmin => $mincolor, cbmax => $maxcolor,
-       with => 'circles palette', tuplesize => 4,
+       with => 'circles palette', 
        $x, $y, $radii, $colors);
 
 =head2 3D plotting
@@ -1338,7 +1334,7 @@ Complicated 3D plot with fancy styling:
 
   plot3d(title => 'double helix',
 
-         { with => 'linespoints pointsize variable pointtype 7 palette', tuplesize => 5,
+         { with => 'linespoints pointsize variable pointtype 7 palette',
            legend => 'spiral 1' },
          { legend => 'spiral 2' },
 
@@ -1474,19 +1470,22 @@ accept different options, you must specify a device is you want to
 specify any device configuration options (such as window size, output
 file, text mode, or default font).  
 
-You can also stuff in default plot options here.  A trailing hash ref is treated
-as plot options that are pre-loaded into the object.
+If you don't specify a device type, then the Gnuplot default device
+for your system gets used.  You can set that with an environment
+variable (check the Gnuplot documentation).
 
-Keeping track of individual gnuplot objects is good because it lets you keep
-track of individual plots separately, and (e.g.) replot the exact same plot to 
-multiple devices.  On interactive devices like C<x11>, multiple plots to the same
-device generally redraw the same window, avoiding screen clutter.
+Gnuplot uses the term "terminal" for output devices; you can see a
+list of terminals supported by PDL::Graphics::Gnuplot by invoking
+C<PDL::Graphics::Gnuplot::terminfo()> (for example in the perldl shell).
 
-After you have created an object, you can change its terminal/output device
-with the C<output> method. See C<output> for a description of terminal options
-and how to format them.
+For convenience, you can provide default plot options here.  If the last
+argument to C<new()> is a trailing hash ref, it is treated as plot options.
 
-
+After you have created an object, you can change its terminal/output
+device with the C<output> method, which is useful for (e.g.) throwing
+up an interactive plot and then sending it to a hardcopy device. See
+C<output> for a description of terminal options and how to format
+them.
 
 =for example
 
@@ -1591,50 +1590,51 @@ sub output {
     if( (0+@_) && ref($_[$#_]) eq 'HASH') {
 	$poh = pop @_;
     }
-    
-    # Check that, if there is at least one more option, it is recognizable as a terminal
-    my $terminal;
-    $terminal = lc(shift() // "x11");
-    if(!exists($termTab->{$terminal})) {
-	my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
-	    "Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n".
-	    "(default type for PDL::Graphics::Gnuplot is 'x11')\n";
-	barf($s);
-    }
-    
-    # Generate abbrevs on first invokation for each terminal type.
-    unless($termTab->{$terminal}->{opt}->[1]) {
-	$termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
-	$termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
-    }
-    
     # parse plot options (if any)
     if($poh) {
 	options($this,$poh);
     }
     
+    if(@_) {
+	# Check that, if there is at least one more argument, it is recognizable as a terminal
+	my $terminal;
+	$terminal = lc(shift);
+	if(!exists($termTab->{$terminal})) {
+	    my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
+		"Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n".
+		"(default type for PDL::Graphics::Gnuplot is 'x11')\n";
+	    barf($s);
+	}
+	
+	# Generate abbrevs on first invokation for each terminal type.
+	unless($termTab->{$terminal}->{opt}->[1]) {
+	    $termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
+	    $termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
+	}
+	
+	
+	my $termOptions = {};
+	
+	# parse "terminal" options
+	if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
+	    
+	    # Stuff the default size unit into the options hash, so that the parser has access to it.
+	    $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
+	    
+	    _parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
+	    
+	    $this->{options}->{output} = $termOptions->{output};
+	    delete $termOptions->{output};
+	    
+	    ## Emit the terminal options line for this terminal.
+	    $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
+	    $this->{terminal} = $terminal;
+	    $this->{mouse} = $termTab->{$terminal}->{mouse} || 0;
+	} else {
+	    barf "PDL::Graphics::Gnuplot doesn't support the device '$terminal', sorry\n\n     Run PDL::Graphics::Gnuplot::terminfo() for a list of devices.\n\n";
+	}
+    }        
 
-    my $termOptions = {};
-    
-    # parse "terminal" options
-    if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
-	
-	# Stuff the default size unit into the options hash, so that the parser has access to it.
-	$termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
-	
-	_parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
-	
-	$this->{options}->{output} = $termOptions->{output};
-	delete $termOptions->{output};
-	
-	## Emit the terminal options line for this terminal.
-	$this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
-	$this->{terminal} = $terminal;
-      $this->{mouse} = $termTab->{$terminal}->{mouse} || 0;
-    } else {
-	barf "PDL::Graphics::Gnuplot doesn't support the device '$terminal', sorry\n\n     Run PDL::Graphics::Gnuplot::terminfo() for a list of devices.\n\n";
-    }
-        
     return $this;
 }
 
@@ -4069,7 +4069,7 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 #              Negative values get the "array" rather than the "record" specifier (for autogen
 #              of coordinates)
 #
-#   1:  "3dts" Typle sizes (columns of data) that are allowed by this plot style for 
+#   1:  "3dts" Tuple sizes (columns of data) that are allowed by this plot style for 
 #              3-D plots (with the gnuplot "plots" command).  If this plot style doesn't
 #              work in 3-D, then the entry should be a false value instead.
 #
