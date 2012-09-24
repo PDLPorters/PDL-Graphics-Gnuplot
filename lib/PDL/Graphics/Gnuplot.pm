@@ -1096,8 +1096,6 @@ addition> to writing to a gnuplot process. This is I<not> a dry run: data is
 sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
 this log will contain binary data, if the 'binary' option is given (see below)
 
-=back
-
 =head1 CURVE OPTIONS 
 
 The curve options describe details of specific curves within a plot. 
@@ -3038,21 +3036,21 @@ Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN P
 
 There are some printf-style escapes for the prompt:
     
-=over 3
 
-=item %c - expands to "an open" or "a closed" 
+* C<%c> - expands to "an open" or "a closed" 
 
-=item %n - number of points currently in the polygon
+* C<%n> - number of points currently in the polygon
 
-=item %N - number of points expected for the polygon
+* C<%N> - number of points expected for the polygon
 
-=item %k - list of all keys accepted
+* C<%k> - list of all keys accepted
 
-=item %% - %
+* C<%%> - %
 
-=back
+=item prompt - what to print to prompt the user for the next point
 
-=item prompt - what to print to prompt hte user for the next point
+ 
+
 
 =item n_points - number of points to accept (or 0 for indefinite)
 
@@ -3074,7 +3072,7 @@ entered as well for shift, control, and
 
 The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
 
-=over 3
+=over 2
 
 =item C<$obj> is the plot object
 
@@ -3096,6 +3094,8 @@ at all!  You should do that with caution.
 
 If this is set to a true value, it should be a valid 'with' specifier (curve option).  
 The routine will call markup after each click.  
+
+=back
 
 =back
 
@@ -5836,13 +5836,11 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =item - options to "with" selection: accept a list ref instead of a string with args
 
-=over 3
+=back
 
 =item - labels need attention 
 
 Should they be handled as hashes? Further, deeply nested options (e.g. "at" for labels) need attention.
-
-=back
 
 =back
 
