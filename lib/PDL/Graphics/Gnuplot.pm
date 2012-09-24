@@ -313,29 +313,71 @@ curves with similar curve options can be plotted by stacking data inside the
 passed-in PDLs.  (An exception is that threading is disabled if one or more of 
 the data elements is a list ref).
 
-An example:
+=head3 A simple example
 
- my $pi    = 3.14159;
- my $theta = xvals(201) * 6 * $pi / 200;
- my $z     = xvals(201) * 5 / 200;
+   my $win = gpwin('x11');
+   $win->plot( sin(xvals(45)) * 3.14159/10 );
 
- plot( {'3d' => 1, title => 'double helix'},
-       { with => 'linespoints pointsize variable pointtype 2 palette',
-         legend => ['spiral 1','spiral 2'] },
+Here we just plot a simple function.  The default plot style is a
+line.  Line plots take a 2-tuple (X and Y values).  Since we have
+supplied only one element, C<plot()> understands it to be the Y value
+(abscissa) of the plot, and supplies value indices as X values -- so
+we get a plot of just over 2 cycles of the sine wave over an X range
+across X values from 0 to 44.
+
+=head3 A not-so-simple example
+
+   $win = gpwin('x11');
+   $pi = 3.14159 
+   $win->plot( {with => line}, xvals(10)**2, xvals(10),
+               {with => circles}, 2 * xvals(50), 2 * sin(xvals(50) * $pi / 10), xvals(50)/20
+    );
+
+This plots sqrt(x) in an interesting way, and overplots some circles of varying size.  
+The line plot accepts a 2-tuple, and we supply both X and Y.  The circles plot accepts
+a 3-tuple: X, Y, and R.  
+
+=head3 A complicated example:
+
+   my $pi    = 3.14159;
+   my $theta = xvals(201) * 6 * $pi / 200;
+   my $z     = xvals(201) * 5 / 200;
+
+   plot( {'3d' => 1, title => 'double helix'},
+         {with => 'linespoints pointsize variable pointtype 2 palette',
+         legend => ['spiral 1','spiral 2']} ,
          pdl( cos($theta), -cos($theta) ),       # x
          pdl( sin($theta), -sin($theta) ),       # y
          $z,                                     # z
          (0.5 + abs(cos($theta))),               # pointsize
-         sin($theta/3)                           # color
-    );
+         sin($theta/3),                          # color
+         {with=>'points pointsize variable pointtype 5'},
+         zeroes(6),                         # x
+         zeroes(6),                         # y
+         xvals(6),                          # z
+         xvals(6)+1,                        # point size
+         {size=>'xyz equal'}
+   );
 
-This is a 3d plot with variable size and color. There are 5 values in the tuple,
-which we specify. The first 2 piddles have dimensions (N,2); all the other
-piddles have a single dimension. Thus the PDL threading generates 2 distinct
-curves, with varying values for x,y and identical values for everything else. To
-label the curves differently, 2 different sets of curve options are given. Since
-the curve options are cumulative, the style and tuplesize needs only to be
-passed in for the first curve; the second curve inherits those options.
+This is a 3d plot with variable size and color. There are 5 values in
+the tuple.  The first 2 piddles have dimensions (N,2); all the other
+piddles have a single dimension. Thus the PDL threading generates 2
+distinct curves, with varying values for x,y and identical values for
+everything else.  To label the curves differently, 2 different sets of
+curve options are given.
+
+In addition to the threaded pair of linespoints curves, there are six 
+variable size points plotted as filled squares, as a secondary curve.
+
+Plot options are passed in in two places:  as a leading hash ref, and as 
+a trailing hash ref.  Any other hash elements or hash refs must be curve
+options.
+
+Curves are delimited by non-data arguments.  After the initial hash
+ref, curve options for the first curve (the threaded pair of spirals)
+are passed in as a second hash ref.  The curve's data arguments are
+ended by the first non-data argument (the hash ref with the curve
+options for the second curve).
 
 =head3 Implicit domains
 
@@ -1350,7 +1392,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '0.5ced';
+our $VERSION = '1.0b';
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
@@ -1394,7 +1436,8 @@ our $cmdFence = "cmdFENCEcmd";
 =for usage
 
  use PDL::Graphics::Gnuplot;
- $w = gpwin( $options );
+
+ $w = gpwin( @options );
  $w->plot( @plot_args );
 
 =for ref 
@@ -1413,31 +1456,43 @@ sub gpwin { return new("PDL::Graphics::Gnuplot",@_); }
     $w = new PDL::Graphics::Gnuplot;
     $w->plot( @plot_args );
 
-    $w = new PDL::Graphics::Gnuplot( device, %device_options, {plot_options} );
+    # Specify plot options alone
+    $w = new PDL::Graphics::Gnuplot( {%plot_options} );
+
+    # Specify device and device options (and optional default plot options)
+    $w = new PDL::Graphics::Gnuplot( device, %device_options, {%plot_options} );
     $w->plot( @plot_args );
+
 
 =for ref
 
 Creates a PDL::Graphics::Gnuplot persistent plot object, and connects it to gnuplot.
+
+For convenience, you can specify the output device and its options
+right here in the constructor.  Because different gnuplot devices
+accept different options, you must specify a device is you want to
+specify any device configuration options (such as window size, output
+file, text mode, or default font).  
+
+You can also stuff in default plot options here.  A trailing hash ref is treated
+as plot options that are pre-loaded into the object.
+
+Keeping track of individual gnuplot objects is good because it lets you keep
+track of individual plots separately, and (e.g.) replot the exact same plot to 
+multiple devices.  On interactive devices like C<x11>, multiple plots to the same
+device generally redraw the same window, avoiding screen clutter.
+
+After you have created an object, you can change its terminal/output device
+with the C<output> method. See C<output> for a description of terminal options
+and how to format them.
+
+
 
 =for example
 
   my $plot = PDL::Graphics::Gnuplot->new({title => 'Object-oriented plot'});
   $plot->plot( legend => 'curve', sequence(5) );
 
-The plot options can be passed into the constructor as a trailing hash
-ref; the curve options and the data are passed into the method. 
-
-One advantage of making plots this way is that there's a gnuplot process
-associated with each PDL::Graphics::Gnuplot instance, so as long as
-C<$plot> exists, the plot will be interactive. Also, calling
-C<$plot-E<gt>plot()> multiple times reuses the plot window instead of
-creating a new one, and you can switch devices and use replot() on the
-object to output a single plot several different ways.
-
-After you have created an object, you can change its terminal/output device
-with the C<output> method. See C<output> for a description of terminal options
-and how to format them.
 
 =cut
 
@@ -1530,9 +1585,14 @@ unique string -- so (e.g.) "size" can generally be abbreviated "si" and
 
 sub output {
     my $this = _obj_or_global(\@_);
+
+    # Check if the last passed-in parameter is a hash ref -- if it is, then it is plot options
+    my $poh;
+    if( (0+@_) && ref($_[$#_]) eq 'HASH') {
+	$poh = pop @_;
+    }
     
     # Check that, if there is at least one more option, it is recognizable as a terminal
-    
     my $terminal;
     $terminal = lc(shift() // "x11");
     if(!exists($termTab->{$terminal})) {
@@ -1548,21 +1608,13 @@ sub output {
 	$termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
     }
     
-    # Check if the last passed-in parameter is a hash ref -- if it is, then it is plot options
-    my $poh;
-    if( (0+@_) && ref($_[$#_]) eq 'HASH') {
-	$poh = pop @_;
-    }
-    
-    
-    # parse plot options
+    # parse plot options (if any)
     if($poh) {
 	options($this,$poh);
     }
     
+
     my $termOptions = {};
-    my $outputString;
-    
     
     # parse "terminal" options
     if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
