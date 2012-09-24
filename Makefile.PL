@@ -11,7 +11,7 @@ sub parseversion
 #
 # I parse out the 0.03 part
   open DCH, 'debian/changelog' or die "Couldn't open debian/changelog";
-  my ($version) = <DCH> =~ /^\S+ \s* \( ([0-9\.]+) .*? \)/x
+  my ($version) = <DCH> =~ /^\S+ \s* \( ([0-9\.]+b?) .*? \)/x
     or die "Couldn't parse version from debian/changelog";
   close DCH;
 
