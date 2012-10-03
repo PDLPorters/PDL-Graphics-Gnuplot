@@ -1601,8 +1601,7 @@ sub output {
 	$terminal = lc(shift);
 	if(!exists($termTab->{$terminal})) {
 	    my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
-		"Run \"PDL::Graphics::Gnuplot::terminfo\" for a list of valid terminal types.\n".
-		"(default type for PDL::Graphics::Gnuplot is 'x11')\n";
+		terminfo('',1);
 	    barf($s);
 	}
 	
@@ -5083,7 +5082,7 @@ our $termTabSource = {
     'aifm'     => "Adobe Illustrator                      [NS: obsolete (use pdf)]",
     'amiga'    => "Amiga terminal driver                  [NS: ancient]",
     'apollo'   => "Apollo terminal driver                 [NS: ancient]",
-    'aqua'     => { unit=>'pt', desc=> 'Aqua terminal program on MacOS X (MacOS default device)',
+    'aqua'     => { unit=>'pt', desc=> 'Aqua terminal program on MacOS X (MacOS default device)', int=>1, ok=>1,
 		  opt=>[ qw/ output_ title size font enhanced / ]},
     'be'       => "BeOS/X11 (Ah, Be, how we miss thee)    [NS: ancient]",
     'canvas'   => { unit=>'pt', desc=> "Output Javascript Canvas rendering code.",
@@ -5124,7 +5123,7 @@ our $termTabSource = {
     'debug'  => "Gnuplot internal debugging mode        [NS: not useful]",
     'dospc'  => "Generic PC VESA/VGA/XGA direct display [NS: obsolete]",
     'dumb'   => {
-	unit=>'char',desc=>"dumb terminal (ASCII output)",
+	unit=>'char',desc=>"dumb terminal (ASCII output)",ok=>1,
 	opt=>[ ['feed','b','cf',"Issue (or not) a formfeed at the end of each plot"],
 			qw/ size enhanced output /]},
     'dxf'    => {unit=>'pt', desc=>"AutoCad 10.x interchange files",
@@ -5164,7 +5163,7 @@ our $termTabSource = {
 			['version',    's','cs', '(not documented in gnuplot manual)'],
 			'output']},
     'ggi'    => "X or SVGAlib output via GGIlib         [NS: obsolete]",
-    'gif'    => {unit=>'px',desc=>"Graphics Interchange Format (venerable but supported)",
+    'gif'    => {unit=>'px',desc=>"Graphics Interchange Format (venerable but supported)",ok=>1,
 		 opt=>[ qw/ transparent rounded butt linewidth dashlength font enhanced size crop /,
 			['animate','l','cl',"syntax: animate=>[delay=>\$d, loop=>\$n, (no)?optimize]"],
 			qw/ background output / ] },
@@ -5182,7 +5181,7 @@ our $termTabSource = {
     'hpljii' => "HP Laserjet Series II                  [NS: obsolete]",
     'hppj'   => "HP PaintJet and HP3630 printers        [NS: obsolete]",
     'imagen' => "Imagen laser printers                  [NS: obsolete]",
-    'jpeg'   => {unit=>"px",desc=>"JPEG image file output",
+    'jpeg'   => {unit=>"px",desc=>"JPEG image file output",ok=>1,
 		 opt=>[ qw/ interlace linewidth dashlength rounded butt font enhanced size crop background output /]},
     'kyo'    => "Kyocera laserprinter native format     [NS: obsolete]",
     'latex'  => {unit=>'in',desc=>"EPS output tailored for LaTeX (see also 'epslatex')",
@@ -5191,44 +5190,36 @@ our $termTabSource = {
 			['roman',   'b','cff','force font to Roman style (e.g. Times)'],
 			['fontsize','s','cv', 'set font size (in points)'],  # special entry 'coz latex wants no "fontsize" keyword.
 			qw/size rotate output/]},
-    'linux'  => {unit=>'px',desc=>"Render to a screen under Linux",
-		 opt=>['output']},
-    'lua'    => "Lua script output                      [NS: obsolete]",
-    'macintosh'=>{unit=>'px',desc=>"Direct rendered Macintosh window (MacOS X? Or earlier?)",
-		  opt=>[ ['gx',       'b','cf', 'Enable or disable gx (what is this?)'],
-			 ['singlewin','b','cff','Put output into a single window (oppose "multiwin")'],
-			 ['multiwin', 'b','cff','Allow multiple plot windows'],
-			 ['vertical', 'b','cf', 'rotate (or not) vertical text'],
-			 'size'
-		      ]},
-    'lua'    => "Lua script output                      [NS: obsolete]",
-    'mf'     => "Metafont output (plot as TeX glyph)    [NS: crazy]",
-    'mgr'    => "MGR window system                      [NS: obsolete]",
-    'mif'    => "FrameMaker MIF format v3.0             [NS: obsolete]",
-    'mp'     => "MetaPost metaformat for graphice       [NS: obsolete]",
-    'next'   => "NeXT (NeXTstep) file format (RIP Jobs) [NS: ancient]",
-    'openstep'=>"Openstep (NeXTStep followon)           [NS: obsolete]",
+    'linux'  =>  "Render to a Linux display dev (non-X)  [NS: obsolete]",
+    'lua'    =>  "Lua script output                      [NS: obsolete]",
+    'macintosh'=>"Direct rendered MacOS < 10 window      [NS: ancient]",
+    'mf'     =>  "Metafont output (plot as TeX glyph)    [NS: crazy]",
+    'mgr'    =>  "MGR window system                      [NS: obsolete]",
+    'mif'    =>  "FrameMaker MIF format v3.0             [NS: obsolete]",
+    'mp'     =>  "MetaPost metaformat for graphice       [NS: obsolete]",
+    'next'   =>  "NeXT (NeXTstep) file format (RIP Jobs) [NS: ancient]",
+    'openstep'=> "Openstep (NeXTStep followon)           [NS: obsolete]",
     'pbm' => {unit=>"px",desc=>"Portable BitMap format output",
 	      opt=>[ ['fontsize','s','cv','font size (in pixels/points)'],
 		     qw/monochrome color size output/]},
-    'pdf'    => {unit=>'in',desc=>"Portable Document Format output",
+    'pdf'    => {unit=>'in',desc=>"Portable Document Format output",ok=>1,
 		 opt=>[ qw/monochrome color enhanced font linewidth rounded butt solid dashed dashlength size output/ ]},
-    'pdfcairo'=>{unit=>'in',desc=>"PDF output via Cairo 2-D plotting library",
+    'pdfcairo'=>{unit=>'in',desc=>"PDF output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b', sub{return $_[1]?" mono ":""},
 			                         "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
 			qw/color solid dashed font linewidth rounded butt dashlength size output/ ]},
     'pm'     => "OS/2 presentation manager              [NS: ancient]",
-    'png'    => {unit=>"px",desc=>"PNG image output",
+    'png'    => {unit=>"px",desc=>"PNG image output",ok=>1,
 		 opt=>[ qw/transparent interlace/,
 			['truecolor','b','cf','Enable or disable true color (RGB) output'],
 			qw/rounded butt linewidth dashlength tiny small medium large giant font enhanced size crop background output/]},
-    'pngcairo'=>{unit=>'px',desc=>"PNG image output via Cairo 2-D plotting library",
+    'pngcairo'=>{unit=>'px',desc=>"PNG image output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b',sub{return $_[1]?" mono ":""},
 			                          "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
 			qw/color solid dashed transparent crop font linewidth rounded butt dashlength size output/ ]},
-    'postscript'=>{unit=>'in',desc=>"Postscript file output",
+    'postscript'=>{unit=>'in',desc=>"Postscript file output",ok=>1,
 		   opt=>[qw/landscape portrait/,
 			 ['eps',        'b','cff','Select encapsulated output (neither landscape nor portrait)'],
 			 'enhanced',
@@ -5254,7 +5245,7 @@ our $termTabSource = {
     'regis'   =>"REGIS graphics language output         [NS: obsolete]",
     'rgip'    =>"RGIP metafiles                         [NS: obsolete]",
     'sun'     =>"SUNView window system window           [NS: ancient]",
-    'svg'     =>{unit=>'in',desc=>"Scalable Vector Graphics (SVG) output",
+    'svg'     =>{unit=>'in',desc=>"Scalable Vector Graphics (SVG) output",ok=>1,
 		 opt=>[ qw/size enhanced font/,
 			['fontfile','s','cq','Font file to copy into the <defs> section of the SVG'],
 			qw/rounded butt solid dashed linewidth output/]},
@@ -5276,12 +5267,12 @@ our $termTabSource = {
 		 opt=>[ qw/color monochrome font title size/,
 			['position','l','csize','pixel location of the window'],
 			'output']},
-    'wxt'     =>{unit=>"px", mouse=>1,
+    'wxt'     =>{unit=>"px", mouse=>1,desc=>"WxWidgets display", mouse=>1,ok=>1,
 		 opt=>[ qw/size enhanced font title dashed solid dashlength persist raise/,
 			['ctrl',  'b','cf','enable (or disable) control-Q to quit window'],
 			['close', 'b','cf','close window on completion?']
                  ]},
-    'x11'     =>{unit=>"px",desc=>"X Windows display", mouse=>1,
+    'x11'     =>{unit=>"px",desc=>"X Windows display", mouse=>1,ok=>1,
 		 opt=>[ 'output_',
 			['title','s','cq','Window title (in title bar)'],
 			qw/enhanced font linewidth solid dashed persist raise/,
@@ -5323,6 +5314,7 @@ for my $k(keys %$termTabSource) {
     $termTab->{$k} = { desc => $termTabSource->{$k}->{desc},
 		       unit => $termTabSource->{$k}->{unit},
 		       mouse => $termTabSource->{$k}->{mouse} // 0,
+		       int   => $termTabSource->{$k}->{int} // 0,
 		       opt  => [ $terminalOpt, 
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
@@ -5347,12 +5339,15 @@ sessions.
 
 sub terminfo {
     my $terminal = shift || '';
+    my $brief_form = shift;
+    my $dont_print = shift;
+    my $s = "";
 
     $terminal = shift if($terminal =~ m/PDL::Graphics::Gnuplot/);
 
     if($termTabSource->{$terminal}) {
 	if(ref $termTabSource->{$terminal}) {
-	    print STDERR "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}', options are:\n";
+	    $s = "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}', options are:\n";
 	    for my $name(@{$termTabSource->{$terminal}->{opt}}) {
 		my @info = ();
 
@@ -5362,30 +5357,38 @@ sub terminfo {
 		    @info = ( $name, $termTab_types->{$name}->[2] );
 		}
 		$info[0] =~ s/\_$//;         #remove trailing underscore on "output_" hack
-		printf STDERR "%10s - %s\n",@info;
+		$s .= sprintf "%10s - %s\n",@info;
 	    }
 	} else {
-	    print STDERR "PDL::Graphics::Gnuplot doesn't support '$terminal'.\n$termTabSource->{$terminal}\n";
+	    $s = "PDL::Graphics::Gnuplot doesn't support '$terminal'.\n$termTabSource->{$terminal}\n";
 	}
-	return;
+	print STDERR $s unless($dont_print);
+	return $s;
     }
     
     if($terminal && $terminal ne 'all'){
-	print STDERR "terminfo: terminal '$terminal' isn't recognized.  I'm listing all supported terminals instead.\n\n";
+	$s = "terminfo: terminal '$terminal' isn't recognized.  I'm listing all supported terminals instead.\n\n";
 	$terminal = '';
     }
 
     if(!$terminal || $terminal eq 'all') {
 
-	unless($terminal eq 'all') {
-	    print STDERR "('terminfo \"all\"' lists all known terminals, even those not supported)\n\n";
+	if(!$terminal && !$brief_form && !$dont_print) {
+	   $s .= "('terminfo \"all\"' lists all known terminals, even those not supported)\n\n";
 	}
 
-	print STDERR "Gnuplot terminals supported by PDL::Graphics::Gnuplot:\n";
-	
-	my $s = "";
+	$s .= "Gnuplot terminals supported by PDL::Graphics::Gnuplot:\n";
+
+	$s .= "\nDISPLAY TERMINALS ([M] indicates mouse input is supported)\n";
 	for my $k(sort keys %$termTab) {
-	    $s .= sprintf("%10s - %s\n",$k,$termTab->{$k}->{desc});
+	    next unless($termTab->{$k}->{int} || $termTab->{$k}->{mouse});
+	    $s .= sprintf("  %10s: %s %s\n",$k,$termTab->{$k}->{mouse} ? "[M]" : "   ", $termTab->{$k}->{desc});
+	}
+	
+	$s .= "\n\nFILE TERMINALS\n";
+	for my $k(sort keys %$termTab) {
+	    next if($termTab->{$k}->{int} || $termTab->{$k}->{mouse});
+	    $s .= sprintf("  %10s: %s %s\n",$k,"   ", $termTab->{$k}->{desc});
 	}
 
 	if($terminal eq 'all') {
@@ -5396,10 +5399,10 @@ sub terminfo {
 		$s .= sprintf("%12s",$k);
 		$s .= "\n" unless(++$i % 6);
 	    }
-	    $s .= "\n";
 	}
-	print STDERR $s;
-	return;
+	$s .= "\nRun PDL::Graphics::Gnuplot::terminfo( \$term_name ) for information on options.\n\n";
+	print STDERR $s unless($dont_print);
+	return $s;
     }
 
 }    
