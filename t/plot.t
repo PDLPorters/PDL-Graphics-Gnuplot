@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 73;
+use Test::More tests => 76;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -159,6 +159,23 @@ ok(@l3==24,"test replot again made 24 lines");
 
 ok($l3[12]=~ m/\#\s+\*/, "test plot has two curves and curve 2 is above curve 1");
 
+# test that options updating modifies the replot
+eval { $w->options(yrange=>[200,400]);  $w->replot(); };
+ok(!$@, "options set and replot don't crash");
+
+open FOO,"<$testoutput";
+@l4 = <FOO>;
+close FOO;
+unlink $testoutput;
+ok(@l4 == 24, "replot made 24 lines after option set");
+
+$same = 1;
+for $i(0..23) {
+    $same &= ($l3[$i] eq $l4[$i]);
+}
+ok(!$same, "modifying plot option affects replot");
+
+
 ##############################
 # Test parsing of plot options when provided before curve options
 
@@ -291,9 +308,12 @@ unlink $testoutput;
 # Interactive tests
 
 SKIP: {
-    skip "Skipping x11 interactive tests - set environment variables DISPLAY and\n   GNUPLOT_INTERACTIVE to enable",
-         16
-	     unless(exists($ENV{GNUPLOT_INTERACTIVE}) and $ENV{DISPLAY});
+    unless(exists($ENV{GNUPLOT_INTERACTIVE}) and $ENV{DISPLAY}) {
+	print STDERR "\nSkipping x11 interactive tests - set environment variables DISPLAY and\n   GNUPLOT_INTERACTIVE to enable\n\n";
+	skip "Skipping x11 interactive tests - set environment variables DISPLAY and\n   GNUPLOT_INTERACTIVE to enable",
+	16;
+    }
+
     
     eval { $w=gpwin(x11); };
     ok(!$@, "created an X11 object");

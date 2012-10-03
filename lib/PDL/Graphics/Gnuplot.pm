@@ -1777,6 +1777,9 @@ sub options {
     my($me) = _obj_or_global(\@_);
     $me->{options} = {} unless defined($me->{options});
     _parseOptHash($me->{options}, $pOpt, @_);
+    if($me->{last_plot} && $me->{last_plot}->{options}) {
+	_parseOptHash($me->{last_plot}->{options}, $pOpt, @_);
+    }
     return $me->{options};
 }
 
@@ -5964,7 +5967,8 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =item - labels need attention 
 
-Should they be handled as hashes? Further, deeply nested options (e.g. "at" for labels) need attention.
+They need to be handled as hashes, not just as array refs.  Also, they don't seem to be working with timestamps.
+Further, deeply nested options (e.g. "at" for labels) need attention.
 
 =item - new plot styles
 
