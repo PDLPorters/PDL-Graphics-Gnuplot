@@ -172,7 +172,7 @@ same number of elements.  For example:
  $labels = ['one','two','three','four','five'];
  gplot(with=>'labels',$x,$y,$labels);
 
-See below for supported plot styles.
+See below for supported curve styles.
 
 Gnuplot is built around a monolithic plot model - it is not possible to 
 add new data directly to a plot without redrawing the entire plot. To support
@@ -2110,7 +2110,13 @@ sub plot
 	}
 	print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n"
 	    if($rangeflag);
+
+	for my $k(qw/xrange yrange zrange trange/) {
+	    print STDERR "Warning: curve option $k overriding plot option $k\n"
+		if(exists($this->{options}->{$k})  and  exists($chunks->[0]->{options}->{$k}));
+	}
     }
+
 
 
     ##############################
@@ -2467,6 +2473,8 @@ sub plot
 	    # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
 	    # before giving up entirely.
 	    unless( exists( $plotStyleProps->{$with[0]}->[0] ) ) {
+		our $plotStylesAbbrevs;
+
 		# Try pluralizing and lc'ing if that works...
 		if($with[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with[0].'s'} ) ) {
 		    $with[0] = lc $with[0].'s';
@@ -2552,7 +2560,7 @@ sub plot
 
 	    ##############################
 	    # Implicit dimensions in 3-D plots require imgFlag to be set...
-	    $imgFlag |= ($tuplematch[0]<0 && !!$is3d);
+	    $imgFlag |= ($tuplematch[0]<0 && !!$is3d) if(defined($tuplematch[0]));
 
 
 	    ##############################
@@ -4093,20 +4101,20 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 #              While it has access to plot options, it probably shouldn't modify them.
 
 our $plotStyleProps ={
-### key                ts         3dts         img  bin
+### key                ts         3dts         img  bin     prefrobnicator 
     boxerrorbars   => [ [3,4,5],  0,            0, undef ],
     boxes          => [ [2,3],    0,            0, undef ],
     boxxyerrorbars => [ [4,6],    0,            0, undef ],
     candlesticks   => [ [5,6],    0,            0, undef ],
-    circles        => [ [3],      0,            0, undef ],
+    circles        => [ [2,3],    0,            0, undef ],
     dots           => [ [-1,2],   [3],          0, undef ],
     ellipses       => [ [2,3,4,5],0,            0, undef ],
-    filledcurves   => [ [-2,3],   0,            0, undef ],
+    filledcurves   => [ [2,3],    0,            0, undef ],
     financebars    => [ [5],      0,            0, undef ],
     fsteps         => [ [-1,2],   0,            0, undef ],
     histeps        => [ [-1,2],   0,            0, undef ],
-    histogram      => [ [2,3],    0,            0, undef ],
-    newhistogram   => [ [2,3],    0,            0, undef ],
+    histogram      => [ [1..99],  0,            0, undef ],
+    newhistogram   => [ [1..99],  0,            0, undef ],
     fits           => [ [-1],     [-1],         1, 1     , \&_with_fits_prefrobnicator ],
     image          => [ [-1,3],   [-1,4],       1, 1     ],
     impulses       => [ [-1,2,3], [-1,-2,3,4],  0, undef ],
@@ -4124,8 +4132,55 @@ our $plotStyleProps ={
     xerrorlines    => [ [-3,4],   0,            0, undef ],
     xyerrorlines   => [ [-4,6],   0,            0, undef ],
     yerrorlines    => [ [-3,4],   0,            0, undef ],
-    pm3d           => [ 0,        [-1,4],       1, 1 ]
+    pm3d           => [ 0,        [-1,3,4],     1, 1 ]
 };
+
+##############################
+# plotStyleDocs - just a one-line string for summarizing each plot style.  
+# These are not (yet) used but should be incorporated into a documentation schema.
+our $plotStyleSyntax = 'Tuple columns are listed for each style. "[]": optional.  "{}": 3-D style';
+our $plotStyleDocs ={
+    boxerrorbars   => ["boxes on X axis",                       "x, y, dy, [dx]; x, y, ylo, yhi, dx"],
+    boxes          => ["boxes sitting on X axis",               "x, y, [dx]"],
+    boxxyerrorbars => ["XY errorbars as rectangles",            "x, y, dx, dy; x, y, xlo, xhi, ylo, yhi"],
+    candlesticks   => ["box-and-errorbar plots",                "x, blo, wlo, whi, bhi,"],
+    circles        => ["circles",                               "x, y, [r]"],
+    dots           => ["Tiny dots (scatterplot)",               "[x], y; {x, y, z}"],
+    ellipses       => ["ellipses",                              "x, y, [dmaj, [dmin, [ang]]]"],
+    filledcurves   => ["fill polygon, to axis, or topoint",     "x, y; x, y1, y2"],
+    financebars    => ["financial stem plot",                   "x, open, lo, hi, close"],
+    fsteps         => ["steps (Y first; cf histeps, steps)",    "[x], y"],
+    histeps        => ["steps (centered; cf fsteps, steps)",    "[x], y"],
+    histograms     => ["histogram (set tuplesize if >99 cols)", "y, [y1, [y2, [...]]]"],
+    newhistogram   => ["histogram (set tuplesize if >99 cols)", "y, [y1, [y2, [...]]]"],
+    fits           => ["FITS image with WCS info in header",    "[x, y], i; {[x, y, z], i}"],
+    image          => ["I (WxH), RGB (WxHx3) or RGBA (WxHx4)",  "[x, y], i; {[x, y, z], i}"],
+    impulses       => ["Vert lines from y=0 or z=0 to point",   "[x], y; {[x, y], z}"],
+    labels         => ["Text at given location",                "x, y, str; {x, y, z, str}"],
+    lines          => ["Simple line plot",                      "[x], y; {[x, y], z}"],
+    linespoints    => ["Lines with symbols at points",          "[x], y; {[x, y], z}"],
+    points         => ["Small symbol at each point",            "[x], y; {[x, y], z}"],
+    rgbimage       => ["RGB image: 2D with R,G,B",              "[x, y], r,g,b;   {[x, y, z], r,g,b}"],
+    rgbalpha       => ["RGBA image: 2D with R,G,B,A",           "[x, y], r,g,b,a; {[x, y, z], r,g,b,a}"],
+    steps          => ["steps (Y last; cf fsteps, histeps)",    "[x], y"],
+    vectors        => ["Plot a vector field",                   "x, y, dx, dy; {x, y, z, dx, dy, dz}"],
+    xerrorbars     => ["Whisker errorbars in X",                "x, y, dx;   x, y, xlo, xhi"],
+    xyerrorbars    => ["Whisker errorbars in X & Y",            "x, y, dx, dy; x, y, xlo, xhi, ylo, yhi"],
+    yerrorbars     => ["Whisker errorbars in Y",                "x, y, dy;   x, y, ylo, yhi"],
+    xerrorlines    => ["Whisker errorbars in X, connected",     "x, y, dx;   x, y, xlo, xhi"],
+    xyerrorlines   => ["Whisker errorbars in X & Y, connected", "x, y, dx, dy; x, y, xlo, xhi, ylo, yhi"],
+    yerrorlines    => ["Whisker errorbars in Y, connected",     "x, y, dy;   x, y, ylo, yhi"],
+    pm3d           => ["Colored 3-D surface plot",              "{[x,y,z],[i]}"]
+};
+    
+
+our $plotStyleAbbrevs = _gen_abbrev_list(keys %$plotStyleProps);
+# Make some tweaks to the abbreviations...
+map { $plotStyleAbbrevs->{$_} = 'lines' } qw/ li lin line lines /;
+$plotStyleAbbrevs->{box} = 'boxes';
+$plotStyleAbbrevs->{lp} = 'linespoints';
+map { $plotStyleAbbrevs->{$_} = 'histeps' } qw/ hs hi his hist /;
+
 
 ##############################
 # palettesTab - this is a table mapping palette names to rgb specifications in gnuplot, together
@@ -4717,9 +4772,8 @@ our $_OptionEmitters = {
 
     #### A boolean or 'time' (for <foo>data plot options)
     'bt' => sub { my($k,$v,$h) = @_;
-		  return "" unless defined($v);
-		  return "set $k $v\n" if($v=~m/^t/i);
-		  return "set $k\n";
+		  return "set $k\n" unless ($v // ""  and  $v=~m/^t/i);
+		  return "set $k $v\n";rxt hel
                  },
 
     #### A space-separated collection of terms as a plot option
@@ -4954,24 +5008,51 @@ our $_OptionEmitters = {
 
 		     # first element is an empty range specifier - emit.
 		     return "set $k ".join(" ",@$v)."\n" if(($v->[0] // '') =~ m/\s*\[\s*\]/);
+
+		     my $c = substr($k,0,1);
+		     my $tfmt = ( $h->{$c."data"} // "" ) =~ m/time/;
 		     
 		     # first element has a nonempty range specifier (naked or not).
 		     if(($v->[0] // '') =~ m/\:/) {
-			 unless($v->[0] =~ m/^\s*\[/) {
+			 $v->[0]=~ s/^\s*((.*[^\s])?)\s*$/$1/; # trim leading and trailing whitespace if present
+
+			 unless($v->[0] =~ m/^\[/) {
 			     # the first char was not a '['; assume it is a naked range and patch accordingly.
 			     $v->[0] = "[$v->[0]]";
 			 }
-			 # Now the first element is a patched up range and the whole shebang can be emitted.
-			 return "set $k ".join(" ",@$v)."\n";
+			 
+			 if($tfmt) {
+			     # Make sure we have quotes as necessary
+			     $v->[0] =~ s/\[([^\"\:\*]+)\:/\[\"$1\"\:/;
+			     $v->[0] =~ s/\:([^\"\:\*]+)\]/\:\"$1\"\]/;
+			 }
+			 my $s = join(" ",@$v);
+			 $s =~ s/\[\:/\[*\:/;
+			 $s =~ s/\:\]/\:*\]/;
+
+			 return "set $k $s\n";
 		     }
 		     # If we got here, the first element has no ':'.  Treat the first two elements as numbers and make a range 
 		     # specifier out of 'em, then emit.
+		     # Here's a little fillip: gnuplot requires quotes around time ranges
+		     # if the corresponding axes are time data.  Handle that bizarre case.
+		     if( ($h->{$c."data"} // "" ) =~ m/time/ ) {
+			 return sprintf("set %s [%s:%s]\n",$k, ((defined $v->[0])?"\"$v->[0]\"":"*"), ((defined $v->[1])?"\"$v->[1]\"":"*"));
+		     }
+	
 		     return sprintf("set %s [%s:%s] %s\n", $k, ((defined $v->[0])?$v->[0]:"*"), ((defined $v->[1])?$v->[1]:"*"), join(" ",@{$v}[2..$#$v]));
     },
 
     "crange" => sub { my($k,$v,$h) = @_;
 		      return "" unless(defined $v);
 		      return "$v" if(ref $v ne 'ARRAY');
+		      # Here's a little fillip: gnuplot requires quotes around time ranges
+		      # if the corresponding axes are time data.  Handle that bizarre case.
+		      my $c = substr($k,0,1);
+
+		      if( ($h->{$c."data"} // "" ) =~ m/time/ ) {
+			  return sprintf(" [%s:%s] ",((defined $v->[0])?"\"$v->[0]\"":""), ((defined $v->[1])?"\"$v->[1]\"":""));
+		      }
 		      return sprintf(" [%s:%s] ",((defined $v->[0])?$v->[0]:""), ((defined $v->[1])?$v->[1]:""));
     },
 
@@ -5326,8 +5407,11 @@ for my $k(keys %$termTabSource) {
 =for usage
 
     use PDL::Graphics::Gnuplot qw/terminfo/
-    terminfo
+    terminfo()
     terminfo 'aqua'
+
+    $w = gpwin();
+    $w->terminfo();
 
 =for ref
 
@@ -5338,6 +5422,7 @@ sessions.
 =cut
 
 sub terminfo {
+    shift() if( UNIVERSAL::isa($_[0],'PDL::Graphics::Gnuplot') );
     my $terminal = shift || '';
     my $brief_form = shift;
     my $dont_print = shift;
@@ -5406,8 +5491,6 @@ sub terminfo {
     }
 
 }    
-		       
-		      
 
 ######################################################################
 ######################################################################
