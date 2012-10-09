@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 76;
+use Test::More tests => 82;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -415,3 +415,48 @@ SKIP: {
 $w=gpwin(x11); 
 eval { print $w->read_mouse(); };
 ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn't work");
+
+
+##############################
+# Test date plotting
+eval {$w=gpwin( dumb, size=>[79,24,'ch'],output=>$testoutput );};
+ok(!$@, "dumb terminal still works");
+
+# Some date stamps
+@dates = (-14552880,   # Apollo 11 launch
+	  0,           # UNIX epoch
+	  818410080,   # SOHO launch
+	  946684799,   # The banking system did not melt down.
+	  1054404000); # A happy moment in 2003
+$dates = pdl(@dates);
+
+eval { $w->plot( {xdata=>'time'}, with=>'points', $dates->clip(0), xvals($dates) ); };
+ok(!$@, "time plotting didn't fail");
+open FOO,"<$testoutput";
+$lines1 = join("",(<FOO>));
+close FOO;
+
+eval { $w->plot( {xr=>[0,$dates->max],xdata=>'time'}, with=>'points', $dates, xvals($dates) ); };
+ok(!$@, "time plotting with range didn't fail");
+open FOO,"<$testoutput";
+$lines2 = join("",(<FOO>));
+close FOO;
+
+eval { $w->plot( {xr=>[$dates->at(3),$dates->at(4)], xdata=>'time'}, with=>'points', $dates, xvals($dates));};
+ok(!$@, "time plotting with a different range didn't fail");
+open FOO,"<$testoutput";
+$lines3 = join("",(<FOO>));
+close FOO;
+
+print "lines1:\n$lines1\n\nlines2:\n$lines2\n\nlines3:\n$lines3\n\n";
+SKIP2: {
+    skip "Skipping date ranging tests since Gnuplot itself doesn't work",2;
+ok($lines1 eq $lines2,  "Setting the time range to what it would be anyway duplicates the graph");
+ok($lines2 cmp $lines3, "Modifying the time range modifies the graph");
+}
+undef $w;
+unlink $testoutput;
+
+       
+
+

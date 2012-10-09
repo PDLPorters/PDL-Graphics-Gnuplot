@@ -1388,7 +1388,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '1.0';
+our $VERSION = '1.1b';
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
@@ -1396,6 +1396,8 @@ our @EXPORT = qw(gpwin gplot greplot greset grestart);
 
 our $check_syntax = 0;
 our $gnuplot_req_v = 4.4;
+
+our $MS_io_braindamage = ($^O =~ m/MSWin32/i);  # Do some different things on Losedows
 
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
@@ -2111,10 +2113,10 @@ sub plot
 	print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n"
 	    if($rangeflag);
 
-	for my $k(qw/xrange yrange zrange trange/) {
-	    print STDERR "Warning: curve option $k overriding plot option $k\n"
-		if(exists($this->{options}->{$k})  and  exists($chunks->[0]->{options}->{$k}));
-	}
+#	for my $k(qw/xrange yrange zrange trange/) {
+#	    print STDERR "Warning: curve option $k overriding plot option $k\n"
+#		if(exists($this->{options}->{$k})  and  exists($chunks->[0]->{options}->{$k}));
+#	}
     }
 
 
@@ -4655,6 +4657,11 @@ sub _emitOpts {
 # Different codes emit whole lines (e.g. for setting plot options) or
 # space-delimited words (e.g. for setting curve options).  Curve
 # option emitters have codes that start with 'c'.
+#
+# Although most of the emitters take just (keyword, value, options-hash), 
+# they may take a fourth parameter containing the complete object.
+# That's useful for things like "crange", which needs to know the global
+# options state to know how to emit itself.
 
 our $_OptionEmitters = {
     #### Default output -- a collection of terms with spaces between them as a plot option
@@ -5043,14 +5050,16 @@ our $_OptionEmitters = {
 		     return sprintf("set %s [%s:%s] %s\n", $k, ((defined $v->[0])?$v->[0]:"*"), ((defined $v->[1])?$v->[1]:"*"), join(" ",@{$v}[2..$#$v]));
     },
 
-    "crange" => sub { my($k,$v,$h) = @_;
+    "crange" => sub { my($k,$v,$h, $this) = @_;
 		      return "" unless(defined $v);
 		      return "$v" if(ref $v ne 'ARRAY');
+		      my $of = 946684800.0;
 		      # Here's a little fillip: gnuplot requires quotes around time ranges
 		      # if the corresponding axes are time data.  Handle that bizarre case.
 		      my $c = substr($k,0,1);
 
-		      if( ($h->{$c."data"} // "" ) =~ m/time/ ) {
+		      if( (($this and $this->{options} and $this->{options}->{$c."data"}) // "" ) =~ m/time/ ) {
+			  print STDERR "WARNING: gnuplot-4.6.1 date range bug triggered.  Check the date scale.\n";
 			  return sprintf(" [%s:%s] ",((defined $v->[0])?"\"$v->[0]\"":""), ((defined $v->[1])?"\"$v->[1]\"":""));
 		      }
 		      return sprintf(" [%s:%s] ",((defined $v->[0])?$v->[0]:""), ((defined $v->[1])?$v->[1]:""));
@@ -5551,7 +5560,7 @@ sub _startGnuplot
     if(!$this->{dumping}) {
 	print $in "show version\n";
 	do {
-	    if($errSelector->can_read(8)) {
+	    if($errSelector->can_read(8) or $MS_io_braindamage) {
 		my $byte;
 		sysread $err, $byte, 1;
 		$s .= $byte;
@@ -5667,6 +5676,7 @@ sub _printGnuplotPipe
   if( $this->{options}{tee} )
   {
     my $len = length $string;
+    $string =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g; 
     _logEvent($this,
               "Sent to child process (suffix $suffix) $len bytes==========\n" . $string . "\n=========================" );
   }
@@ -5713,9 +5723,10 @@ sub _checkpoint {
 	    # a data-receiving mode. I'm careful to avoid this situation, but bugs in
 	    # this module and/or in gnuplot itself can make this happen
 	    my $terminal =$this->{options}->{terminal};
-	    my $delay = ($terminal && $termTab->{$terminal}->{delay}) || 8;
+	    my $delay = ((($terminal && $termTab->{$terminal}->{delay})//0) + 0) || 5;
 	    
-	    if( $this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay) )
+	    if( ($this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay)) or
+		$MS_io_braindamage)
 	    {
 		# read a byte into the tail of $fromerr. I'd like to read "as many bytes
 		# as are available", but I don't know how to this in a very portable way
@@ -5747,7 +5758,7 @@ EOM
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
 
 	$fromerr = $1;
-    
+
 	my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
 	
 	if(defined $flags && $flags =~ /printwarnings/)
@@ -5759,17 +5770,16 @@ EOM
 	
 	# I've now read all the data up-to the checkpoint. Strip out all the warnings
 	$fromerr =~ s/$warningre//gm;
-    
+
 	# Grab everything after the first prompt
 	if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
 	    $fromerr = $1;
 	}
 
-
 	# Replace non-printable ASCII characters with '?'
 	$fromerr =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
-	
-	if($fromerr =~ m/^\s+\^\s*$/m) {
+
+	if($fromerr =~ m/^\s+\^\s*$/m or $fromerr=~ m/^\s*line/) {
 	    if($this->{early_gnuplot}) {
 		print STDERR "WARNING the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n";
 	    } else {
@@ -6049,18 +6059,33 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =item - options to "with" selection: accept a list ref instead of a string with args
 
-=back
-
-=item - labels need attention 
+=item - labels need attention (plot option labels)
 
 They need to be handled as hashes, not just as array refs.  Also, they don't seem to be working with timestamps.
 Further, deeply nested options (e.g. "at" for labels) need attention.
+
+=back
 
 =item - new plot styles
 
 The "boxplot" plot style (new to 4.6?) requires a different using syntax and will require some hacking to support.
 
+=item - ephemeral state isn't.
+
+Ephemeral plot options leave state behind in the underlying gnuplot process.  Following each plot with a reset() 
+doesn't do what you really want.  Start each plot with a reset()?  Hold default values in the parse table?
+
 =back
+
+=head1 RELEASE NOTES
+
+=head2 v1.1
+
+- Should now work OK under Microsoft Windows
+
+- Better gnuplot error reporting
+
+- Fixed date range handling
 
 =head1 LICENSE AND COPYRIGHT
 
