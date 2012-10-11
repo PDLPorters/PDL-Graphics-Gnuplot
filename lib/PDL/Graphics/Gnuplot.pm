@@ -1388,7 +1388,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '1.1b';
+our $VERSION = '1.1b3';
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
@@ -1397,7 +1397,7 @@ our @EXPORT = qw(gpwin gplot greplot greset grestart);
 our $check_syntax = 0;
 our $gnuplot_req_v = 4.4;
 
-our $MS_io_braindamage = ($^O =~ m/MSWin32/i);  # Do some different things on Losedows
+our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
 
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
@@ -1625,6 +1625,7 @@ sub output {
 	    _parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
 	    
 	    $this->{options}->{output} = $termOptions->{output};
+	    $this->{wait} = $termOptions->{wait};  
 	    delete $termOptions->{output};
 	    
 	    ## Emit the terminal options line for this terminal.
@@ -2175,8 +2176,8 @@ sub plot
     my $testcmd;
     {
 	my $fl = shift @plotcmds;
-	$plotcmd =  $plotOptionsString . $fl;
-	$testcmd =  $testOptionsString . $fl if($check_syntax);
+	$plotcmd =  $fl;
+	$testcmd =  $fl if($check_syntax);
     }
 
     for my $i(0..$#plotcmds){
@@ -2251,8 +2252,9 @@ sub plot
     $testcmd .= join("", map { $_->{testdata} } @$chunks) if($check_syntax);
 
     # Stash this plot command in the debugging variable
-    our $last_plotcmd = $plotcmd;
-    our $last_testcmd = $testcmd if($check_syntax);
+
+    our $last_plotcmd = $plotOptionsString.$plotcmd;
+    our $last_testcmd = $plotOptionsString.$testcmd if($check_syntax);
 
     if($PDL::Graphics::Gnuplot::DEBUG) {
 	print "plot command is:\n$plotcmd\n";
@@ -2262,7 +2264,7 @@ sub plot
     # The commands are assembled.  Now test 'em by sending the test command down the pipe.
     my $checkpointMessage;
     if($check_syntax) {
-	_printGnuplotPipe( $this, "syntax", $testcmd );
+	_printGnuplotPipe( $this, "syntax", $plotOptionsString.$testcmd );
 	$checkpointMessage = _checkpoint($this,"syntax");
 	
 	if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
@@ -2272,6 +2274,16 @@ sub plot
 	}
     }
 
+
+    ##############################
+    ##############################
+    ##### Send the PlotOptionsString 
+    _printGnuplotPipe( $this, "main", $plotOptionsString);
+    my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
+    if($optionsWarnings) {
+	barf( "The gnuplot process returned an error during plot setup:$optionsWarnings\n\n");
+    }
+    
     ##############################
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
@@ -2333,8 +2345,10 @@ sub plot
 	}
     }
 	
-    my $plotWarnings = _checkpoint($this, "main", 'printwarnings');
-    
+    my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
+    if($plotWarnings) {
+	barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n");
+    }
 
     ##############################
     # Finally, finally ...  send any required cleanup commands.  This 
@@ -2361,7 +2375,7 @@ sub plot
     if($check_syntax) {
 	$PDL::Graphics::Gnuplot::last_testcmd .= $cleanup_cmd;
 	_printGnuplotPipe($this, "syntax", $cleanup_cmd);
-	$checkpointMessage= _checkpoint($this, "syntax", 'printwarnings');
+	$checkpointMessage= _checkpoint($this, "syntax", {printwarnings=>1});
 	if($checkpointMessage) {
 	    barf "Gnuplot error: \"$checkpointMessage\" after syntax-checking cleanup cmd \"$cleanup_cmd\"\n";
 	}
@@ -2369,7 +2383,7 @@ sub plot
     
     $PDL::Graphics::Gnuplot::last_plotcmd .= $cleanup_cmd;
     _printGnuplotPipe($this, "main", $cleanup_cmd);
-    $checkpointMessage= _checkpoint($this, "main", 'printwarnings');
+    $checkpointMessage= _checkpoint($this, "main", {printwarnings=>1});
     if($checkpointMessage) {
 	barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n";
     }
@@ -3538,6 +3552,10 @@ our $pOptionsTable =
 
     'tee'       => ['b', sub { "" }, undef, undef,
 		    '[pseudo] Tee gnuplot commands to stdout for inspection'
+    ],
+
+    'silent'      => ['b', sub { "" }, undef, undef, 
+		    '[pseudo] Be silent about gnuplot errors'
     ],
 
       # topcmds/extracmds/bottomcmds: contain explicit strings for gnuplot.
@@ -5400,7 +5418,7 @@ for my $k(keys %$termTabSource) {
 	}
 	$terminalOpt->{$name} = [ $line->[0], $line->[1], undef, $i++, $line->[2]];
     }
-
+    $terminalOpt->{"wait"} = [ 's' , sub { return "" }, undef, $i++, "wait time before throwing an error (default 5s)" ];
     $termTab->{$k} = { desc => $termTabSource->{$k}->{desc},
 		       unit => $termTabSource->{$k}->{unit},
 		       mouse => $termTabSource->{$k}->{mouse} // 0,
@@ -5432,24 +5450,24 @@ sessions.
 
 sub terminfo {
     shift() if( UNIVERSAL::isa($_[0],'PDL::Graphics::Gnuplot') );
+
     my $terminal = shift || '';
+    if((ref $terminal ? ref $terminal : $terminal) =~ m/PDL::Graphics::Gnuplot/) {
+	$terminal = shift;
+    }
+
     my $brief_form = shift;
     my $dont_print = shift;
     my $s = "";
 
-    $terminal = shift if($terminal =~ m/PDL::Graphics::Gnuplot/);
 
     if($termTabSource->{$terminal}) {
 	if(ref $termTabSource->{$terminal}) {
 	    $s = "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}', options are:\n";
-	    for my $name(@{$termTabSource->{$terminal}->{opt}}) {
+	    my $tt = $termTab->{$terminal}->{opt}->[0];
+	    for my $name(sort {$tt->{$a}->[3] <=> $tt->{$b}->[3]} keys %$tt) {
 		my @info = ();
-
-		if(ref $name) {
-		    @info = ( $name->[0], $name->[3] );
-		} else {
-		    @info = ( $name, $termTab_types->{$name}->[2] );
-		}
+		@info = ($name, $tt->{$name}->[4]);
 		$info[0] =~ s/\_$//;         #remove trailing underscore on "output_" hack
 		$s .= sprintf "%10s - %s\n",@info;
 	    }
@@ -5493,6 +5511,7 @@ sub terminfo {
 		$s .= sprintf("%12s",$k);
 		$s .= "\n" unless(++$i % 6);
 	    }
+	    $s .= "\n";
 	}
 	$s .= "\nRun PDL::Graphics::Gnuplot::terminfo( \$term_name ) for information on options.\n\n";
 	print STDERR $s unless($dont_print);
@@ -5641,7 +5660,7 @@ sub _printGnuplotPipe
 
 
   # Autodetect the dump option
-  # If it get set or unset, restart gnuplot
+  # If it gets set or unset, restart gnuplot
   if(($this->{options}->{dump} && !$this->{dumping})  or  
      ($this->{dumping} && !$this->{options}->{dump})
       ) {
@@ -5692,9 +5711,12 @@ our $cp_serial = 0;
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
-    my $notimeout = shift;
+    my $opt = shift // {};
+    my $notimeout = $opt->{notimeout} // 0;
+    my $printwarnings = (($opt->{printwarnings} // 0) and !($this->{options}->{silent} // 0));
+
     my $pipeerr = $this->{"err-$suffix"};
-    
+
     # string containing various options to this function
     my $flags = shift;
     
@@ -5723,7 +5745,7 @@ sub _checkpoint {
 	    # a data-receiving mode. I'm careful to avoid this situation, but bugs in
 	    # this module and/or in gnuplot itself can make this happen
 	    my $terminal =$this->{options}->{terminal};
-	    my $delay = ((($terminal && $termTab->{$terminal}->{delay})//0) + 0) || 5;
+	    my $delay = (($this->{'wait'}//0) + 0) || 5;
 	    
 	    if( ($this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay)) or
 		$MS_io_braindamage)
@@ -5751,43 +5773,35 @@ although for some terminals (like x11) it could be because of a
 slow network.  If you don't think it is a network problem, please
 report it as a PDL::Graphics::Gnuplot bug.  You might be able to 
 ignore this message, or you might have to restart() the object.
+If you are getting this message spuriously, you might like to 
+set the "wait" terminal option to a longer value (in seconds).
 EOM
 	    }
-	} until $fromerr =~ /\s*(.*?)\s*$checkpoint.*$/ms;
+	} until $fromerr =~ m/(\s*(.*?)\s*$checkpoint.*$)/ms;
 
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
+	$fromerr =~ s/\s*(.*?)\s*$checkpoint.*$/$1/ms;
+	
+	# Replace non-printable ASCII characters with '?'
+	# (preserve ^I [tab], ^J [newline], and ^M [return])
+	$fromerr =~ s/[\000-\010\013-\014\016-\037\200-\377]/\?/g;
 
-	$fromerr = $1;
-
+	# Find, report, and strip warnings.
 	my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
-	
-	if(defined $flags && $flags =~ /printwarnings/)
-	{
-	    while($fromerr =~ s/$warningre//gm)
-	    { print STDERR "Gnuplot warning: $1\n"; }
+	while( $fromerr =~ s/$warningre//gm) {
+	    print STDERR "Gnuplot warning: $1\n" if( $printwarnings );
 	}
-	
-	
-	# I've now read all the data up-to the checkpoint. Strip out all the warnings
-	$fromerr =~ s/$warningre//gm;
 
 	# Grab everything after the first prompt
 	if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
 	    $fromerr = $1;
 	}
 
-	# Replace non-printable ASCII characters with '?'
-	$fromerr =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
-
 	if($fromerr =~ m/^\s+\^\s*$/m or $fromerr=~ m/^\s*line/) {
 	    if($this->{early_gnuplot}) {
-		print STDERR "WARNING the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n";
+		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n$fromerr\n";
 	    } else {
-		print STDERR "WARNING: the gnuplot backend issued an error:\n";
-	    }
-	    print STDERR $fromerr."\n";
-	    if($this->{early_gnuplot}) {
-		print STDERR "Please try this command with gnuplot >= v$gnuplot_req_v before griping about it.\n";
+	        barf "PDL::Graphics::Gnuplot: ERROR: the gnuplot backend issued an error:\n$fromerr\n";
 	    }
 	}
 		       

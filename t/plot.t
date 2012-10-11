@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 82;
+use Test::More tests => 85;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -42,15 +42,33 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
 ##############################
 #
 {
-  # purposely fail. make sure error message is as expected. This means the gnuplot
-  # process STDERR is read and parsed correctly
+  # purposely fail.  This one should fail by sensing that "bogus" is bogus, *before* sending 
+  # anything to Gnuplot.
 
-  eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput}, with => 'bogus', $x); };
+  eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput, silent=>1}, with => 'bogus', $x); };
   print "error detection: found\n$@\n";
-  ok($@ && $@ =~ /with\ bogus/s,  'error detection works' )
+  ok($@ && $@ =~ /invalid plotstyle \'with\ bogus\' in plot/s,  'we find bogus "with" before sending to gnuplot' )
     or diag "plot() produced no error";
 
+  eval{ plot( {terminal => 'dumb 79 24', output=>$testoutput, topcmds=>"this should fail"}, with=>'line', $x); };
+  ok($@ && $@ =~ m/invalid command/o, "we detect an error message from gnuplot");
+
   unlink $testoutput;
+}
+
+##############################
+# 
+{
+    my $w;
+    # Check timeout.
+    eval {
+	 $w = gpwin( 'dumb', size=>[79,24],output=>$testoutput, wait=>1);
+    };
+    ok((!$@ and (ref $w)), "constructor works");
+    eval {
+	$w->plot ( { topcmds=>'pause 2'}, with=>'line', $x); };
+
+    ok($@ && $@ =~ m/1 second/og, "gnuplot response timeout works" );
 }
 
 ##############################
@@ -309,8 +327,8 @@ unlink $testoutput;
 
 SKIP: {
     unless(exists($ENV{GNUPLOT_INTERACTIVE}) and $ENV{DISPLAY}) {
-	print STDERR "\nSkipping x11 interactive tests - set environment variables DISPLAY and\n   GNUPLOT_INTERACTIVE to enable\n\n";
-	skip "Skipping x11 interactive tests - set environment variables DISPLAY and\n   GNUPLOT_INTERACTIVE to enable",
+	print STDERR "\n\n******************************\nSkipping 16 interactive tests that use X11.\n    Set the environment variables DISPLAY and\n    GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
+	skip "Skipping x11 interactive tests - set environment variables DISPLAY and\nGNUPLOT_INTERACTIVE to enable them.",
 	16;
     }
 
@@ -419,7 +437,7 @@ ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn
 
 ##############################
 # Test date plotting
-eval {$w=gpwin( dumb, size=>[79,24,'ch'],output=>$testoutput );};
+eval {$w=gpwin( "dumb", size=>[79,24,'ch'],output=>$testoutput );};
 ok(!$@, "dumb terminal still works");
 
 # Some date stamps
@@ -449,12 +467,14 @@ $lines3 = join("",(<FOO>));
 close FOO;
 
 print "lines1:\n$lines1\n\nlines2:\n$lines2\n\nlines3:\n$lines3\n\n";
-SKIP2: {
+SKIP: {
     skip "Skipping date ranging tests since Gnuplot itself doesn't work",2;
 ok($lines1 eq $lines2,  "Setting the time range to what it would be anyway duplicates the graph");
 ok($lines2 cmp $lines3, "Modifying the time range modifies the graph");
 }
 undef $w;
+
+
 unlink $testoutput;
 
        
