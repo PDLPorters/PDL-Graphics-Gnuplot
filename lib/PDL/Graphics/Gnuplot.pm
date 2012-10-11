@@ -1388,7 +1388,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '1.1b3';
+our $VERSION = '1.1b4';
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
@@ -1398,6 +1398,7 @@ our $check_syntax = 0;
 our $gnuplot_req_v = 4.4;
 
 our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
+our $debug_echo = 0;                              # If set, inject commands into the returned stream to mimic Losedows
 
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
@@ -3135,7 +3136,7 @@ sub read_mouse {
 	unless($this->{replottable});
 
     $mouse_serial++;
-    my $string = _checkpoint($this, "main", "read_mouse: prepare-to-mouse ($mouse_serial)");
+    my $string = _checkpoint($this, "main", {string=>"read_mouse: prepare-to-mouse ($mouse_serial)"});
 
     print STDERR $message;
 
@@ -3145,7 +3146,7 @@ if( exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y") )  print "Key
 EOC
 	);
 
-    $string = _checkpoint($this, "main", "read_mouse: read",1);
+    $string = _checkpoint($this, "main", {string=>"read_mouse: read"},1);
 
     $string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+),([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?/ 
 	|| barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
@@ -5676,7 +5677,12 @@ sub _printGnuplotPipe
   my $pipein = $this->{"in-$suffix"};
 
   syswrite($pipein,$string) unless($this->{dumping});
-  
+
+  # Mockup for half-duplex pty and pty mockups (e.g. testing Windows support)
+  if($debug_echo) {
+      $this->{"echobuffer-$suffix"} = "" unless(defined($this->{"echobuffer-$suffix"}));
+      $this->{"echobuffer-$suffix"} .= $string;
+  }
   
   # Various debugging options. 
   if($this->{dumping}) {
@@ -5714,7 +5720,7 @@ sub _checkpoint {
     my $opt = shift // {};
     my $notimeout = $opt->{notimeout} // 0;
     my $printwarnings = (($opt->{printwarnings} // 0) and !($this->{options}->{silent} // 0));
-
+    
     my $pipeerr = $this->{"err-$suffix"};
 
     # string containing various options to this function
@@ -5726,7 +5732,7 @@ sub _checkpoint {
     # child's STDERR pipe until I get that message back. Any errors would have
     # been printed before this
     $cp_serial++;
-    my $checkpoint = "xxxxxxx Synchronizing gnuplot i/o $cp_serial xxxxxxx";
+    my $checkpoint = $opt->{string} || "xxxxxxx Synchronizing gnuplot i/o $cp_serial xxxxxxx";
     
     _printGnuplotPipe( $this, $suffix, "\n\nprint \"$checkpoint\"\n" );
     
@@ -5739,14 +5745,21 @@ sub _checkpoint {
 
     if( !($this->{dumping}) ) {
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
+
+	my $terminal =$this->{options}->{terminal};
+	my $delay = (($this->{'wait'}//0) + 0) || 5;
+
+	if($this->{"echobuffer-$suffix"}) {
+	    $fromerr = $this->{"echobuffer-$suffix"};
+	    $this->{"echobuffer-$suffix"} = "";
+	}
+
 	do
 	{ 
 	    # if no data received in a few seconds, the gnuplot process is stuck. This
 	    # usually happens if the gnuplot process is not in a command mode, but in
 	    # a data-receiving mode. I'm careful to avoid this situation, but bugs in
 	    # this module and/or in gnuplot itself can make this happen
-	    my $terminal =$this->{options}->{terminal};
-	    my $delay = (($this->{'wait'}//0) + 0) || 5;
 	    
 	    if( ($this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay)) or
 		$MS_io_braindamage)
@@ -5778,7 +5791,7 @@ If you are getting this message spuriously, you might like to
 set the "wait" terminal option to a longer value (in seconds).
 EOM
 	    }
-	} until $fromerr =~ m/$checkpoint/;
+	} until $fromerr =~ m/^$checkpoint/ms;
 
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
 
