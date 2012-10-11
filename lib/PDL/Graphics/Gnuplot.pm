@@ -5736,6 +5736,7 @@ sub _checkpoint {
     return unless defined $pipeerr;
     
     my $fromerr = '';
+
     if( !($this->{dumping}) ) {
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
 	do
@@ -5777,9 +5778,23 @@ If you are getting this message spuriously, you might like to
 set the "wait" terminal option to a longer value (in seconds).
 EOM
 	    }
-	} until $fromerr =~ m/(\s*(.*?)\s*$checkpoint.*$)/ms;
+	} until $fromerr =~ m/$checkpoint/;
 
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
+
+	# Discard everything before the first prompt in the stream.
+	$fromerr =~ s/^((gnu|multi)plot\>.*)/$1/ms;
+
+	# Discard prompt-and-command lines.  This is necessary for 
+	# MS Windows support: MS Windows doesn't have a notion of a
+	# tty versus other kind of pipe, so gnuplot always prints prompts
+	# and echoes commands.  On real operating systems, gnuplot
+	# refrains from printing prompts on pipes.  blech.
+	if($MS_io_braindamage) {
+	    $fromerr =~ s/^(gnu|multi)plot\>.*$//mg;
+	}
+	
+	# Strip the checkpoint message.
 	$fromerr =~ s/\s*(.*?)\s*$checkpoint.*$/$1/ms;
 	
 	# Replace non-printable ASCII characters with '?'
@@ -5790,11 +5805,6 @@ EOM
 	my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
 	while( $fromerr =~ s/$warningre//gm) {
 	    print STDERR "Gnuplot warning: $1\n" if( $printwarnings );
-	}
-
-	# Grab everything after the first prompt
-	if( $fromerr =~ m/^((gnu|multi)plot\>.*)/ms) {
-	    $fromerr = $1;
 	}
 
 	if($fromerr =~ m/^\s+\^\s*$/m or $fromerr=~ m/^\s*line/) {
