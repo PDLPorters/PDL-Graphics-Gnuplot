@@ -1,16 +1,19 @@
 #!perl
 
-use Test::More tests => 85;
+use Test::More tests => 87;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
 }
 
-
 use File::Temp qw(tempfile);
 use PDL;
 use PDL::Graphics::Gnuplot;
 
+##########
+# Uncomment these to test error handling on Microsoft Windows, from within POSIX....
+# $PDL::Graphics::Gnuplot::debug_echo = 1;
+# $PDL::Graphics::Gnuplot::MS_io_braindamage = 1;
 
 diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, Perl $], $^X" );
 
@@ -26,6 +29,8 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
 
 
   eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput}, $x); };
+
+
   ok(! $@,           'basic plotting succeeded without error' )
     or diag "plot() died with '$@'";
   ok(-e $testoutput, 'basic plotting created an output file' )
@@ -58,8 +63,9 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
 
 ##############################
 # 
+my $w;
+
 {
-    my $w;
     # Check timeout.
     eval {
 	 $w = gpwin( 'dumb', size=>[79,24],output=>$testoutput, wait=>1);
@@ -69,6 +75,18 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
 	$w->plot ( { topcmds=>'pause 2'}, with=>'line', $x); };
 
     ok($@ && $@ =~ m/1 second/og, "gnuplot response timeout works" );
+}
+
+##############################
+{ 
+    eval { 
+	$w->restart;
+    };
+    print "restart returned '$@'\n";
+    ok(!$@, "restart worked OK\n");
+
+    undef $w;
+    ok("destructor worked OK\n");
 }
 
 ##############################
@@ -148,6 +166,7 @@ unlink $testoutput;
 
 ok(@lines == 24, "test plot made 24 lines");
 ok(!(-e $testoutput), "test file got deleted");
+
 
 eval { $w->replot(); };
 ok(!$@, "replot works");
@@ -472,11 +491,5 @@ SKIP: {
 ok($lines1 eq $lines2,  "Setting the time range to what it would be anyway duplicates the graph");
 ok($lines2 cmp $lines3, "Modifying the time range modifies the graph");
 }
-undef $w;
-
-
-unlink $testoutput;
-
-       
 
 

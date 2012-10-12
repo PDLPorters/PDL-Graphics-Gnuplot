@@ -2299,13 +2299,13 @@ sub plot
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}->[0]->double->copy;
 	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
-	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
+	    _printGnuplotPipe($this, "main", ${$p->get_dataref},1);
 
 	} elsif( $chunk->{binaryCurveFlag}  ) {
 	    # Send in binary if the binary flag is set.
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
 	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
-	    _printGnuplotPipe($this, "main", ${$p->get_dataref});
+	    _printGnuplotPipe($this, "main", ${$p->get_dataref},1);
 
 	} else {
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
@@ -2320,7 +2320,8 @@ sub plot
 		# Emit $p as a collection of " " separated lines, followed by "e".
 		_printGnuplotPipe($this,
 				  "main",
-				  join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n"
+				  join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n",
+				  1
 		    );
 	    } else {
 		# It's a collection of list ref data only.  Assemble strings.
@@ -2341,7 +2342,7 @@ sub plot
 		    $s .= "\n";                     # add newline
 		}
 		$s .= "e\n";                        # end the command
-		_printGnuplotPipe($this, "main", $s);
+		_printGnuplotPipe($this, "main", $s, 1);
 	    }
 	}
     }
@@ -3136,7 +3137,7 @@ sub read_mouse {
 	unless($this->{replottable});
 
     $mouse_serial++;
-    my $string = _checkpoint($this, "main", {string=>"read_mouse: prepare-to-mouse ($mouse_serial)"});
+    my $string = _checkpoint($this, "main", {notimeout=>1});
 
     print STDERR $message;
 
@@ -3146,7 +3147,7 @@ if( exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y") )  print "Key
 EOC
 	);
 
-    $string = _checkpoint($this, "main", {string=>"read_mouse: read"},1);
+    $string = _checkpoint($this, "main", {notimeout=>1});
 
     $string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+),([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?/ 
 	|| barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
@@ -3290,6 +3291,8 @@ EOMSG
 	actions=> {
 	    # These defaults can be overridden.
 	    'd'        => ['Delete last point (or DEL or backspace or shift-button)', \&__del],
+	    '#010'     => \&__quit, # NEWLINE (ENTER)
+	    '#013'     => \&__quit, # RETURN
 	    "#127"     => \&__del,  # DEL
 	    "#008"     => \&__del,  # BS
 	    'BUTTON1S' => \&__del,  # shift-click
@@ -3348,6 +3351,7 @@ EOMSG
 	if($opt->{markup}){
 	    $this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
 	}
+
     } while(($h->{'b'} || $h->{'k'}) and !$this->{quit} and ($opt->{n_points}==0  or $poly->dim(1)<$opt->{n_points}));
     
     print "\n";
@@ -5633,16 +5637,25 @@ sub _killGnuplot {
     
     if( defined $this->{"pid-$suffix"})
     {
-	if( $this->{"stuck-$suffix"} )
-	{
-	    kill 'TERM', $this->{"pid-$suffix"};
-	}
-	else
-	{
-	    _printGnuplotPipe( $this, $suffix, "exit\n" );
-	}
+	my $goner = $this->{"pid-$suffix"};
+
+	# Since we have to deal with various contingencies including 
+	# a hosed-up gnuplot, we just jump straight to killin'.  
+	kill 'HUP', $goner;
+
+	# give it two seconds to quit nicely, then use the big guns.
+	local($SIG{ALRM}) = sub { kill 'KILL', $goner; };
+	alarm(2); 
+
+	# wait for it.  No WNOHANG since some platforms don't have it.
+	waitpid( $goner, 0 ) ;
+
+	# clear the alarm.
+	alarm(0); 
 	
-	waitpid( $this->{"pid-$suffix"}, 0 ) ;
+	# This clears the status bits from the killed process, so
+	# we don't report anomalous error when we finally exit.
+	$? = 0;  
     }
     
     for (map { $_."-$suffix" } qw/in err errSelector pid/) {
@@ -5658,7 +5671,7 @@ sub _printGnuplotPipe
   my $this   = shift;
   my $suffix = shift;
   my $string = shift;
-
+  my $data = shift;    # flag whether this transmission be data (0 for a command)
 
   # Autodetect the dump option
   # If it gets set or unset, restart gnuplot
@@ -5680,8 +5693,11 @@ sub _printGnuplotPipe
 
   # Mockup for half-duplex pty and pty mockups (e.g. testing Windows support)
   if($debug_echo) {
-      $this->{"echobuffer-$suffix"} = "" unless(defined($this->{"echobuffer-$suffix"}));
-      $this->{"echobuffer-$suffix"} .= $string;
+      my $k = "echobuffer-$suffix";
+      $this->{$k} = "" unless(defined($this->{$k}));
+      my $s = $string;
+      $s =~ s/^/gnuplot> /msg unless($data);
+      $this->{$k} .= $s;
   }
   
   # Various debugging options. 
@@ -5732,7 +5748,7 @@ sub _checkpoint {
     # child's STDERR pipe until I get that message back. Any errors would have
     # been printed before this
     $cp_serial++;
-    my $checkpoint = $opt->{string} || "xxxxxxx Synchronizing gnuplot i/o $cp_serial xxxxxxx";
+    my $checkpoint = "xxxxxxx Synchronizing gnuplot i/o $cp_serial xxxxxxx";
     
     _printGnuplotPipe( $this, $suffix, "\n\nprint \"$checkpoint\"\n" );
     
@@ -5753,6 +5769,15 @@ sub _checkpoint {
 	    $fromerr = $this->{"echobuffer-$suffix"};
 	    $this->{"echobuffer-$suffix"} = "";
 	}
+	my $got_sigpipe =0 ;
+
+	local($SIG{PIPE}) = sub { $got_sigpipe = 1; };
+
+	my $now;
+	if($MS_io_braindamage) {
+	    $now = time;
+	    print "delay=$delay\n";
+	}
 
 	do
 	{ 
@@ -5761,8 +5786,7 @@ sub _checkpoint {
 	    # a data-receiving mode. I'm careful to avoid this situation, but bugs in
 	    # this module and/or in gnuplot itself can make this happen
 	    
-	    if( ($this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay)) or
-		$MS_io_braindamage)
+	    if( $this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay) )
 	    {
 		# read a byte into the tail of $fromerr. I'd like to read "as many bytes
 		# as are available", but I don't know how to this in a very portable way
@@ -5791,20 +5815,22 @@ If you are getting this message spuriously, you might like to
 set the "wait" terminal option to a longer value (in seconds).
 EOM
 	    }
-	} until $fromerr =~ m/^$checkpoint/ms;
+	} until ($fromerr =~ m/^$checkpoint/ms or $got_sigpipe or ($MS_io_braindamage and $now + $delay < time));;
+
+	if($got_sigpipe) {
+	    _killGnuplot($this);
+	    barf "PDL::Graphics::Gnuplot:  gnuplot process seems to have died (SIGPIPE received)\n";
+	}
 
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
 
-	# Discard everything before the first prompt in the stream.
-	$fromerr =~ s/^((gnu|multi)plot\>.*)/$1/ms;
-
-	# Discard prompt-and-command lines.  This is necessary for 
-	# MS Windows support: MS Windows doesn't have a notion of a
-	# tty versus other kind of pipe, so gnuplot always prints prompts
-	# and echoes commands.  On real operating systems, gnuplot
-	# refrains from printing prompts on pipes.  blech.
+	# Discard prompt-and-command lines up to the last prompt seen. 
+	# This is necessary for MS Windows support: MS Windows doesn't have 
+	# a notion of a tty versus other kind of pipe, so gnuplot always 
+	# prints prompts and echoes commands.  Since there isn't much in the 
+	# way of error syntax, we might miss a few errors this way.  Oh well.
 	if($MS_io_braindamage) {
-	    $fromerr =~ s/^(gnu|multi)plot\>.*$//mg;
+	    $fromerr =~ s/.*(gnu|multi)plot\>[^\n\r]*$//msg;
 	}
 	
 	# Strip the checkpoint message.
