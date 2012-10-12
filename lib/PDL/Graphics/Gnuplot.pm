@@ -1388,7 +1388,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '1.1b4';
+our $VERSION = '1.1';
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
@@ -6144,7 +6144,7 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 =head2 v1.1
 
-- Should now work OK under Microsoft Windows
+- Handles communication with command echo on the pipe (for Microsoft Windows)
 
 - Better gnuplot error reporting
 

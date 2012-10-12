@@ -1,22 +1,2 @@
-libpdl-graphics-gnuplot-perl (1.1b4) unstable; urgency=low
+libpdl-graphics-gnuplot-perl (1.1) unstable; urgency=low
 
-  * debian packaging cleanup
-  * updated email address
-  * updated copyright file 1. clearer licensing 2. new email address 3. removed dh-make-perl boilerplate
-  * pod: escaped a '>'
-
- -- Dima Kogan <dima@secretsauce.net>  Fri, 28 Oct 2011 18:36:30 -0700
-
-libpdl-graphics-gnuplot-perl (0.02-1) unstable; urgency=low
-
-  * If gnuplot isn't found by Makefile.PL I now successfully exit without
-    making a Makefile. This lets CPAN testers know that this wasn't necessarily
-    a failure
-
- -- Dima Kogan <dima@secretsauce.net>  Fri, 05 Aug 2011 01:02:59 -0700
-
-libpdl-graphics-gnuplot-perl (0.01-1) unstable; urgency=low
-
-  * Initial Release.
-
- -- Dima Kogan <dima@secretsauce.net>  Sat, 11 Jun 2011 22:13:36 -0700
