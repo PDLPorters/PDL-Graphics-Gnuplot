@@ -492,4 +492,6 @@ ok($lines1 eq $lines2,  "Setting the time range to what it would be anyway dupli
 ok($lines2 cmp $lines3, "Modifying the time range modifies the graph");
 }
 
+unlink $testoutput;
+
 
