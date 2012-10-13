@@ -285,8 +285,12 @@ ok($@ =~ m/Found 4 PDLs for 2D/, "2-D plot with one variable parameter rejects f
 eval { $w->plot3d(xvals(10)); };                                   
 ok($@ =~ m/Image plot types require/, "3-D plot rejects one PDL if it isn't an image");
 
-eval { $w->plot3d(xvals(10,10))};
-ok(!$@, "3-D plot accepts one PDL if it is an image");
+SKIP: do {
+    skip "Skipping unsupported mode for deprecated earlier gnuplot",1  
+	if($PDL::Graphics::Gnuplot::gp_version < 4.4);
+    eval { $w->plot3d(xvals(10,10))};
+    ok(!$@, "3-D plot accepts one PDL if it is an image");
+};
 
 eval { $w->plot3d(xvals(10),xvals(10)); };
 ok($@ =~ m/Found 2 PDLs for 3D/,"3-D plot rejects two PDLs");
@@ -303,8 +307,12 @@ ok(!$@, "3-D plot accepts four PDLs with one variable element");
 eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10));};
 ok($@ =~ m/Found 4 PDLs for 3D/,"3-D plot rejects four PDLs with two variable elements");
 
-eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
-ok(!$@, "3-D plot accepts five PDLs with one variable element");
+SKIP: do {
+    skip "Skipping unsupported mode for deprecated earlier gnuplot",1  
+	if($PDL::Graphics::Gnuplot::gp_version < 4.4);
+    eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
+    ok(!$@, "3-D plot accepts five PDLs with one variable element");
+}    ;
 
 eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
 ok($@ =~ m/Found 6 PDLs for 3D/,"3-D plot rejects six PDLs with two variable elements");

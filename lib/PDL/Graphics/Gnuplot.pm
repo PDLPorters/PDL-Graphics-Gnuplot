@@ -1389,6 +1389,7 @@ use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
 our $VERSION = '1.1';
+our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
@@ -2937,8 +2938,21 @@ sub image {
     local($this->{options}->{'globalwith'}) = ["image"];
     plot($this, @_);
 }
-    
 
+=head2 fits
+
+=for ref
+
+Displays a FITS image 
+
+=cut
+
+sub fits {
+    my $this = _obj_or_global(\@_);
+    local($this->{options}->{'globalwith'}) = ["fits"];
+    plot($this,@_);
+}
+    
 ##############################
 # Multiplot support
 
@@ -3032,7 +3046,6 @@ our $mpOptionsTable = {
 our $mpOptionsAbbrevs = _gen_abbrev_list(keys %$mpOptionsTable);
 our $mpOpt = [$mpOptionsTable, $mpOptionsAbbrevs, "multiplot option"];
 		       
-
 sub multiplot {
     my $this = _obj_or_global(\@_);
     my @params = @_;
@@ -5580,7 +5593,7 @@ sub _startGnuplot
     ## This uses the same chintzy read-one-byte-at-a-time logic as checkpoint --
     ## it's more or less cut-and-pasted from there
     my $s = "";
-    my $version;
+    our $gp_version;
     if(!$this->{dumping}) {
 	print $in "show version\n";
 	do {
@@ -5599,11 +5612,11 @@ EOM
 	    }
 	} until($s =~ m/Version (.*) patchlevel/i);
 	
-	$version = $1;
+	$gp_version = $1;
 
-	if($version < $gnuplot_req_v) {
+	if($gp_version < $gnuplot_req_v) {
 	    print STDERR <<"EOM"
-WARNING: Gnuplot version ($version) is earlier than recommended ($gnuplot_req_v).
+WARNING: Gnuplot version ($gp_version) is earlier than recommended ($gnuplot_req_v).
 Proceed with caution.  (data xfer is now ASCII by default; this will slow things
 down a bit.  Images may not work.  Some plot styles may not work.)
 EOM
