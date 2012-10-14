@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 87;
+use Test::More tests => 88;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -43,6 +43,8 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
 
   unlink $testoutput;
 }
+
+ok($PDL::Graphics::Gnuplot::gp_version, "gp_version is nonzero after first use of P::G::G");
 
 ##############################
 #
