@@ -82,15 +82,6 @@ SKIP:{
     ok($@ && $@ =~ m/1 second/og, "gnuplot response timeout works" );
 }
 
-##############################
-# Test that sigpipe detection works OK
-
-$w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
-kill 'KILL',$w->{"pid-main"};
-eval {$w->plot(xvals(5));};
-
-
-
 
 ##############################
 { 
