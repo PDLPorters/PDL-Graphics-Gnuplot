@@ -2283,7 +2283,13 @@ sub plot
     _printGnuplotPipe( $this, "main", $plotOptionsString);
     my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
     if($optionsWarnings) {
-	barf( "The gnuplot process returned an error during plot setup:$optionsWarnings\n\n");
+	if($MS_io_braindamage) {
+	    # MS Windows can yield some chatter on the line, and it's not necessarily an
+	    # error.  So we don't barf, we only warn. Blech.
+	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
+	} else {
+	    barf( "The gnuplot process returned an error during plot setup:$optionsWarnings\n\n");
+	}
     }
     
     ##############################
@@ -2350,7 +2356,13 @@ sub plot
 	
     my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
     if($plotWarnings) {
-	barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n");
+	if($MS_io_braindamage) {
+	    # MS Windows can yield some chatter on the line, and it's not necessarily an
+	    # error.  So we don't barf, we only warn. Blech.
+	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$plotWarnings\n\n";
+	} else {
+	    barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n");
+	}
     }
 
     ##############################
@@ -5782,34 +5794,35 @@ sub _checkpoint {
 	    $fromerr = $this->{"echobuffer-$suffix"};
 	    $this->{"echobuffer-$suffix"} = "";
 	}
-	my $got_sigpipe =0 ;
 
-	local($SIG{PIPE}) = sub { $got_sigpipe = 1; };
+	my $subproc_gone = 0 ;
 
-	my $now;
-	if($MS_io_braindamage) {
-	    $now = time;
-	    print "delay=$delay\n";
-	}
+	local($SIG{PIPE}) = sub { our $subproc_gone = 1; };
 
 	do
 	{ 
-	    # if no data received in a few seconds, the gnuplot process is stuck. This
-	    # usually happens if the gnuplot process is not in a command mode, but in
-	    # a data-receiving mode. I'm careful to avoid this situation, but bugs in
-	    # this module and/or in gnuplot itself can make this happen
+	    # if no data received in a few seconds, the gnuplot
+	    # process is stuck. This usually happens if the gnuplot
+	    # process is not in a command mode, but in a
+	    # data-receiving mode. I'm careful to avoid this
+	    # situation, but bugs in this module and/or in gnuplot
+	    # itself can make this happen
+	    #
+	    # Note that the nice asynchronous part of this loop won't
+	    # work on Microsoft Windows, since that OS doesn't have a
+	    # working asynchronous read, and can_read doesn't work
+	    # either.
 	    
-	    if( $this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay) )
+	    if( $MS_io_braindamage or 
+		$this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay )
+		)
 	    {
-		# read a byte into the tail of $fromerr. I'd like to read "as many bytes
-		# as are available", but I don't know how to this in a very portable way
-		# (I just know there will be windows users complaining if I simply do a
-		# non-blocking read). Very little data will be coming in anyway, so
-		# doing this a byte at a time is (these days) an irrelevant inefficiency
 		my $byte;
 		sysread $pipeerr, $byte, 1;
 		$fromerr .= $byte;
-		
+		if($byte eq \004 or $byte eq \000 or !length($byte)) {
+		    $subproc_gone = 1;
+		}
 	    }
 	    else
 	    {
@@ -5828,11 +5841,11 @@ If you are getting this message spuriously, you might like to
 set the "wait" terminal option to a longer value (in seconds).
 EOM
 	    }
-	} until ($fromerr =~ m/^$checkpoint/ms or $got_sigpipe or ($MS_io_braindamage and $now + $delay < time));;
+	} until ($fromerr =~ m/^$checkpoint/ms or $subproc_gone);
 
-	if($got_sigpipe) {
+	if($subproc_gone) {
 	    _killGnuplot($this);
-	    barf "PDL::Graphics::Gnuplot:  gnuplot process seems to have died (SIGPIPE received)\n";
+	    barf "PDL::Graphics::Gnuplot: the gnuplot process seems to have died.\n";
 	}
 
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
@@ -5859,7 +5872,13 @@ EOM
 	    print STDERR "Gnuplot warning: $1\n" if( $printwarnings );
 	}
 
-	if($fromerr =~ m/^\s+\^\s*$/m or $fromerr=~ m/^\s*line/) {
+	# Anything else is an error -- except on Microsoft Windows where we 
+	# get additional chaff on the channel.  Try to take it out.
+	if($MS_io_braindamage) {
+	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//;
+	}
+
+	if($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) {
 	    if($this->{early_gnuplot}) {
 		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n$fromerr\n";
 	    } else {

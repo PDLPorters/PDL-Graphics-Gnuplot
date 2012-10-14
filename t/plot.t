@@ -14,7 +14,6 @@ use PDL::Graphics::Gnuplot;
 # Uncomment these to test error handling on Microsoft Windows, from within POSIX....
 # $PDL::Graphics::Gnuplot::debug_echo = 1;
 # $PDL::Graphics::Gnuplot::MS_io_braindamage = 1;
-
 diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, Perl $], $^X" );
 
 my $x = sequence(5);
@@ -67,17 +66,31 @@ ok($PDL::Graphics::Gnuplot::gp_version, "gp_version is nonzero after first use o
 # 
 my $w;
 
-{
+SKIP:{
     # Check timeout.
     eval {
 	 $w = gpwin( 'dumb', size=>[79,24],output=>$testoutput, wait=>1);
     };
     ok((!$@ and (ref $w)), "constructor works");
+
+    skip "Skipping timeout test, which doesn't work under MS Windows", 1
+	if($PDL::Graphics::Gnuplot::MS_io_braindamage);
+
     eval {
 	$w->plot ( { topcmds=>'pause 2'}, with=>'line', $x); };
 
     ok($@ && $@ =~ m/1 second/og, "gnuplot response timeout works" );
 }
+
+##############################
+# Test that sigpipe detection works OK
+
+$w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+kill 'KILL',$w->{"pid-main"};
+eval {$w->plot(xvals(5));};
+
+
+
 
 ##############################
 { 
@@ -90,6 +103,7 @@ my $w;
     undef $w;
     ok("destructor worked OK\n");
 }
+
 
 ##############################
 # Test options parsing
