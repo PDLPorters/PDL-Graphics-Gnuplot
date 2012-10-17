@@ -317,13 +317,14 @@ a 3-tuple: X, Y, and R.
 
 =head3 A complicated example:
 
-   my $pi    = 3.14159;
-   my $theta = xvals(201) * 6 * $pi / 200;
-   my $z     = xvals(201) * 5 / 200;
+   $pi    = 3.14159;
+   $theta = xvals(201) * 6 * $pi / 200;
+   $z     = xvals(201) * 5 / 200;
 
-   plot( {'3d' => 1, title => 'double helix'},
+   gplot( {trid => 1, title => 'double helix'},
          {with => 'linespoints pointsize variable pointtype 2 palette',
          legend => ['spiral 1','spiral 2']} ,
+         cdim=>1,
          pdl( cos($theta), -cos($theta) ),       # x
          pdl( sin($theta), -sin($theta) ),       # y
          $z,                                     # z
@@ -333,16 +334,18 @@ a 3-tuple: X, Y, and R.
          zeroes(6),                         # x
          zeroes(6),                         # y
          xvals(6),                          # z
-         xvals(6)+1,                        # point size
-         {size=>'xyz equal'}
+         xvals(6)+1                         # point size
    );
 
 This is a 3d plot with variable size and color. There are 5 values in
 the tuple.  The first 2 piddles have dimensions (N,2); all the other
-piddles have a single dimension. Thus the PDL threading generates 2
+piddles have a single dimension. The "cdim=>1" specifies that each column
+of data should be one-dimensional. Thus the PDL threading generates 2
 distinct curves, with varying values for x,y and identical values for
 everything else.  To label the curves differently, 2 different sets of
-curve options are given.
+curve options are given.  Omitting the "cdim" curve option would yield 
+a 201x2 grid with the "linespoints" plotstyle, rather than two separate 
+curves.
 
 In addition to the threaded pair of linespoints curves, there are six 
 variable size points plotted as filled squares, as a secondary curve.
@@ -1222,6 +1225,20 @@ don't need to set this as individual C<with> styles implicitly set a
 tuple size (which is automatically extended if you specify additional
 modifiers such as C<palette> that require more data); this option 
 lets you override PDL::Graphics::Gnuplot's parsing in case of irregularity.
+
+=item cdims 
+
+Specifies the dimensions of a column.  It must be 0, 1, or 2.  If you leave
+it blank or specify 0, you get an appropriate default value for most plot
+types.  The exception is a threaded collection of 1-D columns in a 3-D plot.
+Normally, feeding a 2-D "column" into a 3-D plot yields a gridded manifold.
+If you'd rather treat your 2-D column as a collection of single line plots, 
+then you need to specify "cdims=>1" for that curve;  Example:
+
+    $w=gpwin()
+    $w->plot( trid=>1, with=>'lines', rvals(21,21)**2 )
+
+
 
 =back
 

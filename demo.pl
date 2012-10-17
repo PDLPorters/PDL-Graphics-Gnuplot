@@ -20,6 +20,8 @@ $x_3d = (cos($ph)*cos($th))->flat->glue(0, (cos($ph)*cos($th))->transpose->flat)
 $y_3d = (cos($ph)*sin($th))->flat->glue(0, (cos($ph)*sin($th))->transpose->flat);
 $z_3d = (sin($ph)*$th->ones)->flat->glue(0,(sin($ph)*$th->ones)->transpose->flat);
 
+$rv = rvals(21,21);
+$zv = cos($rv) / (3 + $rv);
 
 #################################
 # Now the tests!
@@ -78,7 +80,7 @@ prompt("Error bars and other things");
 
 # a way to control the point size
 
-$w->plot(binary => 1, cbmin => -600, cbmax => 600, title=>"Variable pointsize",
+$w->plot(cbmin => -600, cbmax => 600, title=>"Variable pointsize",
      {with => 'points pointtype 7 pointsize variable'},
 	 $x, $x/2, (10-abs($x))/2);
 prompt("Variable pointsize");
@@ -87,10 +89,29 @@ prompt("Variable pointsize");
 ################################
 # some 3d stuff
 ################################
+$w->reset;
+
+# plot a gridded surface
+$w->plot3d( 
+    with=>'linespoints',
+    xvals($zv), yvals($zv),
+    $zv
+    );
+prompt("A gridded surface (feed in a 2-D column)");
+
+# Plot a collection of lines
+$w->plot3d( 
+    with=>'linespoints',
+    cdim=>1,
+    xvals($zv), yvals($zv),
+    $zv
+    );
+prompt("A collection of lines (same data, treated as a collection of 1-D columns)");
+
+
 
 # plot a sphere
-$w->reset;
-$w->plot3d( binary => 1, j=>1, zrange=>[-1,1],yrange=>[-1,1],xrange=>[-1,1],
+$w->plot3d( j=>1, zrange=>[-1,1],yrange=>[-1,1],xrange=>[-1,1],
 	    {with=>'linespoints'},
 	    $x_3d, $y_3d, $z_3d,
       );
@@ -100,9 +121,9 @@ prompt("A sphere");
 
 # sphere, ellipse together
 
-$w->plot3d( binary => 1,
+$w->plot3d(
         j=>1,
-        {legend => ['sphere', 'ellipsoid']},
+        {legend => ['sphere', 'ellipsoid'],cd=>1},
         $x_3d->cat($x_3d*2),
         $y_3d->cat($y_3d*2), $z_3d );
 prompt("A sphere and an ellipsoid");
@@ -116,7 +137,7 @@ prompt("A sphere and an ellipsoid");
     $xy_half = zeros(11,11)->ndcoords;
     $z_half = inner($xy_half, $xy_half);
     
-    $w->plot3d( binary => 1,
+    $w->plot3d(
 	    globalwith => 'points', title  => 'gridded paraboloids',tuplesize=>1,
 	    {legend => ['zplus','zminus']}, $z->cat(-$z),
 	    {legend => 'zplus2'}, $z*2);
@@ -131,11 +152,11 @@ prompt("A sphere and an ellipsoid");
     $theta = zeros(200)->xlinvals(0, 6*$pi);
     $z     = zeros(200)->xlinvals(0, 5);
 
- $w->plot3d( binary => 1,
+ $w->plot3d( 
 	     title => 'double helix',
 	     
 	     { with => 'linespoints pointsize variable pointtype 7 palette', tuplesize => 5,
-	       legend => ['spiral 1','spiral 2']},
+	       legend => ['spiral 1','spiral 2'],cdim=>1},
 	     # 2 sets of x, y, z:
 	     cos($theta)->cat(-cos($theta)),
 	     sin($theta)->cat(-sin($theta)),
@@ -151,7 +172,7 @@ prompt("A sphere and an ellipsoid");
   my $xy;
   $xy = zeros(21,21)->ndcoords - pdl(10,10);
 
-  $w->plot3d(binary => 1,
+  $w->plot3d(
          title  => 'Paraboloid heat map',
          extracmds => 'set view 0,0',
          with => 'image', inner($xy, $xy));

@@ -379,13 +379,14 @@ a 3-tuple: X, Y, and R.
 
 =head3 A complicated example:
 
-   my $pi    = 3.14159;
-   my $theta = xvals(201) * 6 * $pi / 200;
-   my $z     = xvals(201) * 5 / 200;
+   $pi    = 3.14159;
+   $theta = xvals(201) * 6 * $pi / 200;
+   $z     = xvals(201) * 5 / 200;
 
-   plot( {'3d' => 1, title => 'double helix'},
+   gplot( {trid => 1, title => 'double helix'},
          {with => 'linespoints pointsize variable pointtype 2 palette',
          legend => ['spiral 1','spiral 2']} ,
+         cdim=>1,
          pdl( cos($theta), -cos($theta) ),       # x
          pdl( sin($theta), -sin($theta) ),       # y
          $z,                                     # z
@@ -395,16 +396,18 @@ a 3-tuple: X, Y, and R.
          zeroes(6),                         # x
          zeroes(6),                         # y
          xvals(6),                          # z
-         xvals(6)+1,                        # point size
-         {size=>'xyz equal'}
+         xvals(6)+1                         # point size
    );
 
 This is a 3d plot with variable size and color. There are 5 values in
 the tuple.  The first 2 piddles have dimensions (N,2); all the other
-piddles have a single dimension. Thus the PDL threading generates 2
+piddles have a single dimension. The "cdim=>1" specifies that each column
+of data should be one-dimensional. Thus the PDL threading generates 2
 distinct curves, with varying values for x,y and identical values for
 everything else.  To label the curves differently, 2 different sets of
-curve options are given.
+curve options are given.  Omitting the "cdim" curve option would yield 
+a 201x2 grid with the "linespoints" plotstyle, rather than two separate 
+curves.
 
 In addition to the threaded pair of linespoints curves, there are six 
 variable size points plotted as filled squares, as a secondary curve.
@@ -1285,6 +1288,20 @@ tuple size (which is automatically extended if you specify additional
 modifiers such as C<palette> that require more data); this option 
 lets you override PDL::Graphics::Gnuplot's parsing in case of irregularity.
 
+=item cdims 
+
+Specifies the dimensions of a column.  It must be 0, 1, or 2.  If you leave
+it blank or specify 0, you get an appropriate default value for most plot
+types.  The exception is a threaded collection of 1-D columns in a 3-D plot.
+Normally, feeding a 2-D "column" into a 3-D plot yields a gridded manifold.
+If you'd rather treat your 2-D column as a collection of single line plots, 
+then you need to specify "cdims=>1" for that curve;  Example:
+
+    $w=gpwin()
+    $w->plot( trid=>1, with=>'lines', rvals(21,21)**2 )
+
+
+
 =back
 
 =head1 RECIPES
@@ -2099,7 +2116,7 @@ sub plot
 	$chunks->[$i]->{binaryCurveFlag} = $chunks->[$i]->{binaryWith} // $binary_mode;
 
 	# Everything else is an image fix
-	next if( !($chunks->[$i]->{imgFlag}) );
+	next if( $chunks->[$i]->{cdims} != 2 );
 	
 	# Fix up gnuplot ranging bug for images
 	if(defined($this->{options}->{xrange}) and !defined($chunks->[$i]->{options}->{xrange})) {
@@ -2117,20 +2134,33 @@ sub plot
 
 	    # Neither curve nor plot option has been set.  
 	    if($chunks->[$i]->{ArrayRec} eq 'array') {
-		# Autorange using matrix locations -- pixels overlap by 0.5 on bottom and top.
-		$chunks->[$i]->{options}->{xrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(1) - 0.5 ];
-		$chunks->[$i]->{options}->{yrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
+		# Autorange using matrix locations -- pixels lop over the edge by 0.5 on bottom and top for
+		# image data, but not at all for vector data
+		if($chunks->[$i]->{imgFlag}) {
+		    $chunks->[$i]->{options}->{xrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(1) - 0.5 ];
+		    $chunks->[$i]->{options}->{yrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
+		} else {
+		    # Not an image - just use the minmax, and don't pad
+		    $chunks->[$i]->{options}->{xrange} = [ 0, $chunks->[$i]->{data}->[0]->dim(1) - 1 ];
+		    $chunks->[$i]->{options}->{yrange} = [ 0, $chunks->[$i]->{data}->[0]->dim(2) - 1 ];
+		}
 	    } else {
 		# Autorange using x and y ranging -- sleaze out of matching gnuplot's algorithm by
 		# calculating dx and dy.
 		my($xmin,$xmax) = $chunks->[$i]->{data}->[0]->slice("(0)")->minmax;
 		my($ymin,$ymax) = $chunks->[$i]->{data}->[0]->slice("(1)")->minmax;
 		
-		my $dx = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
-		$chunks->[$i]->{options}->{xrange} = [$xmin - $dx, $xmax + $dx];
-		
-		my $dy = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
-		$chunks->[$i]->{options}->{yrange} = [$ymin - $dy, $ymax + $dy];
+		if($chunks->[$i]->{imgFlag}) {
+		    my $dx = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
+		    $chunks->[$i]->{options}->{xrange} = [$xmin - $dx, $xmax + $dx];
+		    
+		    my $dy = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
+		    $chunks->[$i]->{options}->{yrange} = [$ymin - $dy, $ymax + $dy];
+		} else {
+		    # Not an image - just use the minmax, and don't pad
+		    $chunks->[$i]->{options}->{xrange} = [$xmin,$xmax];
+		    $chunks->[$i]->{options}->{yrange} = [$ymin,$ymax];
+		}
 	    }
 	}
 	
@@ -2218,7 +2248,7 @@ sub plot
 
     ##########
     # Generate the plot command with the fences in it instead of data specifiers. 
-    # (The fences are emitted in _emitOpts and contained in the clobal $cmdFence)
+    # (The fences are emitted in _emitOpts and contained in the global $cmdFence)
     my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
 	join( ", ", 
 	      map { 
@@ -2250,7 +2280,7 @@ sub plot
     for my $i(0..$#plotcmds){
 	my($pchunk, $tchunk);
 	
-	if( $chunks->[$i]->{imgFlag} ) {
+	if( $chunks->[$i]->{cdims} == 2 ) {
 	    # It's an image -- always use binary to push the image out.
 
 	    unless( $binary_mode ) {
@@ -2268,7 +2298,6 @@ sub plot
 	    } ( join(",", ($chunks->[$i]->{data}->[0]->slice("(0)")->dims)),
 		join(",", (("1") x ($chunks->[$i]->{data}->[0]->ndims - 1)))
 	      );
-
 	    # Mock up test data - just a single data point for each (8 is the size of an IEEE double)
 	    $chunks->[$i]->{testdata} = "." x ($chunks->[$i]->{tuplesize} * 8);
 
@@ -2367,7 +2396,7 @@ sub plot
     for my $chunk(@$chunks){
 	my $p;
 
-	if($chunk->{imgFlag}) {
+	if($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}->[0]->double->copy;
 	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
@@ -2667,14 +2696,22 @@ sub plot
 
 	    ##############################
 	    # Implicit dimensions in 3-D plots require imgFlag to be set...
-	    $imgFlag |= ($tuplematch[0]<0 && !!$is3d) if(defined($tuplematch[0]));
+	    my $cdims;
+	    if($chunk{options}->{cdims}) {
+		$cdims = $chunk{options}->{cdims};
+		if($cdims==1 and $imgFlag) {
+		    barf("You specified column dimension of 1 for an image plot type! Not allowed.");
+		}
+	    } else {
+		$cdims = ($imgFlag or ( $is3d && $dataPiddles[0]->ndims >= 2 )) ? 2 : 1;
 
+	    }
 
 	    ##############################
 	    # A little aside:  streamline the common optimization case -- 
 	    # if the user specified "image" but handed in an RGB or RGBA image, 
 	    # bust it up into components and update the 'with' accordingly.
-	    if( $imgFlag ) {
+	    if( $cdims==2 ) {
 		if($chunk{options}->{with}->[0] eq 'image') {
 
 		    my $dp = $dataPiddles[$#dataPiddles];
@@ -2692,6 +2729,7 @@ sub plot
 		    }
 		}
 	    }
+	    $chunk{cdims} = $cdims;
 
 	    $chunk{tuplesize} = @dataPiddles;
 	    
@@ -2704,23 +2742,19 @@ sub plot
 	    # Check number of lines threaded into this tupleset; make sure everything 
 	    # is consistent...
 	    my $ncurves;
-	    
-	    if($is3d && $dataPiddles[0]->dims > 2) {
-		print STDERR "WARNING: threading image data in 3-D is not supported.  Trying it anyway...\n";
-	    }
 
-
-	    if($imgFlag or ($is3d && $dataPiddles[0]->dims >= 2) ){
-		# Images should never get a label unless one is explicitly set
-		$chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
-		$spec_legends = 1;
-
-		# For the image case glom everything together into one 3-dimensional PDL, 
-		# pre-inverted so that the 0 dim runs across column.
-		
-		if($imgFlag and $dataPiddles[0]->dims < 2) {
+	    if($imgFlag){
+		if($dataPiddles[0]->dims < 2) {
 		    barf "Image plot types require at least a 2-D input PDL\n";
 		}
+	    }
+
+	    # For the image case glom everything together into one 3-dimensional PDL, 
+	    # pre-inverted so that the 0 dim runs across column.
+	    if($cdims==2) {
+		# Surfaces never get a label unless one is explicitly set
+		$chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
+		$spec_legends = 1;
 
 		my $p = pdl(@dataPiddles);
 
@@ -2732,7 +2766,7 @@ sub plot
 		}
 
 		if( ($p->dims > 3) ) {
-		    barf("PDL::Graphics::Gnuplot::plot: I can't make sense of this dimensional mix -- \n  I ended up with (".join("x",$p->dims).") data after combining everything. \n   (Did you mix list and PDL-stack formulations?)\n");
+		    barf("PDL::Graphics::Gnuplot::plot: I can't make sense of this dimensional mix -- \n  I ended up with (".join("x",$p->dims).") data after combining everything. \n   (Did you mix list and PDL-stack formulations, or try to thread 2-D columns?)\n");
 		}
 
 		# Place the PDL onto the argument stack.
@@ -2888,7 +2922,6 @@ FOO
 		    $data[$i] = $data[$i]->slice( join(",",@s) );
 		}
 	    }
-	    
 	    return @data;
 	} else {
 	    # At least one of the data columns is a non-PDL.  Force them to be simple columns, and
@@ -4201,6 +4234,14 @@ our $cOptionsTable = {
          # data is here so that it gets sorted properly into each chunk -- but it doesn't get specified this way.
          # the output string just specifies STDIN.   The magic output string gets replaced post facto with the test and
          # real output format specifiers.
+    'cdims'     => [sub { my $s = $_[1] // 0;  # Number of dimensions in a column
+			  if($s==0 or $s==1 or $s==2) {
+			      return $s;
+			  } else {
+			      barf "Curve option 'cdims' must be one of 0, 1, or 2\n";
+			  }
+		    },			  
+		    sub { return ""}],
     'data'     => [sub { barf "mustn't specify data as a curve option...\n" },
 		   sub { return " $cmdFence "; },
 		   undef,5

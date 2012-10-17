@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 93;
+use Test::More tests => 96;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -292,9 +292,6 @@ ok(!$@, "2-D plot with one variable parameter takes three PDLs");
 eval { $w->plot(with=>'points pointsize variable',xvals(10),xvals(10),xvals(10),xvals(10)) };
 ok($@ =~ m/Found 4 PDLs for 2D/, "2-D plot with one variable parameter rejects four PDLs");
 
-eval { $w->plot3d(xvals(10)); };                                   
-ok($@ =~ m/Image plot types require/, "3-D plot rejects one PDL if it isn't an image");
-
 SKIP: do {
     skip "Skipping unsupported mode for deprecated earlier gnuplot",1  
 	if($PDL::Graphics::Gnuplot::gp_version < 4.4);
@@ -528,6 +525,25 @@ open FOO,"<$testoutput";
 @lines = <FOO>;
 close FOO;
 ok($lines[1] =~ m/^\s*$/, "Setting empty plot title sets an empty title");
+
+
+##############################
+# Check that 3D plotting of grids differs from threaded line plotting
+eval { $w->plot({trid=>1,title=>""},with=>'lines',sequence(3,3)); };
+ok(!$@, "3-d grid plot with single column succeeded");
+open FOO,"<$testoutput";
+$lines = join("",<FOO>);
+close FOO;
+
+eval { $w->plot({trid=>1,title=>""},with=>'lines',cdim=>1,sequence(3,3));};
+ok(!$@, "3-d threaded plot with single column succeeded");
+open FOO,"<$testoutput";
+$lines2 = join("",<FOO>);
+close FOO;
+
+ok( $lines2 ne $lines, "the two 3-D plots differ");
+ok( $lines2 =~ m/\#/ and $lines !~ m/\#/ , "the threaded plot has traces the grid lacks");
+
 
 undef $w;
 unlink $testoutput;
