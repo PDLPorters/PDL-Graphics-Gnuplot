@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 92;
+use Test::More tests => 93;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -169,9 +169,12 @@ ok(!$@," plot works");
 open FOO,"<$testoutput";
 @lines = <FOO>;
 close FOO;
-unlink $testoutput;
-
 ok(@lines == 24, "test plot made 24 lines");
+
+eval { $w->restart(); };
+ok(!$@,"restart succeeded");
+
+unlink $testoutput;
 ok(!(-e $testoutput), "test file got deleted");
 
 
@@ -526,6 +529,6 @@ open FOO,"<$testoutput";
 close FOO;
 ok($lines[1] =~ m/^\s*$/, "Setting empty plot title sets an empty title");
 
+undef $w;
 unlink $testoutput;
-
 
