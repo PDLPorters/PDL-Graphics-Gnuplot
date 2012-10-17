@@ -162,7 +162,8 @@ of plot styles are supported in each mode.  Plots can be sent to a variety
 of devices; see the description of plot options, below.
 
 You select a plot style with the "with" curve option, and feed in columns
-of data (usually ordinate followed by abscissa):
+of data (usually ordinate followed by abscissa).  The collection of columns
+is called a "tuple".  These plots have two columns in their tuples:
 
 
  $x = xvals(51)-25; $y = $x**2;
@@ -210,7 +211,7 @@ this will plot X vs. sqrt(X):
 =head3 Image plotting
 
 Several of the plot styles accept image data.  The tuple parameters work the
-same way as for basic plots, but each "column" is a 2-D PDL rather than a 1-D PDLs.
+same way as for basic plots, but each "column" is a 2-D PDL rather than a 1-D PDL.
 As a special case, the "with image" plot style accepts either a 2-D or a 3-D PDL.
 If you pass in 3-D PDL, the extra dimension can have size 1, 3, or 4.  It is interpreted
 as running across (R,G,B,A) color planes.  
