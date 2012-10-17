@@ -53,8 +53,11 @@ of the Gnuplot backend.
 
 Gnuplot recognizes both hard-copy and interactive plotting devices,
 and on interactive devices (like X11) it is possible to pan, scale,
-and rotate both 2-D and 3-D plots interactively.  You can also enter 
-graphical data through mouse clicks on the device window.
+and rotate both 2-D and 3-D plots interactively.  You can also enter
+graphical data through mouse clicks on the device window.  On some
+hardcopy devices (e.g. "PDF") that support multipage output, it is
+necessary to close the device after plotting to ensure a valid file is
+written out.
 
 The main subroutine that C<PDL::Graphics::Gnuplot> exports by default
 is C<gplot()>, which produces one or more overlain plots and/or images
@@ -110,7 +113,7 @@ same number of elements.  For example:
  $labels = ['one','two','three','four','five'];
  gplot(with=>'labels',$x,$y,$labels);
 
-See below for supported plot styles.
+See below for supported curve styles.
 
 Gnuplot is built around a monolithic plot model - it is not possible to 
 add new data directly to a plot without redrawing the entire plot. To support
@@ -442,6 +445,13 @@ convenience.
 
 =head2 POs for Output: terminal, termoption, output, device, hardcopy
 
+You can send plots to a variety of different devices; Gnuplot calls 
+devices "terminals".  With the object-oriented interface, you must set
+the output device with the constructor C<PDL::Graphics::Gnuplot::new> 
+(or the exported constructor C<gpwin>) or the C<output> method.  If you
+use the simple non-object interface, you can set the output with the 
+C<terminal>, C<termoption>, and C<output> plot options.
+
 C<terminal> sets the output device type for Gnuplot, and C<output> sets the 
 actual output file or window number.  
 
@@ -456,7 +466,7 @@ For finer grained control of the plotting environment, you can send
 plot options, you can include terminal options by interpolating them 
 into a string, as in C<terminal jpeg interlace butt crop>, or you can
 use the constructor C<new> (also exported as C<gpwin>), which parses
-terminal options as an argument list.  
+terminal options as an argument list. 
 
 The routine C<PDL::Graphics::Gnuplot::terminfo> prints a list of all
 availale terminals or, if you pass in a terminal name, options accepted
@@ -1297,10 +1307,15 @@ To send any plot to a file, instead of to the screen, one can simply do
   plot(hardcopy => 'output.pdf',
        $x, $y);
 
-The C<hardcopy> option is a shorthand for the C<terminal> and C<output>
-options. If more control is desired, the latter can be used. For example to
-generate a PDF of a particular size with a particular font size for the text,
-one can do
+The C<hardcopy> option is a shorthand for the C<terminal> and
+C<output> options. The output device is chosen from the file name
+suffix.  
+
+If you want more (any) control over the output options (e.g. page
+size, font, etc.) then you can specify the output device using the
+C<ouput> method or the constructor itself -- or the corresponding plot
+options in the non-object mode. For example, to generate a PDF of a
+particular size with a particular font size for the text, one can do
 
   plot(terminal => 'pdfcairo solid color font ",10" size 11in,8.5in',
        output   => 'output.pdf',
@@ -1308,6 +1323,20 @@ one can do
 
 This command is equivalent to the C<hardcopy> shorthand used previously, but the
 fonts and sizes can be changed.
+
+Using the object oriented mode, you could instead say:
+
+  $w = gpwin();
+  $w->plot( $x, $y );
+  $w->output( pdfcairo, solid=>1, color=>1,font=>',10',size=>[11,8.5,'in'] );
+  $w->replot();
+  $w->close();
+
+Many hardcopy output terminals (such as C<pdf> and C<svg>) will not 
+dump their plot to the file unless the file is explicitly closed with a 
+change of output device or a call to C<reset>, C<restart>, or C<close>.
+This is because those devices support multipage output and also require 
+and end-of-file marker to close the file.
 
 =head1 Methods 
 
@@ -1591,6 +1620,13 @@ Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 
 Displays an image (either greyscale or RGB)
 
 =cut
+=head2 fits
+
+=for ref
+
+Displays a FITS image 
+
+=cut
 =head2 multiplot
 
 =for example
@@ -1751,8 +1787,11 @@ The routine will call markup after each click.
 =for usage
 
     use PDL::Graphics::Gnuplot qw/terminfo/
-    terminfo
+    terminfo()
     terminfo 'aqua'
+
+    $w = gpwin();
+    $w->terminfo();
 
 =for ref
 
@@ -1787,17 +1826,33 @@ Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@defores
 
 =item - options to "with" selection: accept a list ref instead of a string with args
 
+=item - labels need attention (plot option labels)
+
+They need to be handled as hashes, not just as array refs.  Also, they don't seem to be working with timestamps.
+Further, deeply nested options (e.g. "at" for labels) need attention.
+
 =back
-
-=item - labels need attention 
-
-Should they be handled as hashes? Further, deeply nested options (e.g. "at" for labels) need attention.
 
 =item - new plot styles
 
 The "boxplot" plot style (new to 4.6?) requires a different using syntax and will require some hacking to support.
 
+=item - ephemeral state isn't.
+
+Ephemeral plot options leave state behind in the underlying gnuplot process.  Following each plot with a reset() 
+doesn't do what you really want.  Start each plot with a reset()?  Hold default values in the parse table?
+
 =back
+
+=head1 RELEASE NOTES
+
+=head2 v1.1
+
+- Handles communication with command echo on the pipe (for Microsoft Windows)
+
+- Better gnuplot error reporting
+
+- Fixed date range handling
 
 =head1 LICENSE AND COPYRIGHT
 
