@@ -134,6 +134,13 @@ A call to C<gplot()> looks like:
       curve_options, data, data, ... ,
       curve_options, data, data, ... );
 
+The data entries are columns to be plotted.  They are normally
+an optional ordinate and a required abscissa, but some plot modes 
+can use more columns than that.  The collection of columns is called
+a "tuple".  Each column must be a separate PDL or an ARRAY ref.  If
+all the columns are PDLs, you can add extra dimensions to make threaded
+collections of curves.
+
 PDL::Graphics::Gnuplot also implements an object oriented
 interface. Plot objects track individual gnuplot subprocesses.  Direct
 calls to C<gplot()> are tracked through a global object that stores
@@ -147,14 +154,15 @@ individual traces or collections of points being plotted.  In
 addition, the module itself supports options that allow direct
 pass-through of plotting commands to the underlying gnuplot process.
 
-=head2 Basic plotting
+=head2 Basic 2-D plotting
 
 Gnuplot generates many kinds of plot, from basic line plots and histograms
 to scaled labels.  Individual plots can be 2-D or 3-D, and different sets 
 of plot styles are supported in each mode.  Plots can be sent to a variety
 of devices; see the description of plot options, below.
 
-You select a plot style with the "with" curve option, as in
+You select a plot style with the "with" curve option, aand feed in 
+
 
  $x = xvals(51)-25; $y = $x**2;
  gplot(with=>'points', $x, $y);  # Draw points on a parabola
@@ -167,8 +175,7 @@ Normal threading rules apply across the arguments to a given plot.
 
 All data are required to be supplied as either PDLs or list refs.
 If you use a list ref as a data column, then normal
-threading is disabled and all arguments must be 1-D and contain the 
-same number of elements.  For example:
+threading is disabled.  For example:
 
  $x = xvals(5);
  $y = xvals(5)**2;
@@ -176,6 +183,8 @@ same number of elements.  For example:
  gplot(with=>'labels',$x,$y,$labels);
 
 See below for supported curve styles.
+
+=head3 Modifying plots
 
 Gnuplot is built around a monolithic plot model - it is not possible to 
 add new data directly to a plot without redrawing the entire plot. To support
@@ -197,10 +206,34 @@ this will plot X vs. sqrt(X):
  $y->inplace->sqrt;
  $w->replot($x,$y);
 
+=head3 Image plotting
+
+Several of the plot styles accept image data.  The tuple parameters work the
+same way as for basic plots, but each "column" is a 2-D PDL rather than a 1-D PDLs.
+As a special case, the "with image" plot style accepts either a 2-D or a 3-D PDL.
+If you pass in 3-D PDL, the extra dimension can have size 1, 3, or 4.  It is interpreted
+as running across (R,G,B,A) color planes.  
+
+=head3 3-D plotting
+
+You can plot in 3-D by setting the plot option C<trid> to a true value.  Three
+dimensional plots accept either 1-D or 2-D PDLs as data columns.  If you feed
+in 2-D "columns", many of the common plot styles will generalize appropriately 
+to 3-D.  For example, to plot a 2-D surface as a line grid, you can use the "lines"
+style and feed in 2-D columns instead of 1-D columns.  
+
 =head2 Plot styles supported
 
 Gnuplot itself supports a wide range of plot styles, and all are supported by 
-PDL::Graphics::Gnuplot.  They are:
+PDL::Graphics::Gnuplot.  Most of the basic plot styles collect tuples of 1-D columns
+in 2-D mode (for ordinary plots), or either 1-D or 2-D "columns" in 3-D mode (for 
+grid surface plots and such).  Image modes always collect tuples made of 2-D "columns".
+
+You can pass in 1-D columns as either PDLs or ARRAY refs.  That is important for 
+plot types (such as "labels") that require a collection of strings rather than 
+numeric data.
+
+The GNuplot plot styles supported are:
 
 =over 3
 
