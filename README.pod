@@ -278,16 +278,18 @@ lines, as in:
 
 =head2 Data arguments
 
-Following the curve options in the C<plot()> argument list is the actual data
-being plotted. Each output data point is a "tuple" whose size varies depending on
-what is being plotted. For example if we're making a simple 2D x-y plot, each
-tuple has 2 values; if we're making a 3d plot with each point having variable
-size and color, each tuple has 5 values (x,y,z,size,color). Each tuple element 
-must be passed separately.  For ordinary (non-curve) plots, the 0 dim of the 
-tuple elements runs across plotted point.  PDL threading is active, so multiple 
-curves with similar curve options can be plotted by stacking data inside the 
-passed-in PDLs.  (An exception is that threading is disabled if one or more of 
-the data elements is a list ref).
+Following the curve options in the C<plot()> argument list is the
+actual data being plotted. Each output data point is a "tuple" whose
+size varies depending on what is being plotted. For example if we're
+making a simple 2D x-y plot, each tuple has 2 values; if we're making
+a 3d plot with each point having variable size and color, each tuple
+has 5 values (x,y,z,size,color). Each tuple element must be passed
+separately.  For ordinary 2-D plots, the 0 dim of the tuple elements
+runs across plotted point.  PDL threading is active, so you can plot
+multiple curves with similar curve options on a normal 2-D plot, just
+by stacking data inside the passed-in PDLs.  (An exception is that
+threading is disabled if one or more of the data elements is a list
+ref).
 
 =head3 A simple example
 
