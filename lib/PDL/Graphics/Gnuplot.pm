@@ -154,7 +154,7 @@ individual traces or collections of points being plotted.  In
 addition, the module itself supports options that allow direct
 pass-through of plotting commands to the underlying gnuplot process.
 
-=head2 Basic 2-D plotting
+=head2 Basic plotting
 
 Gnuplot generates many kinds of plot, from basic line plots and histograms
 to scaled labels.  Individual plots can be 2-D or 3-D, and different sets 
