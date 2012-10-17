@@ -2667,8 +2667,13 @@ sub plot
 	    # Check number of lines threaded into this tupleset; make sure everything 
 	    # is consistent...
 	    my $ncurves;
+	    
+	    if($is3d && $dataPiddles[0]->dims > 2) {
+		print STDERR "WARNING: threading image data in 3-D is not supported.  Trying it anyway...\n";
+	    }
 
-	    if($imgFlag){
+
+	    if($imgFlag or ($is3d && $dataPiddles[0]->dims >= 2) ){
 		# Images should never get a label unless one is explicitly set
 		$chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
 		$spec_legends = 1;
@@ -2720,6 +2725,8 @@ curves in a single threaded collection.  This could be because you fed
 in a 2-D (or higher) data set when you meant to plot a single curve.
 If so, you may want to flatten your data and try again. (To disable
 this message, set \$PDL::Graphics::Gnuplot::bigthreads to be true).
+If you are trying to plot a surface, you might try setting 'trid=>1'
+in the plot options.
 FOO
 		}
 
