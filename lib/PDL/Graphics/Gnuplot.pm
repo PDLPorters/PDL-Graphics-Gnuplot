@@ -115,8 +115,11 @@ of the Gnuplot backend.
 
 Gnuplot recognizes both hard-copy and interactive plotting devices,
 and on interactive devices (like X11) it is possible to pan, scale,
-and rotate both 2-D and 3-D plots interactively.  You can also enter 
-graphical data through mouse clicks on the device window.
+and rotate both 2-D and 3-D plots interactively.  You can also enter
+graphical data through mouse clicks on the device window.  On some
+hardcopy devices (e.g. "PDF") that support multipage output, it is
+necessary to close the device after plotting to ensure a valid file is
+written out.
 
 The main subroutine that C<PDL::Graphics::Gnuplot> exports by default
 is C<gplot()>, which produces one or more overlain plots and/or images
@@ -1366,10 +1369,15 @@ To send any plot to a file, instead of to the screen, one can simply do
   plot(hardcopy => 'output.pdf',
        $x, $y);
 
-The C<hardcopy> option is a shorthand for the C<terminal> and C<output>
-options. If more control is desired, the latter can be used. For example to
-generate a PDF of a particular size with a particular font size for the text,
-one can do
+The C<hardcopy> option is a shorthand for the C<terminal> and
+C<output> options. The output device is chosen from the file name
+suffix.  
+
+If you want more (any) control over the output options (e.g. page
+size, font, etc.) then you can specify the output device using the
+C<ouput> method or the constructor itself -- or the corresponding plot
+options in the non-object mode. For example, to generate a PDF of a
+particular size with a particular font size for the text, one can do
 
   plot(terminal => 'pdfcairo solid color font ",10" size 11in,8.5in',
        output   => 'output.pdf',
@@ -1377,6 +1385,20 @@ one can do
 
 This command is equivalent to the C<hardcopy> shorthand used previously, but the
 fonts and sizes can be changed.
+
+Using the object oriented mode, you could instead say:
+
+  $w = gpwin();
+  $w->plot( $x, $y );
+  $w->output( pdfcairo, solid=>1, color=>1,font=>',10',size=>[11,8.5,'in'] );
+  $w->replot();
+  $w->close();
+
+Many hardcopy output terminals (such as C<pdf> and C<svg>) will not 
+dump their plot to the file unless the file is explicitly closed with a 
+change of output device or a call to C<reset>, C<restart>, or C<close>.
+This is because those devices support multipage output and also require 
+and end-of-file marker to close the file.
 
 =head1 Methods 
 
@@ -1394,7 +1416,6 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-print STDERR "========TEST VERSION FOR JUERGEN AND ROB (2nd Attempt with Rob's patch)========";
 our $VERSION = '1.2b';
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
@@ -2372,6 +2393,11 @@ sub plot
 	}
     }
 
+    if($MS_io_braindamage) {
+	_printGnuplotPipe($this,"main", "\r\n"x256); # Send a bunch of return carriages to get a prompt.
+	_checkpoint($this,"main",{printwarnings=>1});
+    }
+
     ##############################
     # Finally, finally ...  send any required cleanup commands.  This 
     # starts with {bottomcmds} and includes several things we don't want to persist,
@@ -2684,6 +2710,18 @@ sub plot
 		# curves) into separate chunks of one curve each.
 
 		$ncurves = $dataPiddles[0]->slice("(0)")->nelem;
+
+		# Speed bump for weird case
+		our $bigthreads;
+		if($ncurves >= 100 and !$bigthreads) {
+		    print STDERR <<"FOO"
+PDL::Graphics::Gnuplot: WARNING - you seem to be plotting $ncurves
+curves in a single threaded collection.  This could be because you fed
+in a 2-D (or higher) data set when you meant to plot a single curve.
+If so, you may want to flatten your data and try again. (To disable
+this message, set \$PDL::Graphics::Gnuplot::bigthreads to be true).
+FOO
+		}
 
 		if($chunk{options}->{legend} and 
 		   @{$chunk{options}->{legend}} and 
@@ -3090,10 +3128,9 @@ sub multiplot {
 			       'termoption' => $this->{options}->{termoption}
 			     },
 			     $pOpt);
-    my $test_preamble = "set terminal dumb\nset output \" \"\n";
-
     my $checkpointMessage;
     if($check_syntax){
+	my $test_preamble = "set terminal dumb\nset output \" \"\n";
 	$PDL::Graphics::Gnuplot::last_testcmd = $test_preamble . $command;
 	_printGnuplotPipe( $this, "syntax", $test_preamble . $command);
 	$checkpointMessage = _checkpoint($this, "syntax");
