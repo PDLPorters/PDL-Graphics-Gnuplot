@@ -504,6 +504,13 @@ convenience.
 
 =head2 POs for Output: terminal, termoption, output, device, hardcopy
 
+You can send plots to a variety of different devices; Gnuplot calls 
+devices "terminals".  With the object-oriented interface, you must set
+the output device with the constructor C<PDL::Graphics::Gnuplot::new> 
+(or the exported constructor C<gpwin>) or the C<output> method.  If you
+use the simple non-object interface, you can set the output with the 
+C<terminal>, C<termoption>, and C<output> plot options.
+
 C<terminal> sets the output device type for Gnuplot, and C<output> sets the 
 actual output file or window number.  
 
@@ -518,7 +525,7 @@ For finer grained control of the plotting environment, you can send
 plot options, you can include terminal options by interpolating them 
 into a string, as in C<terminal jpeg interlace butt crop>, or you can
 use the constructor C<new> (also exported as C<gpwin>), which parses
-terminal options as an argument list.  
+terminal options as an argument list. 
 
 The routine C<PDL::Graphics::Gnuplot::terminfo> prints a list of all
 availale terminals or, if you pass in a terminal name, options accepted
@@ -1387,8 +1394,8 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-
-our $VERSION = '1.1';
+print STDERR "========TEST VERSION FOR JUERGEN AND ROB (2nd Attempt with Rob's patch)========";
+our $VERSION = '1.2b';
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
 use base 'Exporter';
@@ -2272,7 +2279,7 @@ sub plot
 	if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
 	{
 	    $checkpointMessage =~ s/$print_checkpoint//;
-	    barf "Gnuplot error: \"$checkpointMessage\" while sending plot cmd \"$testcmd\"";
+	    barf "Gnuplot error: \"$checkpointMessage\" while syntax-checking the plot cmd \"$testcmd\"";
 	}
     }
 
@@ -2400,7 +2407,13 @@ sub plot
     _printGnuplotPipe($this, "main", $cleanup_cmd);
     $checkpointMessage= _checkpoint($this, "main", {printwarnings=>1});
     if($checkpointMessage) {
-	barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n";
+	if($MS_io_braindamage) {
+	    # MS Windows can yield some chatter on the line, and it's not necessarily an
+	    # error.  So we don't barf, we only warn.  Blech.
+	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter after plot cleanup:\n$checkpointMessage\n";
+	} else {
+	    barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n";
+	}
     }
     
     # read and report any warnings that happened during the plot
@@ -3085,7 +3098,11 @@ sub multiplot {
 	_printGnuplotPipe( $this, "syntax", $test_preamble . $command);
 	$checkpointMessage = _checkpoint($this, "syntax");
 	if($checkpointMessage) {
-	    barf("Gnuplot error: \"$checkpointMessage\" while sending multiplot command.");
+	    if($MS_io_braindamage) {
+		print STDERR "WARNING: unexpected chatter while sending multiplot command:\n$checkpointMessage\n\n";
+	    } else {
+		barf("Gnuplot error: \"$checkpointMessage\" while sending multiplot command.");
+	    }
 	} 
     }
     
@@ -3093,7 +3110,11 @@ sub multiplot {
     _printGnuplotPipe( $this, "main", $preamble . $command);
     $checkpointMessage = _checkpoint($this,"main");
     if($checkpointMessage){
-	barf("Gnuplot error: \"$checkpointMessage\" while sending final multiplot command.");
+	if($MS_io_braindamage) {
+	    print STDERR "WARNING: unexpected chatter while sending final multiplot command:\n$checkpointMessage\n\n";
+	} else {
+	    barf("Gnuplot error: \"$checkpointMessage\" while sending final multiplot command.");
+	}
     }
     
     $this->{options}->{multiplot} = 1;
@@ -3119,7 +3140,11 @@ sub end_multi {
     _printGnuplotPipe($this, "main", "unset multiplot\n");
     $checkpointMessage = _checkpoint($this, "main");
     if($checkpointMessage) {
-	barf("Gnuplot error: unset multiplot failed!\n$checkpointMessage");
+	if($MS_io_braindamage) {
+	    print STDERR "WARNING: unexpected chatter after unset multiplot:\n$checkpointMessage\n";
+	} else {
+	    barf("Gnuplot error: unset multiplot failed!\n$checkpointMessage");
+	}
     }
 
     $this->{options}->{multiplot} = 0;
@@ -4402,7 +4427,7 @@ $_pOHInputs = {
 
     ## one-line list (can also be boolean)
     'l' => sub { return undef unless(defined $_[1]);
-		 return 0 unless($_[1]);                              # false value yields false
+		 return "" unless(length($_[1]));                                 # false value yields false
 		 return $_[1] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
 		 # Not setting a boolean value - it's a list (or a trivial list).
 		 if(ref $_[1] eq 'ARRAY') {
@@ -4847,7 +4872,7 @@ our $_OptionEmitters = {
     'ql' => 
 		    sub { my($k,$v,$h) = @_;
 			  unless(ref $v eq 'ARRAY') {
-			      return ($v?"":"un")."set $k $v\n";
+			      return ( (length($v) eq 0) ? "unset $k\n" : "set $k \"$v\"\n");
 			  }
 			  my $quoted = $v->[0];
 			  return sprintf('set %s "%s" %s%s',$k,$quoted,join(" ",@{$v}[1..$#$v]),"\n");
@@ -5843,6 +5868,11 @@ EOM
 	    }
 	} until ($fromerr =~ m/^$checkpoint/ms or $subproc_gone);
 
+	if($MS_io_braindamage) {
+	    # Fix newline braindamage too
+	    $fromerr =~ s/\r\n/\n/g;
+	}
+
 	if($subproc_gone) {
 	    _killGnuplot($this);
 	    barf "PDL::Graphics::Gnuplot: the gnuplot process seems to have died.\n";
@@ -5856,7 +5886,7 @@ EOM
 	# prints prompts and echoes commands.  Since there isn't much in the 
 	# way of error syntax, we might miss a few errors this way.  Oh well.
 	if($MS_io_braindamage) {
-	    $fromerr =~ s/.*(gnu|multi)plot\>[^\n\r]*$//msg;
+	    $fromerr =~ s/^[\s\r]*(gnu|multi)plot\>[^\n\r]*$//msg;
 	}
 	
 	# Strip the checkpoint message.
@@ -5875,7 +5905,7 @@ EOM
 	# Anything else is an error -- except on Microsoft Windows where we 
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
-	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//;
+	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
 	}
 
 	if($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) {

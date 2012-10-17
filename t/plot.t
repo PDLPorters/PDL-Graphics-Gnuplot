@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 88;
+use Test::More tests => 92;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -456,9 +456,8 @@ SKIP: {
     print STDERR "See a double helix plot with variable point sizes and variable color? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "double helix plot is OK");
-
-
 }
+
 
 ##############################
 # Mousing tests
@@ -506,6 +505,26 @@ SKIP: {
 ok($lines1 eq $lines2,  "Setting the time range to what it would be anyway duplicates the graph");
 ok($lines2 cmp $lines3, "Modifying the time range modifies the graph");
 }
+
+
+##############################
+# Check that title setting/unsetting works OK
+eval { $w->reset; $w->plot({title=>"This is a plot title"},with=>'points',xvals(5));};
+ok(!$@, "Title plotting works, no error");
+
+open FOO,"<$testoutput";
+@lines = <FOO>;
+close FOO;
+
+ok($lines[1] =~ m/This is a plot title/, "Plot title gets placed on plot");
+
+eval { $w->plot({title=>""},with=>'points',xvals(5));};
+ok(!$@, "Non-title plotting works, no error");
+
+open FOO,"<$testoutput";
+@lines = <FOO>;
+close FOO;
+ok($lines[1] =~ m/^\s*$/, "Setting empty plot title sets an empty title");
 
 unlink $testoutput;
 
