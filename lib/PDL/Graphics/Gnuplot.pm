@@ -5798,11 +5798,12 @@ EOM
 sub _killGnuplot {
     my $this = shift;
     my $suffix = shift;
+    my $kill_it_dead = shift;
 
     unless(defined($suffix)) {
 	for my $k(keys %$this) {
 	    next unless $k =~ m/^pid\-(.*)$/;
-	    _killGnuplot($this,$1);
+	    _killGnuplot($this,$1, $kill_it_dead);
 	}
 	return;
     }
@@ -5811,19 +5812,24 @@ sub _killGnuplot {
     {
 	my $goner = $this->{"pid-$suffix"};
 
-	# Since we have to deal with various contingencies including 
-	# a hosed-up gnuplot, we just jump straight to killin'.  
-	kill 'HUP', $goner;
+	# Try Mr. Nice Guy first.
+	unless($kill_it_dead) {
+	    _printGnuplotPipe($this,$suffix,"exit\n");
+	}
 
-	# give it two seconds to quit nicely, then use the big guns.
-	local($SIG{ALRM}) = sub { kill 'KILL', $goner; };
-	alarm(2); 
-
-	# wait for it.  No WNOHANG since some platforms don't have it.
-	waitpid( $goner, 0 ) ;
-
-	# clear the alarm.
-	alarm(0); 
+	# give it three seconds to quit nicely, then start shooting.
+	local($SIG{ALRM}) = sub { kill 'HUP',$goner; };
+	alarm(3);
+	my $z = waitpid($goner, 0);
+	alarm(0);
+	
+	unless($z) {
+	    # give it two more seconds to die gracefully, then use the big guns.
+	    local($SIG{ALRM}) = sub { kill 'KILL', $goner; };
+	    alarm(2); 
+	    waitpid( $goner, 0 ) ;
+	    alarm(0); 
+	}
 	
 	# This clears the status bits from the killed process, so
 	# we don't report anomalous error when we finally exit.
@@ -5996,7 +6002,7 @@ EOM
 	}
 
 	if($subproc_gone) {
-	    _killGnuplot($this);
+	    _killGnuplot($this, undef, 1);
 	    barf "PDL::Graphics::Gnuplot: the gnuplot process seems to have died.\n";
 	}
 
