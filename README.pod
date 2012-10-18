@@ -1214,9 +1214,13 @@ Specifies the style for this curve. The value is passed to gnuplot
 using its 'with' keyword, so valid values are whatever gnuplot
 supports.  See below for a list of supported curve styles.
 
-=item y2
+=item axes
 
-If true, requests that this curve be plotted on the y2 axis instead of the main y axis
+Lets you specify which X and/or Y axes to plot on.  Gnuplot supports
+a main and alternate X and Y axis.  You specify them as a packed string
+with the x and y axes indicated: for example, C<x1y1> to plot on the main
+axes, or C<x1y2> to plot using an alternate Y axis (normally gridded on
+the right side of the plot).
 
 =item tuplesize
 
@@ -1228,17 +1232,22 @@ lets you override PDL::Graphics::Gnuplot's parsing in case of irregularity.
 
 =item cdims 
 
-Specifies the dimensions of a column.  It must be 0, 1, or 2.  If you leave
-it blank or specify 0, you get an appropriate default value for most plot
-types.  The exception is a threaded collection of 1-D columns in a 3-D plot.
-Normally, feeding a 2-D "column" into a 3-D plot yields a gridded manifold.
-If you'd rather treat your 2-D column as a collection of single line plots, 
-then you need to specify "cdims=>1" for that curve;  Example:
+Specifies the dimensions of of each column in this curve's tuple.  It must 
+be 0, 1, or 2.   Normally you don't need to set this for most plots; the 
+main use is to specify that a 2-D data PDL is to be interpreted as a collection
+of 1-D columns rather than a single 2-D grid (which would be the default
+in a 3-D plot). For example:
 
-    $w=gpwin()
-    $w->plot( trid=>1, with=>'lines', rvals(21,21)**2 )
+    $w=gpwin();
+    $r2 = rvals(21,21)**2;
+    $w->plot3d( wi=>'lines', xvals($r2), yvals($r2), $r2 );
 
+will produce a grid of values on a paraboloid. To instead plot a collection
+of lines using the threaded syntax, try
 
+    $w->plot3d( wi=>'lines', cd=>1, xvals($r2), yvals($r2), $r2 );
+
+which will plot 21 separate curves in a threaded manner.
 
 =back
 

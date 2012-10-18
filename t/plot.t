@@ -542,7 +542,7 @@ $lines2 = join("",<FOO>);
 close FOO;
 
 ok( $lines2 ne $lines, "the two 3-D plots differ");
-ok( $lines2 =~ m/\#/ and $lines !~ m/\#/ , "the threaded plot has traces the grid lacks");
+ok( ($lines2 =~ m/\#/) and ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
 
 
 undef $w;
