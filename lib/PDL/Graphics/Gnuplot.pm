@@ -1470,7 +1470,7 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-our $VERSION = '1.2b';
+our $VERSION = '1.2';
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
 use base 'Exporter';

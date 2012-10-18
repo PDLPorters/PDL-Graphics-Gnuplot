@@ -5,16 +5,14 @@ use ExtUtils::MakeMaker;
 
 sub parseversion
 {
-# grab the version number from the debian changelog file. I look for lines line
-#
-# libpackage-perl (0.03) unstable; urgency=low
-#
-# I parse out the 0.03 part
-  open DCH, 'debian/changelog' or die "Couldn't open debian/changelog";
-  my ($version) = <DCH> =~ /^\S+ \s* \( ([0-9\.]+b?) .*? \)/x
-    or die "Couldn't parse version from debian/changelog";
-  close DCH;
-
+    my $version;
+  open GP, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open Gnuplot.pm";
+  for(<GP>){
+      if(m/our \$VERSION = \'([\d\.]+b?)\'/) {$version = $1;}
+      last if($version);
+  }
+  die "Couldn't parse version from Gnuplot.pm" unless($version);
+  close GP;
   return $version;
 }
 
