@@ -71,7 +71,7 @@ my $POD_header = <<EOF;
 
 This is a Gnuplot-based plotter for PDL. This repository stores the history for
 the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
-page at L<http://search.cpan.org/~dkogan/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>
+page at L<http://search.cpan.org/~zowie/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>.
 
 =cut
 
