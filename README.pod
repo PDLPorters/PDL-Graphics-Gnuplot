@@ -1908,6 +1908,17 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 - Fixed date range handling
 
+=head2 v1.2
+
+- Handles communication better on Microsoft Windows (MSW has brain damage).
+
+- Improvements in documentation
+
+- Handles PDF output in scripts
+
+- Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
+
+
 =head1 LICENSE AND COPYRIGHT
 
 Copyright 2011,2012 Dima Kogan and Craig DeForest
