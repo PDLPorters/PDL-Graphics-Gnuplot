@@ -2565,7 +2565,7 @@ sub plot
 	my @chunks;
 	my $Ncurves  = 0;
 	my $argIndex = 0;
-	
+
 	while($argIndex <= $#args)
 	{
 	    # First, I find and parse the options in this chunk
@@ -2589,9 +2589,17 @@ sub plot
 	    map { delete $lastOptions->{$_} } qw/legend xrange yrange zrange x2range y2range/;
 
 	    my %chunk;
-	    $chunk{options} = dclone( 
-		_parseOptHash( $lastOptions, $cOpt, @args[$argIndex..$nextDataIdx-1] )
-		);
+	    eval {
+		$chunk{options} = dclone( 
+		    _parseOptHash( $lastOptions, $cOpt, @args[$argIndex..$nextDataIdx-1] )
+		    );
+	    };
+	    if($@){
+		unless(@chunks){
+		    barf "$@\n(Did you mix plot options and curve options at the beginning of the arg list?)\n\n";
+		}
+		barf "$@\n";
+	    }
 
 	    $chunk{options}->{data}="dummy"; # force emission of the data field
 
