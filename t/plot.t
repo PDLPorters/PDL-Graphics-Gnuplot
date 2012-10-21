@@ -40,7 +40,9 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
   ok($filestats[7] > 79*24*0.8, 'basic plotting created a reasonably-sized file')
     or diag "resulting output file should be ascii 79x24, but only contains $filestats[7] bytes";
 
-  unlink $testoutput;
+  PDL::Graphics::Gnuplot::restart();
+
+  unlink($testoutput) or warn "\$!: $!";
 }
 
 ok($PDL::Graphics::Gnuplot::gp_version, "gp_version is nonzero after first use of P::G::G");
@@ -59,7 +61,9 @@ ok($PDL::Graphics::Gnuplot::gp_version, "gp_version is nonzero after first use o
   eval{ plot( {terminal => 'dumb 79 24', output=>$testoutput, topcmds=>"this should fail"}, with=>'line', $x); };
   ok($@ && $@ =~ m/invalid command/o, "we detect an error message from gnuplot");
 
-  unlink $testoutput;
+  PDL::Graphics::Gnuplot::restart();
+
+  unlink($testoutput) or warn "\$!: $!";
 }
 
 ##############################
@@ -153,7 +157,7 @@ do {
 	);
 };
 
-unlink $testoutput;
+unlink($testoutput) or warn "\$!: $!";
 
 ##############################
 # Test replotting
@@ -174,7 +178,7 @@ ok(@lines == 24, "test plot made 24 lines");
 eval { $w->restart(); };
 ok(!$@,"restart succeeded");
 
-unlink $testoutput;
+unlink($testoutput) or warn "\$!: $!";
 ok(!(-e $testoutput), "test file got deleted");
 
 
@@ -184,7 +188,8 @@ ok(!$@, "replot works");
 open FOO,"<$testoutput";
 @l2 = <FOO>;
 close FOO;
-unlink $testoutput;
+$w->restart;
+unlink($testoutput) or warn "\$!: $!";
 ok(@l2 == 24, "test replot made 24 lines");
 
 $same =1;
@@ -201,7 +206,8 @@ ok(!$@, "replotting and adding a line works");
 open FOO,"<$testoutput";
 @l3 = <FOO>;
 close FOO;
-unlink $testoutput;
+$w->restart;
+unlink($testoutput) or warn "\$!: $!";
 ok(@l3==24,"test replot again made 24 lines");
 
 ok($l3[12]=~ m/\#\s+\*/, "test plot has two curves and curve 2 is above curve 1");
@@ -213,7 +219,8 @@ ok(!$@, "options set and replot don't crash");
 open FOO,"<$testoutput";
 @l4 = <FOO>;
 close FOO;
-unlink $testoutput;
+$w->restart;
+unlink($testoutput) or warn "\$!: $!";
 ok(@l4 == 24, "replot made 24 lines after option set");
 
 $same = 1;
@@ -353,7 +360,7 @@ eval { $w->plot(with=>'lines',xvals(5),{lab2=>['foo',at=>[2,3]]}); };
 ok(!$@, "label is accepted ($@)");
 
 undef $w;
-unlink $testoutput;
+unlink($testoutput) or warn "\$!: $!";
 
 
 ##############################
@@ -546,5 +553,5 @@ ok( ($lines2 =~ m/\#/) and ($lines !~ m/\#/) , "the threaded plot has traces the
 
 
 undef $w;
-unlink $testoutput;
+unlink($testoutput) or warn "\$!: $!";
 

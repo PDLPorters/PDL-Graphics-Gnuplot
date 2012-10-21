@@ -5828,9 +5828,9 @@ sub _killGnuplot {
 	    _printGnuplotPipe($this,$suffix,"exit\n");
 	}
 
-	# give it fifteen seconds to quit nicely, then start shooting.
+	# give it 20 seconds to quit nicely, then start shooting.
 
-	my $countdown = 15;
+	my $countdown = 20;
 
 	local($SIG{INT}) = sub {
 	    kill 'HUP', $goner;
@@ -5841,10 +5841,10 @@ sub _killGnuplot {
 	local($SIG{ALRM}) = sub { 
 	    return if($countdown<0);
 	    $countdown--;
-	    if($countdown==11){
+	    if($countdown==16){
 		print STDERR "Waiting for gnuplot...";
 	    } 
-	    if($countdown < 12) {
+	    if($countdown < 17) {
 		print STDERR $countdown." ";
 	    }
 	    if($countdown > 0) {
