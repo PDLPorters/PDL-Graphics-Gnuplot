@@ -8,7 +8,7 @@ BEGIN {
 
 use File::Temp qw(tempfile);
 use PDL;
-use PDL::Graphics::Gnuplot;
+eval "use PDL::Graphics::Gnuplot;";
 
 ##########
 # Uncomment these to test error handling on Microsoft Windows, from within POSIX....
@@ -549,7 +549,7 @@ $lines2 = join("",<FOO>);
 close FOO;
 
 ok( $lines2 ne $lines, "the two 3-D plots differ");
-ok( ($lines2 =~ m/\#/) and ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
+ok( ($lines2 =~ m/\#/) && ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
 
 
 undef $w;

@@ -18,7 +18,7 @@ sub parseversion
 
 # make sure we can run gnuplot before continuing
 {
-  unless( open( my $pipe, '|-', 'gnuplot' ))
+  unless(`gnuplot -V`)
   {
     print STDERR <<EOM;
 
