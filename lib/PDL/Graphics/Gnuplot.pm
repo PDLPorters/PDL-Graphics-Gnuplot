@@ -1,3 +1,5 @@
+use 5.010;  # uses modern constructs like "//".
+
 ##############################
 #
 # PDL::Graphics::Gnuplot
