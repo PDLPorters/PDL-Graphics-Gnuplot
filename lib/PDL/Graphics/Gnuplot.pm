@@ -1481,7 +1481,7 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-our $VERSION = '1.2';
+our $VERSION = '1.3';
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
 use base 'Exporter';
@@ -6377,15 +6377,17 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 =head1 RELEASE NOTES
 
-=head2 v1.1
+=head3 v1.3 
 
-- Handles communication with command echo on the pipe (for Microsoft Windows)
+- Specifies Perl 5.010 or higher to run
 
-- Better gnuplot error reporting
+- Tests do not fail on v4.2 Gnuplot (still used on BSD)
 
-- Fixed date range handling
+- Better error messages in common error cases
 
-=head2 v1.2
+- Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
+
+=head3 v1.2
 
 - Handles communication better on Microsoft Windows (MSW has brain damage).
 
@@ -6394,6 +6396,15 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 - Handles PDF output in scripts
 
 - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
+
+=head3 v1.1
+
+- Handles communication with command echo on the pipe (for Microsoft Windows)
+
+- Better gnuplot error reporting
+
+- Fixed date range handling
+
 
 
 =head1 LICENSE AND COPYRIGHT
