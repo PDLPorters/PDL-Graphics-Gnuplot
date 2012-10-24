@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 96;
+use Test::More tests => 98;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -551,7 +551,19 @@ close FOO;
 ok( $lines2 ne $lines, "the two 3-D plots differ");
 ok( ($lines2 =~ m/\#/) && ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
 
+##############################
+# Test rudimentary polar plots
+
+eval { $w->plot({trid=>1, mapping=>'cylindrical', angles=>'degrees'},
+		wi=>'points',xvals(10)*36,xvals(10)*36,xvals(10)*36); } ;
+ok(!$@, "cylindrical plotting in degrees was parsed OK");
+
+eval { $w->plot({trid=>1, mapping=>'sph', angles=>'rad'},
+		wi=>'points',xvals(10)*36,xvals(10)*36,xvals(10)*36); } ;
+ok(!$@, "spherical plotting in radians was parsed OK (abbrevs in enums too)");
 
 undef $w;
 unlink($testoutput) or warn "\$!: $!";
+
+
 

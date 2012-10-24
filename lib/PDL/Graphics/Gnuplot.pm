@@ -3839,7 +3839,7 @@ our $pOptionsTable =
     ],
     ##############################		    
     # These are all the "plot" (top-level) options recognized by gnuplot 4.4.
-    'angles'    => ['s','s',undef,undef,
+    'angles'    => [['degrees','radians'],'s',undef,undef,
 		    '(radians or degrees): sets unit in which angles will be specified'
     ],
     'arrow'     => ['N','N',undef,undef,
@@ -3956,7 +3956,7 @@ our $pOptionsTable =
 		    'set log scaling and base: e.g. logscale=>["xyx2cb",10]'
     ],
     'macros'    => [sub { die "macros: not supported\n"; } ],
-    'mapping'   => ['s','s',undef,undef,
+    'mapping'   => [['cartesian','cylindrical','spherical'],'s',undef,undef,
 		    'set coordinates for 3d plots: "cartesian","spherical", or "cylindrical"'
     ],
     # multiplot: this is not emitted as part of any plot command, only by the special multiplot method.
@@ -4045,7 +4045,7 @@ our $pOptionsTable =
     'timefmt'   => [sub { print STDERR "Warning: timefmt doesn't work well in formats other than '%s'.  Proceed with caution!\n"
 			      if(  defined($_[1])   and    $_[1] ne '%s');
 			  return ( (defined $_[1]) ? "$_[1]" : undef );
-		    },'s',undef,undef,
+		    },'q',undef,undef,
 		    'Sets format for interpreting time data (leave as "%s"; see docs)'
     ],
     'title'     => ['l','ql',undef,undef,
@@ -4522,13 +4522,13 @@ sub _parseOptHash {
 	    }
 	    $parser = $p;
 	} elsif(ref $parser eq 'ARRAY') {
-	    # If the parser entry is an array ref, its first element is a regexp to match for
-	    # successful enumeration.is treated as an enumerated list of regexps to match
-	    # (if it contains scalars) or a sequence of code refs to call (if it contains CODE refs).
-	    if(ref($parser->[0]) || (0+@$parser != 1)) {
+	    # If the parser entry is an array ref with one non-ref element only, it is a regexp to match
+	    # for successful enumeration.  If it has more than one element, it is an enum list that
+	    # can be abbreviated.  
+	    if(ref($parser->[0])) {
 		barf("HELP!  Parser is confused.  This is a bug, please report it.\n");
-	    } else {
-		# normal case: a list ref with a single element containing a regexp
+	    } elsif (  0+@$parser == 1 )  {
+		# A list ref with a single element - it's a regexp to match
 		my $a = $parser->[0];
 		my $p = sub {
 		    my ($old, $newparam, $hash) = @_;
@@ -4537,6 +4537,21 @@ sub _parseOptHash {
 		    } else {
 			barf("Unknown field $newparam (must match m/$a/)\n");
 		    }
+		};
+		$parser = $p;
+	    } else {
+		# A list ref with multiple elements - they are enums.
+		# Make a temporary abbrev list for 'em.
+		my $abbrevs = _gen_abbrev_list( @$parser );
+		my $p = sub {
+		    my($old, $newparam, $hash) = @_;
+		    my $k = eval { _expand_abbrev($newparam, $abbrevs, "enumerated $kk option"); };
+		    if($@) {
+			my $s = $@;
+			undef $@;
+			barf($s);
+		    }
+		    return $k;
 		};
 		$parser = $p;
 	    }
@@ -4936,7 +4951,7 @@ our $_OptionEmitters = {
 		 return "" unless(defined($v));
 		 return "unset $k\n" unless(length($v));
 		 return "set $k" if($v eq ' ');
-		 return "set $k \"$v\"\n";
+		 return "set $k $v\n";
                 },
 
     #### A nonquoted scalar value as a curve option
