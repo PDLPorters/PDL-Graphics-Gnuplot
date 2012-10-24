@@ -2011,7 +2011,7 @@ sub plot
     }
 
     # Now look for and parse a trailing hash of plot options (if there is one)
-    if( $#_ >= 1  and   ((ref $_[-1])=~ /^(HASH|ARRAY)/)) {
+    if( $#_ >= 1  and   ((ref $_[-1])=~ /^(HASH)/)) {
 	my $oo = dclone($o);
 	eval { _parseOptHash( $oo, $pOpt, $_[-1] ); };
 	if($@ =~ m/^No /) {
