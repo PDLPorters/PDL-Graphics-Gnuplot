@@ -1584,6 +1584,12 @@ up an interactive plot and then sending it to a hardcopy device. See
 C<output> for a description of terminal options and how to format
 them.
 
+Normally, the object connects to the command "gnuplot" in your path.  
+If you need to specify a binary other than this default, you can set
+the environment variable C<GNUPLOT_BINARY> or the Perl variable 
+C<$PDL::Graphics::Gnuplot::gnuplot_path> to contain the exact command
+to be executed.
+
 =for example
 
   my $plot = PDL::Graphics::Gnuplot->new({title => 'Object-oriented plot'});
@@ -5773,7 +5779,7 @@ sub _startGnuplot
     my $in  = gensym();
     my $err = gensym();
 
-    my $pid = open3($in,$err,$err,"gnuplot", @gnuplot_options)
+    my $pid = open3($in,$err,$err,_gnuplot_binary_path(), @gnuplot_options)
 	or barf "Couldn't run the 'gnuplot' backend (is gnuplot in your path?)";
 
     my $errSelector;
@@ -6128,7 +6134,7 @@ sub _getGnuplotFeatures
     my $in  = '';
     my $out = '';
     my $err = '';
-    eval{ IPC::Run::run([qw(gnuplot --help)], \$in, \$out, \$err) };
+    eval{ IPC::Run::run([_gnuplot_binary_path(),"--help"], \$in, \$out, \$err) };
     barf $@ if $@;
 
     foreach ( "$out\n$err\n" =~ /--([a-zA-Z0-9_]+)/g )
@@ -6147,7 +6153,7 @@ EOM
     my $err = '';
 
 
-    eval{ IPC::Run::run(['gnuplot'], \$in, \$out, \$err) };
+    eval{ IPC::Run::run([_gnuplot_binary_path()], \$in, \$out, \$err) };
     barf $@ if $@;
 
     # no output if works; some output if error
@@ -6171,7 +6177,6 @@ sub _logEvent
 
 1;
 
-
 ##############################
 # Helper routine detects method call vs. function call
 # syntax, and initializes the global object if necessary.
@@ -6189,6 +6194,13 @@ sub _obj_or_global {
 	$this = $globalPlot;
     }
     return $this;
+}
+
+##############################
+# Figure the path to the gnuplot binary... lets you set an environment or local variable
+# with the specific path
+sub _gnuplot_binary_path {
+    return $PDL::Graphics::Gnuplot::gnuplot_path // $ENV{'GNUPLOT_BINARY'} // "gnuplot";
 }
 
 ##############################

@@ -1461,6 +1461,12 @@ up an interactive plot and then sending it to a hardcopy device. See
 C<output> for a description of terminal options and how to format
 them.
 
+Normally, the object connects to the command "gnuplot" in your path.  
+If you need to specify a binary other than this default, you can set
+the environment variable C<GNUPLOT_BINARY> or the Perl variable 
+C<$PDL::Graphics::Gnuplot::gnuplot_path> to contain the exact command
+to be executed.
+
 =for example
 
   my $plot = PDL::Graphics::Gnuplot->new({title => 'Object-oriented plot'});
