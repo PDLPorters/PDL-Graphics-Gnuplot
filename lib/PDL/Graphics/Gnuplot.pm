@@ -5779,8 +5779,15 @@ sub _startGnuplot
     my $in  = gensym();
     my $err = gensym();
 
-    my $pid = open3($in,$err,$err,_gnuplot_binary_path(), @gnuplot_options)
-	or barf "Couldn't run the 'gnuplot' backend (is gnuplot in your path?)";
+    my $pid = open3($in,$err,$err,_gnuplot_binary_path(), @gnuplot_options);
+    unless($pid) {
+	my $g = _gnuplot_binary_path();
+	if($g eq 'gnuplot') {
+	    barf "Couldn't run the 'gnuplot' backend (is gnuplot in your path?)";
+	} else {
+	    barf "Couldn't run the '$g' backend (check $ENV{'GNUPLOT_BINARY'} or \n   \$PDL::Graphics::Gnuplot::gnuplot_path)\n";
+	}
+    }
 
     my $errSelector;
     $this->{"in-$suffix"}  = $in;
@@ -5794,24 +5801,73 @@ sub _startGnuplot
     my $s = "";
     our $gp_version;
     if(!$this->{dumping}) {
-	print $in "show version\n";
+	print $in "show version\nset terminal\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nprint \"finished\"\n";
 	do {
-	    if($errSelector->can_read(8) or $MS_io_braindamage) {
+	    if($errSelector->can_read(2) or $MS_io_braindamage) {
 		my $byte;
 		sysread $err, $byte, 1;
 		$s .= $byte;
 	    } else {
 		print STDERR <<"EOM"
-WARNING: Hmmm,  gnuplot didn't respond for 8 seconds.  I was expecting to read 
-   a version number.  Ah, well, I'm returning the object anyway -- but don't 
-   be surprised if it doesn't work.
+WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read 
+   a version number and some terminal information.  Ah, well, I\'m returning 
+   the object anyway -- but don\'t be surprised if it doesn\'t work.
+
+-
+   $s
+-
+
 EOM
 ;
 		return $this;
 	    }
-	} until($s =~ m/Version (.*) patchlevel/i);
-	
-	$gp_version = $1;
+	} until($s =~ m/^finished$/m);
+	$this->{s} = $s."";
+##############################
+# Parse version number; fail gracefully
+	if( $s =~ m/Version (.*) patchlevel/i ) {
+	    $gp_version = $1;
+	} else {
+	    print STDERR <<"EOM"
+WARNING: gnuplot seems to be emitting prompts correctly but I couldn\'t parse a
+  version number from its output.  I\'m returning the object anyway - but don\'t 
+  be surprised if it doesn\'t work.  I\'m marking it with an internal "obsolete" 
+  flag, which may help.
+EOM
+;
+	    $this->{early_gnuplot} = 1;
+	    return $this;
+	}
+
+##############################
+# Parse terminals.
+	$this->{valid_terms} = {};
+	our %unknown_terminals = ();
+
+	for( grep( ((m/^\s+(\w+)\s\s/) && s/^\s+// && s/\s\s.*$//), split(/\n/,$s) ) ) {
+	    if(exists($termTab->{$_})) {
+		$this->{valid_terms}->{$_} = 1;
+	    } else {
+		$unknown_terminals{$_} = ($termTabSource->{$_} // "*** Unknown but reported by Gnuplot ***");
+	    }
+	}
+
+	our $unknown_terminals = "";
+	if(%unknown_terminals) {
+	    $unknown_terminals = 
+		join("", 
+		     sprintf("%12s   %s\n","Terminal","Description"),
+		     sprintf(    "%12s   %s\n","="x10,"="x40),
+		     map { 
+			 sprintf("%12s   %s\n", $_, $unknown_terminals{$_})
+		     } 
+		     sort { 
+			 defined($termTabSource->{$b}) <=> defined($termTabSource->{$a}) 
+			     or
+			 $a cmp $b
+		     }  keys %unknown_terminals
+		);
+	}
 
 	if($gp_version < $gnuplot_req_v) {
 	    print STDERR <<"EOM"
@@ -6403,6 +6459,12 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 =back
 
 =head1 RELEASE NOTES
+
+=head3 V1.4
+
+- Allows specifying different commands than just "gnuplot" via environment variable.
+
+- Detects available terminal types from Gnuplot on initial startup.
 
 =head3 v1.3 
 
