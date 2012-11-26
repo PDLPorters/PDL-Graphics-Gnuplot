@@ -686,7 +686,6 @@ vertical (X) and horizontal (Y) grid lines on major tics.
 To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more 
 control, feed in a list ref with zero or more of the following parameters, in order:
 
-
 The C<zeroaxis> keyword indicates whether to actually draw each axis
 line at the corresponding zero along its indicated dimension.  For
 example, to draw the X axis (y=0), use C<< xzeroaxis=>1 >>.  If you just
@@ -741,16 +740,18 @@ base if you want base-10 logs: C<< logscale=>['xy'] >>.
 =head2 POs for Axis tick marks - [m](x|x2|y|y2|z|cb)tics
 
 Axis tick marks are called "tics" within Gnuplot, and they are extensively
-controllable via the "<axis>tics" options.  In particular, major and minor
+controllable via the "{axis}tics" options.  In particular, major and minor
 ticks are supported, as are arbitrarily variable length ticks, non-equally
 spaced ticks, and arbitrarily labelled ticks.  Support exists for time formatted
 ticks (see C<POs for time data values> below).
 
 By default, gnuplot will automatically place major and minor ticks.
-You can turn off ticks on an axis by setting the appropriate <foo>tics
-option to a defined, false scalar value (e.g. C<< xtics=>0 >>), and turn them
-on with default values by setting the option to a true scalar value
-(e.g. C<< xtics=>1 >>). 
+You can turn off ticks on an axis by setting the appropriate {foo}tics
+option to a defined, false scalar value (e.g. C<< xtics=>0 >>).  If you 
+want to set major tics to happen at a regular specified intervals, you can set the 
+appropriate tics option to a nonzero scalar value (e.g. C<< xtics=>2 >> to 
+specify a tic every 2 units on the X axis).  To use default values for the 
+tick positioning, specify an empty hash or array ref (e.g. C<< xtics=>[] >>).
 
 If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
@@ -4816,7 +4817,7 @@ $_pOHInputs = {
 			  }
 		      }
 		      return \@list;
-		  }
+		  } # end of hash ref case
 
 		  unless(ref($new) eq 'ARRAY') {
 		      $new = [split /\s+/, $new];
@@ -4826,9 +4827,11 @@ $_pOHInputs = {
 		      barf("<foo>tics: if you specify an array it must contain only strings or numeric\n   values.  Consider using a hash ref instead, as hash values are parsed.\n");
 		  } 
 
-		  print STDERR "PDL::Graphics::Gnuplot: <foo>tics: WARNING: using deprecated list ref form.\n";
-
 		  @list = @$new;
+
+		  if(!@list) {
+		      @list = "autofreq autojustify";
+		  }
 		  return \@list;
     }
 };
