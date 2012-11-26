@@ -578,16 +578,21 @@ open FOO,"<$testoutput";
 @lines = <FOO>;
 close FOO;
 
-ok($lines[1] =~ m/This is a plot title/, "Plot title gets placed on plot");
+SKIP:{
+    skip "Skipping title tests due to obsolete version of gnuplot (BSD uses 4.2, which fails these)",3 
+	if($w->{gp_version} < $PDL::Graphics::Gnuplot::gnuplot_req_v);
 
-eval { $w->plot({title=>""},with=>'points',xvals(5));};
-ok(!$@, "Non-title plotting works, no error");
-
-open FOO,"<$testoutput";
-@lines = <FOO>;
-close FOO;
-ok($lines[1] =~ m/^\s*$/, "Setting empty plot title sets an empty title");
-
+    ok($lines[1] =~ m/This is a plot title/, "Plot title gets placed on plot");
+    
+    
+    eval { $w->plot({title=>""},with=>'points',xvals(5));};
+    ok(!$@, "Non-title plotting works, no error");
+    
+    open FOO,"<$testoutput";
+    @lines = <FOO>;
+    close FOO;
+    ok($lines[1] =~ m/^\s*$/, "Setting empty plot title sets an empty title");
+}
 
 ##############################
 # Check that 3D plotting of grids differs from threaded line plotting

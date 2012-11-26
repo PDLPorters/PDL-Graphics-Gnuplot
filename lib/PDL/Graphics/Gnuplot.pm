@@ -5873,6 +5873,7 @@ EOM
 # Parse version number; fail gracefully
 	if( $s =~ m/Version (.*) patchlevel/i ) {
 	    $gp_version = $1;
+	    $this->{gp_version} = $1;
 	} else {
 	    print STDERR <<"EOM"
 WARNING: gnuplot seems to be emitting prompts correctly but I couldn\'t parse a
