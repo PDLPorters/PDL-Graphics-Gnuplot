@@ -751,7 +751,7 @@ option to a defined, false scalar value (e.g. C<< xtics=>0 >>).  If you
 want to set major tics to happen at a regular specified intervals, you can set the 
 appropriate tics option to a nonzero scalar value (e.g. C<< xtics=>2 >> to 
 specify a tic every 2 units on the X axis).  To use default values for the 
-tick positioning, specify an empty hash or array ref (e.g. C<< xtics=>[] >>).
+tick positioning, specify an empty hash or array ref (e.g. C<< xtics=>{} >>).
 
 If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
