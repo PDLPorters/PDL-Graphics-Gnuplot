@@ -1612,12 +1612,13 @@ sub new
               };
   bless($this,$classname);
 
-  output($this, @_);
 
   # now that options are parsed, start up a gnuplot
-  # and copy the keys into the object
+  # (also fill the available-terminals database)
   _startGnuplot($this,'main');
   _startGnuplot($this,'syntax') if($check_syntax);
+
+  output($this, @_);
   
   _logEvent($this, "startGnuplot() finished") if ($this->{options}{tee});
 
@@ -1702,9 +1703,35 @@ sub output {
 	# Check that, if there is at least one more argument, it is recognizable as a terminal
 	my $terminal;
 	$terminal = lc(shift);
-	if(!exists($termTab->{$terminal})) {
-	    my $s = "PDL::Graphics::Gnuplot::new: the first argument to new must be a terminal type.\n".
-		terminfo('',1);
+
+	##############################
+	# Check the termina list here!
+	if(!exists($this->{valid_terms}->{$terminal})) {
+	    my $s;
+	    our $termTabSource;
+
+	    if(exists($this->{unknown_terms}->{$terminal})) {
+		$s = <<"FOO";
+PDL::Graphics::Gnuplot: Your gnuplot has terminal '$terminal' but it is not supported.
+        $terminal: $this->{unknown_terms}->{$terminal}
+FOO
+	    } 
+	    elsif(exists($termTab->{$terminal})) {
+		$s = <<"FOO";
+PDL::Graphics::Gnuplot: your gnuplot appears not to support the terminal '$terminal'.
+        $terminal: $termTabSource->{$terminal}->{desc} [not in reported list from gnuplot]
+FOO
+	    }
+	    else {
+		$s = "PDL::Graphics::Gnuplot: neither this module nor your gnuplot support '$terminal'.\n";
+		if(exists($termTabSource->{$terminal})) {
+		    $s .= "        $terminal: $termTabSource->{$terminal}\n";
+		} else {
+		    $s .= "        $terminal: doesn't appear to be a gnuplot terminal name\n";
+		}
+	    }
+
+	    $s .= "\nYou can use the 'terminfo' method for a list of available terminals.\n\n";
 	    barf($s);
 	}
 	
@@ -1713,7 +1740,6 @@ sub output {
 	    $termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
 	    $termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
 	}
-	
 	
 	my $termOptions = {};
 	
@@ -5666,13 +5692,9 @@ sessions.
 =cut
 
 sub terminfo {
-    shift() if( UNIVERSAL::isa($_[0],'PDL::Graphics::Gnuplot') );
+    my $this = _obj_or_global(\@_);
 
-    my $terminal = shift || '';
-    if((ref $terminal ? ref $terminal : $terminal) =~ m/PDL::Graphics::Gnuplot/) {
-	$terminal = shift;
-    }
-
+    my $terminal = shift // '';
     my $brief_form = shift;
     my $dont_print = shift;
     my $s = "";
@@ -5689,8 +5711,20 @@ sub terminfo {
 		$s .= sprintf "%10s - %s\n",@info;
 	    }
 	} else {
-	    $s = "PDL::Graphics::Gnuplot doesn't support '$terminal'.\n$termTabSource->{$terminal}\n";
+	    if($this->{unknown_terms}->{$terminal}) {
+		$s = "terminfo: terminal '$terminal' isn't supported, although your gnuplot has it:\n";
+		$s .= "  $terminal: $termTabSource->{$terminal}\n";
+	    } else {
+		$s = "PDL::Graphics::Gnuplot doesn't support '$terminal'.\n  $terminal: $termTabSource->{$terminal}\n";
+	    }
 	}
+	print STDERR $s unless($dont_print);
+	return $s;
+    }
+
+    if($terminal && $this->{unknown_terms}->{$terminal}) {
+	$s = "terminfo: terminal '$terminal' was reported by gnuplot but isn't supported.\n";
+	$s .= "   $terminal: $this->{unknown_terms}->{$terminal}\n";
 	print STDERR $s unless($dont_print);
 	return $s;
     }
@@ -5706,29 +5740,38 @@ sub terminfo {
 	   $s .= "('terminfo \"all\"' lists all known terminals, even those not supported)\n\n";
 	}
 
-	$s .= "Gnuplot terminals supported by PDL::Graphics::Gnuplot:\n";
+	$s .= "Gnuplot terminals supported by PDL::Graphics::Gnuplot and your gnuplot:\n";
 
-	$s .= "\nDISPLAY TERMINALS ([M] indicates mouse input is supported)\n";
+	$s .= "\n  DISPLAY TERMINALS ([M] indicates mouse input is supported)\n";
 	for my $k(sort keys %$termTab) {
+	    next unless($this->{valid_terms}->{$k});
 	    next unless($termTab->{$k}->{int} || $termTab->{$k}->{mouse});
 	    $s .= sprintf("  %10s: %s %s\n",$k,$termTab->{$k}->{mouse} ? "[M]" : "   ", $termTab->{$k}->{desc});
 	}
 	
-	$s .= "\n\nFILE TERMINALS\n";
+	$s .= "\n\n  FILE TERMINALS\n";
 	for my $k(sort keys %$termTab) {
 	    next if($termTab->{$k}->{int} || $termTab->{$k}->{mouse});
-	    $s .= sprintf("  %10s: %s %s\n",$k,"   ", $termTab->{$k}->{desc});
+	    $s .= sprintf("  %10.10s: %s %s\n",$k,"   ", $termTab->{$k}->{desc});
 	}
 
 	if($terminal eq 'all') {
-	    $s .= "\n\nThese Gnuplot terminals are not supported by PDL::Graphics::Gnuplot:\n";
-	    my $i = 0;
-	    for my $k(sort keys %$termTabSource) {
-		next if(ref $termTabSource->{$k});
-		$s .= sprintf("%12s",$k);
-		$s .= "\n" unless(++$i % 6);
+	    # Merge things gnuplot reported but we don't support, with things we support but
+	    # gnuplot didn't report...
+	    $s .= "\nThese terminals are supported by PDL::Graphics::Gnuplot but not your gnuplot:\n";
+
+	    for my $k(sort keys %{$termTab}) {
+		next if($this->{valid_terms}->{$k});
+		$s .= sprintf("%12s: %s\n", $k, $termTab->{$k}->{desc});
 	    }
-	    $s .= "\n";
+
+	    $s .= "\nThese terminals are supported by your gnuplot but not by PDL::Graphics::Gnuplot\n";
+	    for my $k(sort keys %{$this->{unknown_terms}}) {
+		$s .= sprintf("%12s: %s\n",$k,$this->{unknown_terms}->{$k});
+	    }
+
+	} else {
+	    $s .= "\n(use terminfo('all') to see unsupported terminals as well)\n";
 	}
 	$s .= "\nRun PDL::Graphics::Gnuplot::terminfo( \$term_name ) for information on options.\n\n";
 	print STDERR $s unless($dont_print);
@@ -5822,7 +5865,7 @@ EOM
 		return $this;
 	    }
 	} until($s =~ m/^finished$/m);
-	$this->{s} = $s."";
+
 ##############################
 # Parse version number; fail gracefully
 	if( $s =~ m/Version (.*) patchlevel/i ) {
@@ -5842,31 +5885,14 @@ EOM
 ##############################
 # Parse terminals.
 	$this->{valid_terms} = {};
-	our %unknown_terminals = ();
+	$this->{unknown_terms} = {};
 
 	for( grep( ((m/^\s+(\w+)\s\s/) && s/^\s+// && s/\s\s.*$//), split(/\n/,$s) ) ) {
 	    if(exists($termTab->{$_})) {
 		$this->{valid_terms}->{$_} = 1;
 	    } else {
-		$unknown_terminals{$_} = ($termTabSource->{$_} // "*** Unknown but reported by Gnuplot ***");
+		$this->{unknown_terms}{$_} = ($termTabSource->{$_} // "Unknown but reported by gnuplot");
 	    }
-	}
-
-	our $unknown_terminals = "";
-	if(%unknown_terminals) {
-	    $unknown_terminals = 
-		join("", 
-		     sprintf("%12s   %s\n","Terminal","Description"),
-		     sprintf(    "%12s   %s\n","="x10,"="x40),
-		     map { 
-			 sprintf("%12s   %s\n", $_, $unknown_terminals{$_})
-		     } 
-		     sort { 
-			 defined($termTabSource->{$b}) <=> defined($termTabSource->{$a}) 
-			     or
-			 $a cmp $b
-		     }  keys %unknown_terminals
-		);
 	}
 
 	if($gp_version < $gnuplot_req_v) {
