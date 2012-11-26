@@ -208,7 +208,7 @@ this will plot X vs. sqrt(X):
  $y = xvals(101)/100;
  $w->plot($x,$y);
  $y->inplace->sqrt;
- $w->replot($x,$y);
+ $w->replot();
 
 =head3 Image plotting
 
