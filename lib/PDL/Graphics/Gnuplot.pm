@@ -1839,6 +1839,8 @@ sub restart {
     $this->{options}->{multiplot} = 0;
     undef $PDL::Graphics::Gnuplot::last_plotcmd;
     undef $PDL::Graphics::Gnuplot::last_testcmd;
+    undef $this->{last_plotcmd};
+    undef $this->{last_testcmd};
 }
 
 
@@ -2394,7 +2396,13 @@ sub plot
     # Stash this plot command in the debugging variable
 
     our $last_plotcmd = $plotOptionsString.$plotcmd;
-    our $last_testcmd = $plotOptionsString.$testcmd if($check_syntax);
+    $this->{last_plotcmd} = $last_plotcmd;
+
+    our $last_testcmd;
+    if($check_syntax) {
+	$last_testcmd = $plotOptionsString.$testcmd;
+	$this->{last_testcmd} = $last_testcmd;
+    }
 
     if($PDL::Graphics::Gnuplot::DEBUG) {
 	print "plot command is:\n$plotcmd\n";
@@ -2443,13 +2451,21 @@ sub plot
 	if($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}->[0]->double->copy;
-	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
+	    {
+		my $s = " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
+		$last_plotcmd .= $s;
+		$this->{last_plotcmd} .= $s;
+	    }
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref},1);
 
 	} elsif( $chunk->{binaryCurveFlag}  ) {
 	    # Send in binary if the binary flag is set.
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
-	    $last_plotcmd .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
+	    {
+		my $s = " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
+		$last_plotcmd .= $s;
+		$this->{last_plotcmd} .= $s;
+	    }
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref},1);
 
 	} else {
@@ -2461,7 +2477,11 @@ sub plot
 		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
 
-		$last_plotcmd .= " [ ".$p->dim(1)." lines of ASCII data ]\n";
+		{
+		    my $s = " [ ".$p->dim(1)." lines of ASCII data ]\n";
+		    $last_plotcmd .= $s;
+		    $this->{last_plotcmd} .= $s;
+		}
 		# Emit $p as a collection of " " separated lines, followed by "e".
 		_printGnuplotPipe($this,
 				  "main",
@@ -2532,6 +2552,7 @@ sub plot
 
     if($check_syntax) {
 	$PDL::Graphics::Gnuplot::last_testcmd .= $cleanup_cmd;
+	$this->{last_testcmd} .= $cleanup_cmd;
 	_printGnuplotPipe($this, "syntax", $cleanup_cmd);
 	$checkpointMessage= _checkpoint($this, "syntax", {printwarnings=>1});
 	if($checkpointMessage) {
@@ -2540,6 +2561,7 @@ sub plot
     }
     
     $PDL::Graphics::Gnuplot::last_plotcmd .= $cleanup_cmd;
+    $this->{last_plotcmd} .= $cleanup_cmd;
     _printGnuplotPipe($this, "main", $cleanup_cmd);
     $checkpointMessage= _checkpoint($this, "main", {printwarnings=>1});
     if($checkpointMessage) {
@@ -3261,6 +3283,7 @@ sub multiplot {
     if($check_syntax){
 	my $test_preamble = "set terminal dumb\nset output \" \"\n";
 	$PDL::Graphics::Gnuplot::last_testcmd = $test_preamble . $command;
+	$this->{last_testcmd} = $test_preamble . $command;
 	_printGnuplotPipe( $this, "syntax", $test_preamble . $command);
 	$checkpointMessage = _checkpoint($this, "syntax");
 	if($checkpointMessage) {
@@ -3273,6 +3296,7 @@ sub multiplot {
     }
     
     $PDL::Graphics::Gnuplot::last_plotcmd = $preamble . $command;
+    $this->{last_plotcmd} = $preamble.$command;
     _printGnuplotPipe( $this, "main", $preamble . $command);
     $checkpointMessage = _checkpoint($this,"main");
     if($checkpointMessage){
