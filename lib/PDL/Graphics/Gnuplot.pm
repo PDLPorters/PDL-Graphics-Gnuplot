@@ -1957,7 +1957,8 @@ You can pass plot options into plot as either a leading or trailing hash ref, or
 If you pass both, the trailing hash ref is parsed last and overrides the leading hash.
 
 For debugging and curiosity purposes, the last plot command issued to gnuplot
-is maintained in a package global: C<$PDL::Graphics::Gnuplot::last_plotcmd>.
+is maintained in a package global: C<$PDL::Graphics::Gnuplot::last_plotcmd>, and also
+in each object as the {last_plotcmd} field.
 
 =cut
 
