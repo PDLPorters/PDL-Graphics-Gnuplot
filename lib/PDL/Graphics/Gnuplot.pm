@@ -2024,7 +2024,8 @@ sub plot
 	$o->{terminal} = $this->{options}->{terminal};
 	$o->{output}   = $this->{options}->{output};
     } else {
-	$o = $this->{options};
+	$o = $this->{options}
+	;
     }
 
 
@@ -2285,7 +2286,12 @@ sub plot
     ##########
     # Emit the plot options lines that go above the plot command.  We do this 
     # twice -- once for the main plot command and once for the syntax test.
-    my $plotOptionsString = _emitOpts($this->{options}, $pOpt);
+    my $plotOptionsString = "";
+    $plotOptionsString .= "reset\n" unless($this->{replotting} or $this->{options}->{multiplot});
+
+
+    $plotOptionsString .= _emitOpts($this->{options}, $pOpt);
+
     my $testOptionsString;
     if($check_syntax){
 	local($this->{options}->{terminal}) = "dumb";
