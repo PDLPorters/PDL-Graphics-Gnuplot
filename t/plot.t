@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 107;
+use Test::More tests => 108;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -395,6 +395,10 @@ ok(!$@, "xvals plot (no xtics) succeeded");
 
 $line_nums = (get_axis_testoutput($testoutput,1));
 ok($line_nums =~ m/\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-/, "No labels with xtics=>0");
+
+
+eval { $w->plot(xvals(50)->sqrt,{"mxtics"=>{}})};
+ok(!$@, "plot with mxtics set to a hash succeeded");
 
 eval { $w->plot(xvals(50)->sqrt,{xtics=>10})};
 ok(!$@, "xvals plot(xtics=>10) succeeded");

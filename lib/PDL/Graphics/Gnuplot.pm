@@ -523,7 +523,7 @@ positive integers.
 =head2 Interactivity
 
 Several of the graphical backends of Gnuplot are interactive, allowing
-the user to pan, zoom, rotate and measure the data in the plot
+othe user to pan, zoom, rotate and measure the data in the plot
 window. See the Gnuplot documentation for details about how to do
 this. Some terminals (such as wxt) are persistently interactive. Other
 terminals (such as x11) maintain their interactivity only while the
@@ -4026,19 +4026,19 @@ our $pOptionsTable =
     # multiplot: this is not emitted as part of any plot command, only by the special multiplot method.
     'multiplot' => [sub { die "multiplot: use the 'multiplot' method, don't set this directly\n" },sub { ""},undef,undef,undef]
     ,
-    'mxtics'    => ['l','l',undef,undef,
+    'mxtics'    => ['lt','l',undef,undef,
 		    'set and control minor ticks on the X axis: mxtics=><freq>'
     ],
-    'mx2tics'   => ['l','l',undef,undef,
+    'mx2tics'   => ['lt','l',undef,undef,
 		    'set and control minor ticks on the X2 axis: mx2tics=><freq>'
     ],
-    'mytics'    => ['l','l',undef,undef,
+    'mytics'    => ['lt','l',undef,undef,
 		    'set and control minor ticks on the Y axis: mytics=><freq>'
     ],
-    'my2tics'   => ['l','l',undef,undef,
+    'my2tics'   => ['lt','l',undef,undef,
 		    'set and control minor ticks on the Y2 axis: my2tics=><freq>'
     ],
-    'mztics'    => ['l','l',undef,undef,
+    'mztics'    => ['lt','l',undef,undef,
 		    'set and control minor ticks on the Z axis: mztics=><freq>'
     ],
     'object'    => ['N','NO',undef,undef,
@@ -4625,7 +4625,7 @@ sub _parseOptHash {
 	    barf "HELP!";
 	}
 
-	$options->{$kk} = &$parser($options->{$kk}, $v, $options);
+	$options->{$kk} = &$parser($options->{$kk}, $v, $options, $kk);
     }
     return $options;
 }
@@ -4636,8 +4636,9 @@ sub _parseOptHash {
 #
 # $_pOHInputs describes input parsing from argument lists.  Each key
 # is a code for a particular type of input; the value is a subroutine
-# that accepts ($old_value, $new_input, $options_hash) and returns the
-# parsed new value.
+# that accepts ($old_value, $new_input, $options_hash, $fieldname) and returns the
+# parsed new value.  Most of the parsers ignore fieldname, but it's passed in
+# so that, e.g., 'lt' can parse both major and minor tick values.
 
 $_pOHInputs = {
     ## Simple cases - boolean, number, scalar
@@ -4738,7 +4739,7 @@ $_pOHInputs = {
     
     ## <foo>tics option list
     ## 
-    'lt' => sub { my($old, $new, $h) = @_;
+    'lt' => sub { my($old, $new, $h, $fieldname) = @_;
 		  return undef unless(defined $new);
 		  my $ok = {};
 		  for( qw/axis border mirror in out scale rotate offset autofreq locations labels format font rangelimited textcolor/ ) {
@@ -4764,20 +4765,22 @@ $_pOHInputs = {
 		      &$bs("axis", "border");
 		      push(@list, $new->{mirror} ? "mirror" : "nomirror") if( defined($new->{mirror}) );
 		      &$bs("in","out");
-		      if(defined $new->{scale}) {
-			  if(ref $new->{scale} eq 'ARRAY') {
-			      push @list, "scale ".join(",",@{$new->{scale}});
+		      unless($fieldname =~ m/^m/) {
+			  if(defined $new->{scale}) {
+			      if(ref $new->{scale} eq 'ARRAY') {
+				  push @list, "scale ".join(",",@{$new->{scale}});
+			      } else {
+				  push(@list, "scale $new->{scale}");
+			      }
 			  } else {
-			      push(@list, "scale $new->{scale}");
+			      push(@list, "scale default");
 			  }
-		      } else {
-			  push(@list, "scale default");
-		      }
-		      if(defined $new->{rotate}) {
-			  unless($new->{rotate}) {
-			      push(@list, "norotate");
-			  } else {
-			      push(@list, "rotate by ".$new->{rotate});
+			  if(defined $new->{rotate}) {
+			      unless($new->{rotate}) {
+				  push(@list, "norotate");
+			      } else {
+				  push(@list, "rotate by ".$new->{rotate});
+			      }
 			  }
 		      }
 		      if(defined $new->{offset}) {
@@ -4850,7 +4853,13 @@ $_pOHInputs = {
 		      return \@list;
 		  } # end of hash ref case
 
+		  ####
+		  # A scalar got passed in.  If it's false, then return 0; else listify it.
+		  # That way false values cause tics to be unset.
 		  unless(ref($new) eq 'ARRAY') {
+		      unless($new) {
+			  return $new;
+		      }
 		      $new = [split /\s+/, $new];
 		  }
 
@@ -6526,6 +6535,8 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 - Allows specifying different commands than just "gnuplot" via environment variable.
 
 - Detects available terminal types from Gnuplot on initial startup.
+
+- supports m?tics options with hash syntax
 
 =head3 v1.3 
 
