@@ -11,6 +11,7 @@ package PDL::Demos::Gnuplot_demo;
 
 use PDL;
 use PDL::Graphics::Gnuplot;
+use PDL::ImageND;
 
 PDL::Demos::Routines->import();
 sub comment($);
