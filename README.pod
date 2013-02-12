@@ -186,7 +186,7 @@ Subscript the next character or group (shrinks it slightly too where that is sup
 
 Phantom box (occupies no width; controls height for super- and subscripting)
 
-=item &amp; 
+=item &
 
 Controllable-width space, e.g. &amp;{template-string} 
 
@@ -198,7 +198,7 @@ overstrike -- e.g. ~a{0.8-} overprints '-' on 'a', raised by 0.8xfontsize.
 
 Change font to (optional) fontname, and optional absolute font size or relative font scale ("fontsize" and "fontscale" are numbers).  The space after the size parameter is not rendered.
 
-=item \\
+=item \
 
 Backslash escapes control characters to render them as themselves.
 
