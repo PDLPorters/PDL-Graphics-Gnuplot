@@ -226,6 +226,30 @@ in 2-D "columns", many of the common plot styles will generalize appropriately
 to 3-D.  For example, to plot a 2-D surface as a line grid, you can use the "lines"
 style and feed in 2-D columns instead of 1-D columns.  
 
+=head2 Enhanced text
+
+Most gnuplot output devices include the option to markup "enhanced text". That means
+text is interpreted so that you can change its font and size, and insert superscripts
+and subscripts into labels.  Codes are:
+
+=over 3
+
+=item {} Text grouping
+
+=item ^ Superscript the next character or group
+
+=item _ Subscript the next character or group
+
+=item @ Phantom box (occupies no width; controls height for super- and subscripting)
+
+=item &amp; Controllable-width space, e.g. &amp;{template-string} 
+
+=item ~ overstrike -- e.g. ~a{0.8-} overprints '-' on 'a', raised by 0.8xfontsize.
+
+=item {/[fontname]=[fontsize | *fontscale] text} - change font
+
+=back
+
 =head2 Plot styles supported
 
 Gnuplot itself supports a wide range of plot styles, and all are supported by 
@@ -363,75 +387,6 @@ multiple curves with similar curve options on a normal 2-D plot, just
 by stacking data inside the passed-in PDLs.  (An exception is that
 threading is disabled if one or more of the data elements is a list
 ref).
-
-=head3 A simple example
-
-   my $win = gpwin('x11');
-   $win->plot( sin(xvals(45)) * 3.14159/10 );
-
-Here we just plot a simple function.  The default plot style is a
-line.  Line plots take a 2-tuple (X and Y values).  Since we have
-supplied only one element, C<plot()> understands it to be the Y value
-(abscissa) of the plot, and supplies value indices as X values -- so
-we get a plot of just over 2 cycles of the sine wave over an X range
-across X values from 0 to 44.
-
-=head3 A not-so-simple example
-
-   $win = gpwin('x11');
-   $pi = 3.14159 
-   $win->plot( {with => line}, xvals(10)**2, xvals(10),
-               {with => circles}, 2 * xvals(50), 2 * sin(xvals(50) * $pi / 10), xvals(50)/20
-    );
-
-This plots sqrt(x) in an interesting way, and overplots some circles of varying size.  
-The line plot accepts a 2-tuple, and we supply both X and Y.  The circles plot accepts
-a 3-tuple: X, Y, and R.  
-
-=head3 A complicated example:
-
-   $pi    = 3.14159;
-   $theta = xvals(201) * 6 * $pi / 200;
-   $z     = xvals(201) * 5 / 200;
-
-   gplot( {trid => 1, title => 'double helix'},
-         {with => 'linespoints pointsize variable pointtype 2 palette',
-         legend => ['spiral 1','spiral 2']} ,
-         cdim=>1,
-         pdl( cos($theta), -cos($theta) ),       # x
-         pdl( sin($theta), -sin($theta) ),       # y
-         $z,                                     # z
-         (0.5 + abs(cos($theta))),               # pointsize
-         sin($theta/3),                          # color
-         {with=>'points pointsize variable pointtype 5'},
-         zeroes(6),                         # x
-         zeroes(6),                         # y
-         xvals(6),                          # z
-         xvals(6)+1                         # point size
-   );
-
-This is a 3d plot with variable size and color. There are 5 values in
-the tuple.  The first 2 piddles have dimensions (N,2); all the other
-piddles have a single dimension. The "cdim=>1" specifies that each column
-of data should be one-dimensional. Thus the PDL threading generates 2
-distinct curves, with varying values for x,y and identical values for
-everything else.  To label the curves differently, 2 different sets of
-curve options are given.  Omitting the "cdim" curve option would yield 
-a 201x2 grid with the "linespoints" plotstyle, rather than two separate 
-curves.
-
-In addition to the threaded pair of linespoints curves, there are six 
-variable size points plotted as filled squares, as a secondary curve.
-
-Plot options are passed in in two places:  as a leading hash ref, and as 
-a trailing hash ref.  Any other hash elements or hash refs must be curve
-options.
-
-Curves are delimited by non-data arguments.  After the initial hash
-ref, curve options for the first curve (the threaded pair of spirals)
-are passed in as a second hash ref.  The curve's data arguments are
-ended by the first non-data argument (the hash ref with the curve
-options for the second curve).
 
 =head3 Implicit domains
 
@@ -1476,6 +1431,78 @@ change of output device or a call to C<reset>, C<restart>, or C<close>.
 This is because those devices support multipage output and also require 
 and end-of-file marker to close the file.
 
+=head1 Plotting examples
+
+=head2 A simple example
+
+   my $win = gpwin('x11');
+   $win->plot( sin(xvals(45)) * 3.14159/10 );
+
+Here we just plot a simple function.  The default plot style is a
+line.  Line plots take a 2-tuple (X and Y values).  Since we have
+supplied only one element, C<plot()> understands it to be the Y value
+(abscissa) of the plot, and supplies value indices as X values -- so
+we get a plot of just over 2 cycles of the sine wave over an X range
+across X values from 0 to 44.
+
+=head2 A not-so-simple example
+
+   $win = gpwin('x11');
+   $pi = 3.14159 
+   $win->plot( {with => line}, xvals(10)**2, xvals(10),
+               {with => circles}, 2 * xvals(50), 2 * sin(xvals(50) * $pi / 10), xvals(50)/20
+    );
+
+This plots sqrt(x) in an interesting way, and overplots some circles of varying size.  
+The line plot accepts a 2-tuple, and we supply both X and Y.  The circles plot accepts
+a 3-tuple: X, Y, and R.  
+
+=head2 A complicated example:
+
+   $pi    = 3.14159;
+   $theta = xvals(201) * 6 * $pi / 200;
+   $z     = xvals(201) * 5 / 200;
+
+   gplot( {trid => 1, title => 'double helix'},
+         {with => 'linespoints pointsize variable pointtype 2 palette',
+         legend => ['spiral 1','spiral 2']} ,
+         cdim=>1,
+         pdl( cos($theta), -cos($theta) ),       # x
+         pdl( sin($theta), -sin($theta) ),       # y
+         $z,                                     # z
+         (0.5 + abs(cos($theta))),               # pointsize
+         sin($theta/3),                          # color
+         {with=>'points pointsize variable pointtype 5'},
+         zeroes(6),                         # x
+         zeroes(6),                         # y
+         xvals(6),                          # z
+         xvals(6)+1                         # point size
+   );
+
+This is a 3d plot with variable size and color. There are 5 values in
+the tuple.  The first 2 piddles have dimensions (N,2); all the other
+piddles have a single dimension. The "cdim=>1" specifies that each column
+of data should be one-dimensional. Thus the PDL threading generates 2
+distinct curves, with varying values for x,y and identical values for
+everything else.  To label the curves differently, 2 different sets of
+curve options are given.  Omitting the "cdim" curve option would yield 
+a 201x2 grid with the "linespoints" plotstyle, rather than two separate 
+curves.
+
+In addition to the threaded pair of linespoints curves, there are six 
+variable size points plotted as filled squares, as a secondary curve.
+
+Plot options are passed in in two places:  as a leading hash ref, and as 
+a trailing hash ref.  Any other hash elements or hash refs must be curve
+options.
+
+Curves are delimited by non-data arguments.  After the initial hash
+ref, curve options for the first curve (the threaded pair of spirals)
+are passed in as a second hash ref.  The curve's data arguments are
+ended by the first non-data argument (the hash ref with the curve
+options for the second curve).
+
+
 =head1 Methods 
 
 =cut
@@ -1683,8 +1710,9 @@ in the constructor.
 
 This is a flag that indicates whether to enable Gnuplot's enhanced text
 processing (e.g. for superscripts and subscripts).  Set it to a false
-value for plain text, to a true value for enhanced text.  See the Gnuplot
-manual for a description of the syntax.
+value for plain text, to a true value for enhanced text (which includes
+LaTeX-like markup for super/sub scripts and fonts). 
+
 
 =back
 
@@ -6069,7 +6097,24 @@ sub _printGnuplotPipe
 
   my $pipein = $this->{"in-$suffix"};
 
-  syswrite($pipein,$string) unless($this->{dumping});
+  unless($this->{dumping}) {
+      # Feed the pipe robustly.  Some platforms can only ship 64kB at a time, so keep sending chunks.
+      my $of = 0;
+      my $len;
+
+      if(length($string)) { # Only write nonempty strings :-)
+	  do {
+	      $len = syswrite($pipein,substr($string,$of));
+	      if(!defined($len) or $len==0) {
+		  my $err = (defined($len) ? "(No error but 0 bytes written)" : ($! // "(Huh - no error code in \$!)"));
+		  barf "PDL::Graphics::Gnuplot: Error while writing ".
+		      (length($string)).
+		      " bytes to the gnuplot pipe.\nError was:\n\t$err";
+	      }
+	      $of += $len;
+	  } while($of < length($string)); 
+      }
+  }
 
   # Mockup for half-duplex pty and pty mockups (e.g. testing Windows support)
   if($debug_echo) {
