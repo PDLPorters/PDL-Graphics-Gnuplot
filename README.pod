@@ -170,19 +170,37 @@ and subscripts into labels.  Codes are:
 
 =over 3
 
-=item {} Text grouping
+=item {} 
 
-=item ^ Superscript the next character or group
+Text grouping - enclose text in braces to group characters, as in LaTeX.
 
-=item _ Subscript the next character or group
+=item ^ 
 
-=item @ Phantom box (occupies no width; controls height for super- and subscripting)
+Superscript the next character or group (shrinks it slightly too where that is supported).
 
-=item &amp; Controllable-width space, e.g. &amp;{template-string} 
+=item _ 
 
-=item ~ overstrike -- e.g. ~a{0.8-} overprints '-' on 'a', raised by 0.8xfontsize.
+Subscript the next character or group (shrinks it slightly too where that is supported).
 
-=item {/[fontname]=[fontsize | *fontscale] text} - change font
+=item @ 
+
+Phantom box (occupies no width; controls height for super- and subscripting)
+
+=item &amp; 
+
+Controllable-width space, e.g. &amp;{template-string} 
+
+=item ~ 
+
+overstrike -- e.g. ~a{0.8-} overprints '-' on 'a', raised by 0.8xfontsize.
+
+=item {/[fontname][=fontsize | *fontscale] text} 
+
+Change font to (optional) fontname, and optional absolute font size or relative font scale ("fontsize" and "fontscale" are numbers).  The space after the size parameter is not rendered.
+
+=item \\
+
+Backslash escapes control characters to render them as themselves.
 
 =back
 
