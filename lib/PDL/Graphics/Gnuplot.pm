@@ -6688,6 +6688,10 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 - supports m?tics options with hash syntax
 
+- more careful I/O handling in the pipe
+
+- Improved interrupt handling
+
 =head3 v1.3 
 
 - Specifies Perl 5.010 or higher to run
