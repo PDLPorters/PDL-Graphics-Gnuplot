@@ -5884,17 +5884,47 @@ sub terminfo {
 #####
 #####  I/O to Gnuplot 
 #####
-#####  The following routines provide basic I/O to the underlying 
-#####  Gnuplot process: starting Gnuplot, writing commands and/or data 
+#####  The following routines provide basic I/O to the underlying
+#####  Gnuplot process: starting Gnuplot, writing commands and/or data
 #####  to it, reading messages back, and ensuring synchronization.
 #####
-#####  Note: it is not a normal state of the object to NOT have a Gnuplot
-#####  (or dump interface) running.  These are internal methods because 
-#####  there is no checking elsewhere to make sure the gnuplot is there
-#####  to receive commands.
+#####  Note: it is not a normal state of the object to NOT have a
+#####  Gnuplot (or dump interface) running.  These are internal
+#####  methods because there is no checking elsewhere to make sure the
+#####  gnuplot is there to receive commands.
+#####
+#####
+#####  Communication strategy:
+#####
+#####  Since we're using open3() we have to be careful to avoid
+#####  deadlock.  Also, gnuplot is a little brittle in some
+#####  situations.  Fortunately, we don't keep much state in gnuplot
+#####  itself, so we can more or less treat the gnuplot process as
+#####  disposable.  It's inconvenient to restart or reset it,
+#####  especially if there is a display device like x11, wxt, or aqua
+#####  in place, since that causes a new window to be launched.  But
+#####  for most communication exceptions we can simply drop-kick the
+#####  subprocess and start it over.
+#####
+#####  POSIX IPC is pretty sane and we can use signals to control
+#####  what's going on.  Unfortunately, not all supported platforms
+#####  are POSIX, so we have to switch some behavior based on the
+#####  $MS_io_braindamage flag. 
+#####
+#####  Because not much data comes back from gnuplot over the pipe, we
+#####  are pretty careless about how we pull it through -- one
+#####  character at a time, which is pretty inefficient.  
+#####
+#####  Dealing with exceptions and interrupts is difficult, since 
+#####  gnuplot doesn't seem to respond well over the pipe in the most
+#####  common case (while receiving binary data).  In that particular
+#####  case we simply dropkick gnuplot and restart it.
 #####
 
 
+##############################
+##############################
+## _startGnuplot - fire off a gnuplot process, and pull in some information from it about what it can do.
 sub _startGnuplot
 {
     ## Object code handles gnuplot in-place.
@@ -5922,6 +5952,7 @@ sub _startGnuplot
     my $err = gensym();
 
     my $pid = open3($in,$err,$err,_gnuplot_binary_path(), @gnuplot_options);
+
     unless($pid) {
 	my $g = _gnuplot_binary_path();
 	if($g eq 'gnuplot') {
@@ -6017,6 +6048,10 @@ EOM
     $this;
 }
 
+##############################
+##############################
+# _killGnuplot - clean up the mess!
+
 sub _killGnuplot {
     my $this = shift;
     my $suffix = shift;
@@ -6034,49 +6069,49 @@ sub _killGnuplot {
     {
 	my $goner = $this->{"pid-$suffix"};
 
-	# Try Mr. Nice Guy first.
-	unless($kill_it_dead) {
+	if($kill_it_dead) {
+	    # Just want it dead.
+	    kill 'KILL', $goner;
+
+	} else {
+	    # Try Mr. Nice Guy first.
+	    
 	    _printGnuplotPipe($this,$suffix,"exit\n");
-	}
 
-	# give it 20 seconds to quit nicely, then start shooting.
-
-	my $countdown = 20;
-
-	local($SIG{INT}) = sub {
-	    kill 'HUP', $goner;
-	    alarm(0);
-	    $countdown = -1;
-	};
-
-	local($SIG{ALRM}) = sub { 
-	    return if($countdown<0);
-	    $countdown--;
-	    if($countdown==16){
-		print STDERR "Waiting for gnuplot...";
-	    } 
-	    if($countdown < 17) {
-		print STDERR $countdown." ";
-	    }
-	    if($countdown > 0) {
-		alarm(1);
-	    } else {
-		kill 'HUP', $goner;
+	    # Give it two seconds to quit, then interrupt it again.  
+	    # If that doesn't work kill it dead.
+	    my $countdown = 3;
+	    
+	    # In case of ^C, give up and kill the process dead.
+	    local($SIG{INT}) = sub {
+		kill 'KILL', $goner;
 		alarm(0);
-	    }
-	};
-
-	alarm(1);
-
+		$countdown = -1;
+	    };
+	    
+	    local($SIG{ALRM}) = sub { 
+		$countdown--;
+		if($countdown <= 2) {
+		    kill 'HUP',$goner;
+		}
+		if($countdown > 0) {
+		    alarm(1);
+		} else {
+		    kill 'KILL', $goner unless($countdown > 0);
+		    alarm(0);
+		}
+	    };
+	    
+	    alarm(1);
+	}
+	    
 	my $z = waitpid($goner, 0);
 	alarm(0);
 	
-	unless($z) {
-	    # give it two more seconds to die gracefully, then use the big guns.
-	    local($SIG{ALRM}) = sub { kill 'KILL', $goner; };
-	    alarm(2); 
+	unless($z == $goner) {
+	    # If for some reason it didn't die, fire and forget.
+	    kill 'KILL', $goner; 
 	    waitpid( $goner, 0 ) ;
-	    alarm(0); 
 	}
 	
 	# This clears the status bits from the killed process, so
@@ -6087,18 +6122,24 @@ sub _killGnuplot {
     for (map { $_."-$suffix" } qw/in err errSelector pid/) {
 	delete $this->{$_} if(exists $this->{$_});
     }
+
     $this;
 }
 
 
 
+##############################
+# _printGnuplotPipe - output stuff to the pipe.  
+#
+# Used for both commands and data.
+# 
 sub _printGnuplotPipe
 {
   my $this   = shift;
   my $suffix = shift;
   my $string = shift;
   my $data = shift;    # flag whether this transmission be data (0 for a command)
-
+  
   # Autodetect the dump option
   # If it gets set or unset, restart gnuplot
   if(($this->{options}->{dump} && !$this->{dumping})  or  
@@ -6117,12 +6158,16 @@ sub _printGnuplotPipe
 
   unless($this->{dumping}) {
       # Feed the pipe robustly.  Some platforms can only ship 64kB at a time, so keep sending chunks.
+      my $int_flag = 0;
       my $of = 0;
       my $len;
-
+      my $s = $SIG{INT};
+      local $SIG{INT} = sub { $int_flag = 1; };
+      
+      # Write out the string in 64kiB chunks to enable interruption
       if(length($string)) { # Only write nonempty strings :-)
 	  do {
-	      $len = syswrite($pipein,substr($string,$of));
+	      $len = syswrite($pipein,substr($string,$of),65535);
 	      if(!defined($len) or $len==0) {
 		  my $err = (defined($len) ? "(No error but 0 bytes written)" : ($! // "(Huh - no error code in \$!)"));
 		  barf "PDL::Graphics::Gnuplot: Error while writing ".
@@ -6130,7 +6175,21 @@ sub _printGnuplotPipe
 		      " bytes to the gnuplot pipe.\nError was:\n\t$err";
 	      }
 	      $of += $len;
-	  } while($of < length($string)); 
+	  } while($of < length($string) and !$int_flag); 
+
+	  if($int_flag) {
+	      # We were interrupted, which hoses up gnuplot.  Restart gnuplot.
+	      _killGnuplot($this,undef,1);
+	      _startGnuplot($this,'main');
+	      _startGnuplot($this,'syntax') if($check_syntax);
+	      my $str = "PDL::Graphics::Gnuplot:  interrupted while sending data; restarted gnuplot.\n";
+	      if(ref($s) eq 'CODE') {
+		  print STDERR $str;
+		  &$s;
+	      } else {
+		  die $str;
+	      }
+	  }
       }
   }
 
@@ -6179,6 +6238,7 @@ sub _checkpoint {
     my $opt = shift // {};
     my $notimeout = $opt->{notimeout} // 0;
     my $printwarnings = (($opt->{printwarnings} // 0) and !($this->{options}->{silent} // 0));
+    my $ignore_errors = ($opt->{ignore_errors} // 0);
     
     my $pipeerr = $this->{"err-$suffix"};
 
@@ -6203,6 +6263,21 @@ sub _checkpoint {
     my $fromerr = '';
 
     if( !($this->{dumping}) ) {
+	my $int = $SIG{INT};
+	local $SIG{INT} = $int;
+
+	# Queue up a SIGINT handler, with passthrough...
+	unless($MS_io_braindamage) {
+	    $SIG{INT} = 
+		sub {
+		    kill 'INT', $this->{"pid-$suffix"};
+		    if(ref $int eq 'CODE') {
+			&$int;
+		    }
+		    die "^C received during PDL::Graphics::Gnuplot checkpoint operation\n";
+	    };
+	}
+	
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
 
 	my $terminal =$this->{options}->{terminal};
@@ -6245,18 +6320,13 @@ sub _checkpoint {
 	    else
 	    {
 		_logEvent($this, "Gnuplot $suffix read timed out") if $this->{options}{tee};
-		
 		$this->{"stuck-$suffix"} = 1;
-		
+		kill 'INT', $this->{"pid-$suffix"};
 		barf <<"EOM";
 Hmmm, my $suffix Gnuplot process didn't respond for $delay seconds.
-This could be a bug in PDL::Graphics::Gnuplot or gnuplot itself -- 
-although for some terminals (like x11) it could be because of a 
-slow network.  If you don't think it is a network problem, please
-report it as a PDL::Graphics::Gnuplot bug.  You might be able to 
-ignore this message, or you might have to restart() the object.
-If you are getting this message spuriously, you might like to 
-set the "wait" terminal option to a longer value (in seconds).
+I've kicked it with an interrupt signal, which should help with the
+next thing you try to do.  If you expect slow response fron gnuplot, 
+you can adjust the timeout with the "wait" terminal option.
 EOM
 	    }
 	} until ($fromerr =~ m/^$checkpoint/ms or $subproc_gone);
@@ -6301,7 +6371,7 @@ EOM
 	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
 	}
 
-	if($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) {
+	if((!$ignore_errors) and ($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms)) {
 	    if($this->{early_gnuplot}) {
 		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n$fromerr\n";
 	    } else {
@@ -6319,6 +6389,9 @@ EOM
 	return "";
     }
 }
+
+##############################
+# Get gnuplot to report its own supported feature-set.
 
 sub _getGnuplotFeatures
 {
@@ -6605,6 +6678,10 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 =head3 V1.4
 
+- Updates to POD documentation
+
+- Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
+
 - Allows specifying different commands than just "gnuplot" via environment variable.
 
 - Detects available terminal types from Gnuplot on initial startup.
@@ -6640,10 +6717,9 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 - Fixed date range handling
 
 
-
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011,2012 Dima Kogan and Craig DeForest
+Copyright 2011-2013 Dima Kogan and Craig DeForest
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
