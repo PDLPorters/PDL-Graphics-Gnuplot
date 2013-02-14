@@ -3206,15 +3206,26 @@ sub points {
 
 =for ref
 
-Displays an image (either greyscale or RGB)
+Displays an image (either greyscale or RGB).  Shorthand for C<plot(globalwith =E<gt> 'image', ...)>
 
 =cut
+
 
 sub image {
     my $this = _obj_or_global(\@_);
     local($this->{options}->{'globalwith'}) = ["image"];
     plot($this, @_);
 }
+
+=head2 imag
+
+=for ref
+
+Synonym for "image", for people who grew up with PDL::Graphics::PGPLOT and can't remember the closing 'e'
+
+=cut
+
+*imag = \&image;
 
 =head2 fits
 
@@ -6680,6 +6691,12 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 - Updates to POD documentation
 
+- includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
+
+- more careful I/O handling in the pipe
+
+- Improved interrupt handling
+
 - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
 
 - Allows specifying different commands than just "gnuplot" via environment variable.
@@ -6688,9 +6705,7 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 - supports m?tics options with hash syntax
 
-- more careful I/O handling in the pipe
-
-- Improved interrupt handling
+- 
 
 =head3 v1.3 
 

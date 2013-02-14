@@ -1744,7 +1744,14 @@ Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 
 
 =for ref
 
-Displays an image (either greyscale or RGB)
+Displays an image (either greyscale or RGB).  Shorthand for C<plot(globalwith =E<gt> 'image', ...)>
+
+=cut
+=head2 imag
+
+=for ref
+
+Synonym for "image", for people who grew up with PDL::Graphics::PGPLOT and can't remember the closing 'e'
 
 =cut
 =head2 fits
@@ -1975,11 +1982,23 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 
 =head3 V1.4
 
+- Updates to POD documentation
+
+- includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
+
+- more careful I/O handling in the pipe
+
+- Improved interrupt handling
+
+- Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
+
 - Allows specifying different commands than just "gnuplot" via environment variable.
 
 - Detects available terminal types from Gnuplot on initial startup.
 
 - supports m?tics options with hash syntax
+
+- 
 
 =head3 v1.3 
 
@@ -2010,10 +2029,9 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 - Fixed date range handling
 
 
-
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011,2012 Dima Kogan and Craig DeForest
+Copyright 2011-2013 Dima Kogan and Craig DeForest
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
