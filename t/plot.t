@@ -464,9 +464,12 @@ SKIP: {
 
     $xy = zeros(21,21)->ndcoords - pdl(10,10);
     $z = inner($xy, $xy);
-    eval {     $w->reset; $w->plot({title  => 'Heat map', '3d' => 1,
-		  extracmds => 'set view 0,0'},
-		 with => 'image', $z*2); };
+    eval {     $w->reset; $w->plot({title  => 'Heat map', 
+				    '3d' => 1,
+				    view=>[50,30,1]
+				   },
+				   with => 'image', $z*2); 
+    };
     ok(!$@, "3-d plot didn't crash");
 
     print STDERR "Do you see a purple-yellow colormap image of a radial target, in 3-D? (Y/n)";
@@ -481,6 +484,8 @@ SKIP: {
     $theta = zeros(200)->xlinvals(0, 6*$pi);
     $z     = zeros(200)->xlinvals(0, 5);
     eval { $w->reset; $w->plot3d(cos($theta), sin($theta), $z); };
+    print STDERR $@ if($@);
+
     ok(!$@, "plot3d works");
 
     print STDERR "See a nice 3-D plot of a spiral? (Y/n)";
@@ -509,14 +514,15 @@ SKIP: {
     $z     = xvals(201) * 5 / 200;
 
     eval { $w->reset; $w->plot( {'3d' => 1, title => 'double helix'},
-	  { with => 'linespoints pointsize variable pointtype 2 palette',
-	    legend => ['spiral 1','spiral 2'] },
-	  pdl( cos($theta), -cos($theta) ),       # x
-	  pdl( sin($theta), -sin($theta) ),       # y
-	  $z,                                     # z
-	  (0.5 + abs(cos($theta))),               # pointsize
-	  sin($theta/3)                           # color
-	       ); };
+	    with => 'linespoints pointsize variable pointtype 2 palette' ,
+	    legend => 'spiral 1',
+	    cos($theta), sin($theta), $z, 0.5 + abs(cos($theta)*2),
+	    sin($theta/3),
+	    with => 'linespoints pointsize variable pointtype 4 palette' ,
+	    legend => 'spiral 2',
+	    -cos($theta), -sin($theta), $z, 0.5 + abs(cos($theta)*2),
+	    sin($theta/3)
+	);};	
     ok(!$@, "double helix plot worked");
     
     print STDERR "See a double helix plot with variable point sizes and variable color? (Y/n)";
