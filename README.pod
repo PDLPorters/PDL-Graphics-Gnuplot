@@ -28,11 +28,12 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
         extracmds => 'set view 0,0'},
         with => 'image', xvals($z),yvals($z),zeroes($z),$z*2);
 
- pdl> $w = gpwin();
+ pdl> $w = gpwin();                             # constructor
  pdl> $pi    = 3.14159;
  pdl> $theta = zeros(200)->xlinvals(0, 6*$pi);
  pdl> $z     = zeros(200)->xlinvals(0, 5);
  pdl> $w->plot3d(cos($theta), sin($theta), $z);
+ pdl> $w->terminfo();                           # get information
 
 
 =head1 DESCRIPTION
@@ -1983,6 +1984,10 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 =head3 V1.4
 
 - Updates to POD documentation
+
+- Improved terminfo reporting
+
+- mouse-enabled default terminals are detected properly (e.g. 'x11').
 
 - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
 
