@@ -92,11 +92,12 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
         extracmds => 'set view 0,0'},
         with => 'image', xvals($z),yvals($z),zeroes($z),$z*2);
 
- pdl> $w = gpwin();
+ pdl> $w = gpwin();                             # constructor
  pdl> $pi    = 3.14159;
  pdl> $theta = zeros(200)->xlinvals(0, 6*$pi);
  pdl> $z     = zeros(200)->xlinvals(0, 5);
  pdl> $w->plot3d(cos($theta), sin($theta), $z);
+ pdl> $w->terminfo();                           # get information
 
 
 =head1 DESCRIPTION
