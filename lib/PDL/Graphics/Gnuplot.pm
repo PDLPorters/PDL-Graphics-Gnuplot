@@ -1755,26 +1755,44 @@ sub output {
     if($poh) {
 	options($this,$poh);
     }
-    
+
+    # If there are no arguments, we're not setting the terminal - so we need to 
+    # ask gnuplot what it thinks the terminal is.  Then we run it through the usual
+    # setting logic, to make sure we've got our terminal options parsing and 
+    # other switches set right (e.g. does the default terminal support mouse input?)
+    my $default_term_str = "";
+    unless(@_) {
+	_printGnuplotPipe($this, "main","show terminal\n");
+	my $show = _checkpoint($this, "main");
+	unless($show =~ s/^\s*terminal type is ((\w+).*[^\s])\s*$/$1/) {
+	    print STDERR "Warning: you are using the default terminal, but gnuplot didn't report it properly.\n\tThis is probably a bug.  Plot at your own risk.\n";
+	    $default_term_str="        (Using an unknown default terminal type)\n";
+	} else {
+	    unshift(@_, $2);
+	    $default_term_str = "        (using gnuplot's default terminal of $show)\n";
+	}
+    }
+
     if(@_) {
 	# Check that, if there is at least one more argument, it is recognizable as a terminal
 	my $terminal;
 	$terminal = lc(shift);
 
 	##############################
-	# Check the termina list here!
+	# Check the terminal list here!
 	if(!exists($this->{valid_terms}->{$terminal})) {
 	    my $s;
 	    our $termTabSource;
 
 	    if(exists($this->{unknown_terms}->{$terminal})) {
-		$s = <<"FOO";
+		$s = <<"FOO" . $default_term_str;
 PDL::Graphics::Gnuplot: Your gnuplot has terminal '$terminal' but it is not supported.
         $terminal: $this->{unknown_terms}->{$terminal}
 FOO
+
 	    } 
 	    elsif(exists($termTab->{$terminal})) {
-		$s = <<"FOO";
+		$s = <<"FOO" . $default_term_str;
 PDL::Graphics::Gnuplot: your gnuplot appears not to support the terminal '$terminal'.
         $terminal: $termTabSource->{$terminal}->{desc} [not in reported list from gnuplot]
 FOO
@@ -1782,9 +1800,9 @@ FOO
 	    else {
 		$s = "PDL::Graphics::Gnuplot: neither this module nor your gnuplot support '$terminal'.\n";
 		if(exists($termTabSource->{$terminal})) {
-		    $s .= "        $terminal: $termTabSource->{$terminal}\n";
+		    $s .= "        $terminal: $termTabSource->{$terminal}\n".$default_term_str;
 		} else {
-		    $s .= "        $terminal: doesn't appear to be a gnuplot terminal name\n";
+		    $s .= "        $terminal: doesn't appear to be a gnuplot terminal name\n".$default_term_str;
 		}
 	    }
 
@@ -5772,7 +5790,9 @@ for my $k(keys %$termTabSource) {
 	$terminalOpt->{$name} = [ $line->[0], $line->[1], undef, $i++, $line->[2]];
     }
     $terminalOpt->{"wait"} = [ 's' , sub { return "" }, undef, $i++, "wait time before throwing an error (default 5s)" ];
-    $termTab->{$k} = { desc => $termTabSource->{$k}->{desc},
+    my $desc = $termTabSource->{$k}->{desc};
+    $desc =~ s/\%u/$termTabSource->{$k}->{unit}/;
+    $termTab->{$k} = { desc => $desc,
 		       unit => $termTabSource->{$k}->{unit},
 		       mouse => $termTabSource->{$k}->{mouse} // 0,
 		       int   => $termTabSource->{$k}->{int} // 0,
@@ -5803,22 +5823,25 @@ sessions.
 
 sub terminfo {
     my $this = _obj_or_global(\@_);
-
     my $terminal = shift // '';
     my $brief_form = shift;
     my $dont_print = shift;
     my $s = "";
 
-
     if($termTabSource->{$terminal}) {
 	if(ref $termTabSource->{$terminal}) {
-	    $s = "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}', options are:\n";
+	    my $ms = (($termTabSource->{$terminal}->{mouse} //0) ? ", mouse input ok" : "");
+	    $s = "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}'$ms, options are:\n";
 	    my $tt = $termTab->{$terminal}->{opt}->[0];
-	    for my $name(sort {$tt->{$a}->[3] <=> $tt->{$b}->[3]} keys %$tt) {
+	    for my $name(sort {($tt->{$a}->[3]//0) <=> ($tt->{$b}->[3]//0)} keys %$tt) {
 		my @info = ();
 		@info = ($name, $tt->{$name}->[4]);
 		$info[0] =~ s/\_$//;         #remove trailing underscore on "output_" hack
-		$s .= sprintf "%10s - %s\n",@info;
+		if(defined($info[0]) and defined($info[1])) {
+		    my $ss = sprintf "%10s - %s\n",@info;
+		    $ss =~ s/\%u/$termTabSource->{$terminal}->{unit}/;
+		    $s .= $ss;
+		}
 	    }
 	} else {
 	    if($this->{unknown_terms}->{$terminal}) {
@@ -5884,6 +5907,9 @@ sub terminfo {
 	    $s .= "\n(use terminfo('all') to see unsupported terminals as well)\n";
 	}
 	$s .= "\nRun PDL::Graphics::Gnuplot::terminfo( \$term_name ) for information on options.\n\n";
+	
+	$s .= (($this==$globalPlot) ? "The default P::G::G" : "This") . " window is currently using the '$this->{terminal}' terminal.\n\n";
+
 	print STDERR $s unless($dont_print);
 	return $s;
     }
@@ -6690,6 +6716,10 @@ doesn't do what you really want.  Start each plot with a reset()?  Hold default 
 =head3 V1.4
 
 - Updates to POD documentation
+
+- Improved terminfo reporting
+
+- mouse-enabled default terminals are detected properly (e.g. 'x11').
 
 - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
 
