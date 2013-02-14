@@ -361,7 +361,7 @@ The GNuplot plot styles supported are:
 
 The plot options are parameters that affect the whole plot, like the title of
 the plot, the axis labels, the extents, 2d/3d selection, etc. All the plot
-options are described below in L</"Plot options">.  Plot options can be set directly
+options are described below in L</"Plot options">.  Plot options can be set 
 in the plot object, or passed to the plotting methods directly.  Plot options can
 be passed in as a leading interpolated hash, as a leading hash ref, or as a trailing
 hash ref in the argument list to any of the main plotting routines (C<gplot>, C<plot>,
@@ -406,6 +406,17 @@ multiple curves with similar curve options on a normal 2-D plot, just
 by stacking data inside the passed-in PDLs.  (An exception is that
 threading is disabled if one or more of the data elements is a list
 ref).
+
+=head3 PDLs vs list refs
+
+The usual way to pass in data is as a PDL -- one PDL per column of data
+in the tuple.  But strings, in particular, cannot easily be hammered into
+PDLs.  Therefore any column in each tuple can be a list ref containing
+values (either numeric or string).  The column is interpreted using the
+usual polymorphous cast-behind-your-back behavior of Perl.  For the sake
+of sanity, if even one list ref is present in a tuple, then threading is 
+disabled in that tuple: everything has to have a nice 1-D shape.
+
 
 =head3 Implicit domains
 
@@ -506,7 +517,7 @@ positive integers.
 =head2 Interactivity
 
 Several of the graphical backends of Gnuplot are interactive, allowing
-othe user to pan, zoom, rotate and measure the data in the plot
+you to pan, zoom, rotate and measure the data interactively in the plot
 window. See the Gnuplot documentation for details about how to do
 this. Some terminals (such as wxt) are persistently interactive. Other
 terminals (such as x11) maintain their interactivity only while the
@@ -515,8 +526,9 @@ created with the same PDL::Graphics::Gnuplot object, or until the perl
 process exits (whichever comes first).  Still others (the hardcopy 
 devices) aren't interactive at all.
 
-Interactive devices also support mouse input: you can write PDL scripts
-that accept and manipulate graphical input from the plotted window.
+Some interactive devices (like x11) also support mouse input: you can
+write PDL scripts that accept and manipulate graphical input from the
+plotted window.
 
 =head1 PLOT OPTIONS
 
@@ -529,6 +541,11 @@ C<options> method, or to the C<plot> method itself.
 Nearly all the underlying Gnuplot plot options are supported, as well
 as some additional options that are parsed by the module itself for
 convenience.
+
+There are many, many plot options.  For convenience, we've grouped
+them by general category below.  Each group has a heading "POs for E<lt>fooE<gt>",
+describing the category.  You can skip below them all if you want to 
+read about curve options or other aspects of PDL::Graphics::Gnuplot.
 
 =head2 POs for Output: terminal, termoption, output, device, hardcopy
 
@@ -1215,7 +1232,7 @@ C<zero> sets the approximation threshold for zero values within gnuplot.  Its de
 
 C<fontpath> sets a font search path for gnuplot.  It accepts a collection of file names as a list ref.
 
-=head2 Advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, log
+=head2 POs for advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, log
 
 Plotting is carried out by sending a collection of commands to an underlying
 gnuplot process.  In general, the plot options cause "set" commands to be 
@@ -1406,7 +1423,7 @@ Complicated 3D plot with fancy styling:
          # pointsize, color
          0.5 + abs(cos($theta)), sin(2*$theta) );
 
-3D plots can be plotted as a heat map. As of Gnuplot 4.4.0, this doesn't work in binary.
+3D plots can be plotted as a heat map.
 
   plot3d( extracmds => 'set view 0,0',
           with => 'image',
@@ -1620,7 +1637,7 @@ Creates a PDL::Graphics::Gnuplot persistent plot object, and connects it to gnup
 
 For convenience, you can specify the output device and its options
 right here in the constructor.  Because different gnuplot devices
-accept different options, you must specify a device is you want to
+accept different options, you must specify a device if you want to
 specify any device configuration options (such as window size, output
 file, text mode, or default font).  
 
@@ -1628,7 +1645,7 @@ If you don't specify a device type, then the Gnuplot default device
 for your system gets used.  You can set that with an environment
 variable (check the Gnuplot documentation).
 
-Gnuplot uses the term "terminal" for output devices; you can see a
+Gnuplot uses the word "terminal" for output devices; you can see a
 list of terminals supported by PDL::Graphics::Gnuplot by invoking
 C<PDL::Graphics::Gnuplot::terminfo()> (for example in the perldl shell).
 
@@ -1765,7 +1782,7 @@ sub output {
     unless(@_) {
 	_printGnuplotPipe($this, "main","show terminal\n");
 	my $show = _checkpoint($this, "main");
-	unless($show =~ s/^\s*terminal type is ((\w+).*[^\s])\s*$/$1/) {
+	unless($show =~ s/^\s*terminal type is ((\w+)(.*[^\s])?)\s*$/$1/) {
 	    print STDERR "Warning: you are using the default terminal, but gnuplot didn't report it properly.\n\tThis is probably a bug.  Plot at your own risk.\n";
 	    $default_term_str="        (Using an unknown default terminal type)\n";
 	} else {
@@ -1885,7 +1902,7 @@ sub close
 =for ref
 
 Occasionally the gnuplot backend can get into an unknown state.  
-C<reset> kills the gnuplot backend and starts a new one, preserving
+C<restart> kills the gnuplot backend and starts a new one, preserving
 state in the object.  (i.e. C<replot> and similar functions work even
 with the new subprocess).
 
@@ -2416,6 +2433,8 @@ sub plot
 	    }
 
 	    # The map statement ensures the main and test cmd get identical sprintf templates.
+	    # Images get transferred as floats, not doubles, to save transfer time.
+#	    my $fstr = "%float" x $chunks->[$i]->{tuplesize};
 	    my $fstr = "%double" x $chunks->[$i]->{tuplesize};
 	    ($pchunk, $tchunk) = map {
 		sprintf(' "-" binary %s=(%s) format="%s" %s',
@@ -2532,7 +2551,8 @@ sub plot
 
 	if($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
-	    $p = $chunk->{data}->[0]->double->copy;
+#	    $p = $chunk->{data}->[0]->float->sever;
+	    $p = $chunk->{data}->[0]->double->sever;
 	    {
 		my $s = " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
 		$last_plotcmd .= $s;
@@ -2542,7 +2562,7 @@ sub plot
 
 	} elsif( $chunk->{binaryCurveFlag}  ) {
 	    # Send in binary if the binary flag is set.
-	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->copy;
+	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
 	    {
 		my $s = " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 		$last_plotcmd .= $s;
@@ -6202,10 +6222,10 @@ sub _printGnuplotPipe
       my $s = $SIG{INT};
       local $SIG{INT} = sub { $int_flag = 1; };
       
-      # Write out the string in 64kiB chunks to enable interruption
+      # Write out the string in 640kiB chunks to enable interruption
       if(length($string)) { # Only write nonempty strings :-)
 	  do {
-	      $len = syswrite($pipein,substr($string,$of),65535);
+	      $len = syswrite($pipein,substr($string,$of),655360);
 	      if(!defined($len) or $len==0) {
 		  my $err = (defined($len) ? "(No error but 0 bytes written)" : ($! // "(Huh - no error code in \$!)"));
 		  barf "PDL::Graphics::Gnuplot: Error while writing ".
@@ -6682,7 +6702,7 @@ L<https://github.com/drzowie/PDL-Graphics-Gnuplot>
 
 =head1 AUTHOR
 
-Dima Kogan, C<< <dima@secretsauce.net> >> and Craig DeForest, C<< <craig@deforest.org> >>
+Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauce.net> >>
 
 =head1 STILL TO DO
 
@@ -6704,11 +6724,6 @@ Further, deeply nested options (e.g. "at" for labels) need attention.
 =item - new plot styles
 
 The "boxplot" plot style (new to 4.6?) requires a different using syntax and will require some hacking to support.
-
-=item - ephemeral state isn't.
-
-Ephemeral plot options leave state behind in the underlying gnuplot process.  Following each plot with a reset() 
-doesn't do what you really want.  Start each plot with a reset()?  Hold default values in the parse table?
 
 =back
 
