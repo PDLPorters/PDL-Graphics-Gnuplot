@@ -47,6 +47,16 @@ sub MY::libscan
     return $self->SUPER::libscan ($file);
 }
 
+sub MY::postamble {
+    my $text = <<'FOO';
+install ::
+	@echo "Updating PDL documentation database...";
+	@$(PERL) -e 'use PDL::Doc; eval { PDL::Doc::add_module("PDL::Graphics::Gnuplot"); }; '
+
+FOO
+    return $text;
+}
+
 WriteMakefile(
     NAME                => 'PDL::Graphics::Gnuplot',
     AUTHOR              => q{Dima Kogan <dima@secretsauce.net>},

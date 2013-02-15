@@ -70,6 +70,7 @@ use 5.010;  # uses modern constructs like "//".
 # even for routines (such as read_polygon) that could and would use
 # PDL::Options in other circumstances.
 #
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -1539,7 +1540,7 @@ ended by the first non-data argument (the hash ref with the curve
 options for the second curve).
 
 
-=head1 Methods 
+=head1 FUNCTIONS
 
 =cut
 
@@ -1562,9 +1563,9 @@ use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
 our @EXPORT = qw(gpwin gplot greplot greset grestart);
 
+# Compile time config flags...
 our $check_syntax = 0;
 our $gnuplot_req_v = 4.4;
-
 our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
 our $debug_echo = 0;                              # If set, inject commands into the returned stream to mimic Losedows
 
@@ -1598,38 +1599,42 @@ our $cmdFence = "cmdFENCEcmd";
 # _startGnuplot - helper for new
 
 
-=head2 gpwin - exported constructor (synonymous with new)
+=head2 gpwin 
 
 =for usage
 
  use PDL::Graphics::Gnuplot;
-
  $w = gpwin( @options );
  $w->plot( @plot_args );
 
+
 =for ref 
 
-This is just a synonym for the "new" method.  It is exported into the
-current package by default for convenience.
+gpwin is the PDL::Graphics::Gnuplot exported constructor.  It is
+exported by default and is a synonym for "new PDL::Graphics::Gnuplot(...)".
+object.  If given no arguments, it creates a plot object with the
+default terminal settings for your gnuplot.  You also give it the name
+of a Gnuplot terminal type (e.g. 'x11') followed by output options
+(see "output").
+
 
 =cut
 
 sub gpwin { return new("PDL::Graphics::Gnuplot",@_); }
 
-=head2 new - object constructor
+=head2 new
 
 =for usage
 
     $w = new PDL::Graphics::Gnuplot;
     $w->plot( @plot_args );
-
+    #
     # Specify plot options alone
     $w = new PDL::Graphics::Gnuplot( {%plot_options} );
-
+    #
     # Specify device and device options (and optional default plot options)
     $w = new PDL::Graphics::Gnuplot( device, %device_options, {%plot_options} );
     $w->plot( @plot_args );
-
 
 =for ref
 
@@ -1702,13 +1707,15 @@ sub new
 ##############################
 # output - set output terminal and options.
 
-=head2 output - set the output device and options for a Gnuplot object
+=head2 output 
 
 =for usage
 
     $window->output( device, %device_options, {plot_options} );
 
 =for ref
+
+Sets the output device and options for a Gnuplot object.
 
 You can control the output device of a PDL::Graphics::Gnuplot object on
 the fly.  That is useful, for example, to replot several versions of the 
@@ -1872,9 +1879,17 @@ sub DESTROY
 }
 
 
-=head2 close - close gnuplot process (actually just a synonym for restart)
+=head2 close 
+
+=for usage
+
+  $w=gpwin();
+  $w->plot(xvals(5));
+  $w->close;
 
 =for ref
+
+Close gnuplot process (actually just a synonym for restart)
 
 Some of the gnuplot terminals (e.g. pdf) don't write out a file
 promptly.  The close method closes the associated gnuplot subprocess,
@@ -1892,7 +1907,7 @@ sub close
     restart($this);
 }
 
-=head2 restart - restart the gnuplot backend for a plot object
+=head2 restart 
 
 =for usage
 
@@ -1900,6 +1915,8 @@ sub close
     PDL::Graphics::Gnuplot::restart();
 
 =for ref
+
+Restart the gnuplot backend for a plot object
 
 Occasionally the gnuplot backend can get into an unknown state.  
 C<restart> kills the gnuplot backend and starts a new one, preserving
@@ -1936,7 +1953,7 @@ sub restart {
 }
 
 
-=head2 reset - clear all state from the gnuplot backend
+=head2 reset 
 
 =for usage
    
@@ -1944,10 +1961,13 @@ sub restart {
 
 =for ref
 
+Clear state from the gnuplot backend
+
 Clears all plot option state from the underlying object.  All plot
 options except "terminal", "termoptions", "output", and "multiplot"
 are cleared.  This is similar to the "reset" command supported by
-gnuplot itself.
+gnuplot itself, and in fact it also causes a "reset" to be sent to
+gnuplot.
 
 
 =cut
@@ -1978,7 +1998,7 @@ sub reset {
 # Options setting routines
 # 
 
-=head2 options - set/get persistent plot options for a plot object
+=head2 options  
 
 =for usage
 
@@ -1987,6 +2007,8 @@ sub reset {
   print %{$w->options()};
 
 =for ref
+
+Set/get persistent plot options for a plot object
   
 The options method parses plot options into a gnuplot object on a
 cumulative basis, and returns the resultant options hash.
@@ -2012,9 +2034,13 @@ sub options {
 #
 # plot - the main API function to generate a plot. 
 
-=head2 gplot - plot method exported by default (synonym for "PDL::Graphics::Gnuplot::plot")
+=head2 gplot 
 
-=head2 plot - method to generate a plot
+=for ref 
+
+Plot method exported by default (synonym for "PDL::Graphics::Gnuplot::plot")
+
+=head2 plot
 
 =for ref
 
@@ -3148,9 +3174,11 @@ FOO
 #
 ##############################
 
-=head2 replot - Replot the last plot (possibly with new arguments)
+=head2 replot 
 
 =for ref
+
+Replot the last plot (possibly with new arguments).
 
 C<replot> is similar to gnuplot's "replot" command - it allows you to
 regenerate the last plot made with this object.  You can change the
@@ -3199,11 +3227,17 @@ sub markup {
     }
 }
     
-=head2 plot3d, splot
+=head2 plot3d
 
 =for ref
 
-Generate 3D plots. Synonyms for C<plot(trid =E<gt> 1, ...)>
+Generate 3D plots. Synonym for C<plot(trid =E<gt> 1, ...)>
+
+=head2 splot
+
+=for ref
+
+Generate 3D plots.  Synonym for C<plot(trid =E<gt> 1, ...)>
 
 =cut
 *splot = \&plot3d;
@@ -3270,7 +3304,7 @@ Synonym for "image", for people who grew up with PDL::Graphics::PGPLOT and can't
 
 =for ref
 
-Displays a FITS image 
+Displays a FITS image.  Synonym for C<plot(globalwith =E<gt> 'fits', ...)>.
 
 =cut
 
@@ -3297,6 +3331,8 @@ sub fits {
  $w->end_multi();
 
 =for ref
+
+Plot multiple plots into a single page of output.
 
 The C<multiplot> method enables multiplot mode in gnuplot, which permits
 multiple plots on a single pane.  Plots can be lain out in a grid,
@@ -3460,7 +3496,7 @@ sub end_multi {
 ## Input support
 ##
 
-=head2 read_mouse - get a mouse click or keystroke from the active interactive plot window.
+=head2 read_mouse 
 
 =for usage 
 
@@ -3468,6 +3504,8 @@ sub end_multi {
   $hash = $w->read_mouse($message);
 
 =for ref 
+
+Get a mouse click or keystroke from the active interactive plot window.
 
 For interactive devices (e.g. x11, xwt, aqua), get_click lets you accept a 
 keystroke or mouse button input from the gnuplot window.  In list context, it
@@ -5824,7 +5862,7 @@ for my $k(keys %$termTabSource) {
 			   ]};
 }
 
-=head2 terminfo - print out information about gnuplot syntax
+=head2 terminfo 
 
 =for usage
 
@@ -5837,9 +5875,11 @@ for my $k(keys %$termTabSource) {
 
 =for ref
 
-terminfo is a reference tool to describe the Gnuplot terminal types
-and the options they accept.  It's mainly useful in interactive
-sessions.
+Print out information about gnuplot terminals and their custom option syntax.
+
+The "terminfo" routine is a reference tool to describe the Gnuplot
+terminal types and the options they accept.  It's mainly useful in
+interactive sessions.  It outputs information directly to the terminal.
 
 =cut
 
