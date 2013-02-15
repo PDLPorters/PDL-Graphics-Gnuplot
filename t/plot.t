@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 108;
+use Test::More tests => 110;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -427,40 +427,53 @@ unlink($testoutput) or warn "\$!: $!";
 
 SKIP: {
     unless(exists($ENV{GNUPLOT_INTERACTIVE}) and $ENV{DISPLAY}) {
-	print STDERR "\n\n******************************\nSkipping 16 interactive tests that use X11.\n    Set the environment variables DISPLAY and\n    GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
+	print STDERR "\n\n******************************\nSkipping 18 interactive tests that use X11.\n    Set the environment variables DISPLAY and\n    GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
 	skip "Skipping x11 interactive tests - set environment variables DISPLAY and\nGNUPLOT_INTERACTIVE to enable them.",
-	16;
+	18;
     }
 
+    eval { $w=gpwin(); };
+    ok(!$@, "created a default plot object");
+
+    ok((ref($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}) eq 'HASH'), "Terminal is a known type");
     
-    eval { $w=gpwin(x11); };
-    ok(!$@, "created an X11 object");
-    
+    ok($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}, "Default terminal is a display type");
+
     $x = sequence(101)-50;
 
     eval { $w->plot($x**2); };
-    ok(!$@, "plot a parabola to an X11 window");
+    ok(!$@, "plot a parabola to a the display window");
     
-    print STDERR "Is there an X11 window and does it show a parabola? (Y/n)";
+    print STDERR "Is there a display window and does it show a parabola? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "parabola looks OK");
 
-    print STDERR "Mouse over the X11 window.  Are there metrics at bottom that update? (Y/n)";
-    $a = <STDIN>;
-    ok($a !~ m/n/i, "parabola has metrics");
+    if($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}>1) {
+	print STDERR "Mouse over the X11 window.  Are there metrics at bottom that update? (Y/n)";
+	$a = <STDIN>;
+	ok($a !~ m/n/i, "parabola has metrics");
 
-    print STDERR "Try to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
-    $a = <STDIN>;
-    ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
+
+	print STDERR "Try to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
+	$a = <STDIN>;
+	ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
+	
+	
+    } else {
+	print STDERR "\nThe $w->{terminal} gnuplot terminal has no built-in metrics, skipping that test.\n\n";
+	ok(1,"skipping metrics test");
+
+	print STDERR "\nThe $w->{terminal} gnuplot terminal has no interactive zoom, skipping that test.\n\n";
+	ok(1,"skipping interactive-zoom test");
+    }
 
     eval { $w->reset; $w->plot( {title => "Parabola with error bars"},
-	      with=>"xyerrorbars", legend=>"Parabola",
+				with=>"xyerrorbars", legend=>"Parabola",
 				$x**2 * 10, abs($x)/10, abs($x)*5 ); };
-
-    print STDERR "Are there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
+    
+        print STDERR "Are there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "error bars are OK");
-    
 
     $xy = zeros(21,21)->ndcoords - pdl(10,10);
     $z = inner($xy, $xy);
