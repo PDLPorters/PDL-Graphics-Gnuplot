@@ -1,4 +1,4 @@
-use 5.010;  # uses modern constructs like "//".
+#use 5.010;  # uses modern constructs like "//".
 
 ##############################
 #
@@ -2279,7 +2279,7 @@ sub plot
     for my $i(0..$#$chunks) {
 
 	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
-	$chunks->[$i]->{binaryCurveFlag} = $chunks->[$i]->{binaryWith} // $binary_mode;
+	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $binary_mode);
 
 	# Everything else is an image fix
 	next if( $chunks->[$i]->{cdims} != 2 );
@@ -2389,7 +2389,7 @@ sub plot
     # If we're working with time data, and timefmt isn't set, then default it to '%s'.
     $this->{options}->{timefmt} = '%s'
 	if ( !defined($this->{options}->{timefmt}) and  
-	     grep { ($this->{options}->{$_."data"} // "") =~ m/^time/i }  qw/x x2 y y2 z cb/ );
+	     grep { _def($this->{options}->{$_."data"}, "") =~ m/^time/i }  qw/x x2 y y2 z cb/ );
     
     ##########
     # Merge in any temporary options that have been set by the argument parsing.
@@ -2794,7 +2794,7 @@ sub plot
 
 	    # Make sure we know our "with" style...
 	    unless($chunk{options}{with}) {
-		$chunk{options}{with} = $this->{options}->{'globalwith'} // ["lines"];
+		$chunk{options}{with} = _def($this->{options}->{'globalwith'},["lines"]);
 	    }
 
 	    # validate "with" and get imgFlag and tupleSizes.
@@ -3534,7 +3534,7 @@ read_mouse blocks execution for input, but responds gracefully to interrupts.
 my $mouse_serial = 0;
 sub read_mouse {
     my $this = shift;
-    my $message = shift // "Click mouse in plot to continue...";
+    my $message = _def(shift(), "Click mouse in plot to continue...");
 
     barf "read_mouse: This plot uses the '$this->{terminal}' terminal, which doesn't support mousing\n"
 	unless($this->{mouse});
@@ -3562,7 +3562,7 @@ EOC
 	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/ 
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
-	($ch,$x,$y,$b,$sft,$alt,$ctl) = map { $_ // "" } ($1,$3,$4,$5,$6,$7,$8);
+	($ch,$x,$y,$b,$sft,$alt,$ctl) = map { _def($_,"") } ($1,$3,$4,$5,$6,$7,$8);
 
     } 
 
@@ -3578,7 +3578,7 @@ EOC
 	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+) shift:(\d+) alt:(\d+) ctrl:(\d+))?/
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
-	($ch,$x,$y,$sft,$alt,$ctl) = map { $_ // "" } ($1,$3,$4,$5,$6,$7);
+	($ch,$x,$y,$sft,$alt,$ctl) = map { _def($_, "") } ($1,$3,$4,$5,$6,$7);
 
 	print "1:$1, 2:$2, 3:$3, 4:$4, 5:$5, 6:$6, 7:$7\n";
 	print "x=$x;y=$y\n";
@@ -4330,8 +4330,8 @@ our $pOptionsTable =
 			       my @numbers = ();
 			       my @v = @$v;
 			       
-			       while( @v && (($v[0]//"") =~ m/^(\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*)?$/ )) {
-				   push(@numbers, (shift(@v)//""));
+			       while( @v && (_def($v[0],"") =~ m/^(\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*)?$/ )) {
+				   push(@numbers, _def(shift(@v),""));
 			       }
 			       my $s = "";
 			       $s .= "set view ".join(",",@numbers)."\n" if(@numbers);
@@ -4517,7 +4517,7 @@ our $cOptionsTable = {
          # data is here so that it gets sorted properly into each chunk -- but it doesn't get specified this way.
          # the output string just specifies STDIN.   The magic output string gets replaced post facto with the test and
          # real output format specifiers.
-    'cdims'     => [sub { my $s = $_[1] // 0;  # Number of dimensions in a column
+    'cdims'     => [sub { my $s = _def($_[1], 0);  # Number of dimensions in a column
 			  if($s==0 or $s==1 or $s==2) {
 			      return $s;
 			  } else {
@@ -5008,7 +5008,7 @@ $_pOHInputs = {
 			      push(@list, "(", join(", ",
 					       map {
 						   barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
-						   sprintf('"%s" %s %s', $_->[0]//"", $_->[1]//0, $_->[2]//"");
+						   sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],""));
 					       
 					       } @{$new->{labels}}
 					       ),
@@ -5283,7 +5283,7 @@ our $_OptionEmitters = {
 
     #### A boolean or 'time' (for <foo>data plot options)
     'bt' => sub { my($k,$v,$h) = @_;
-		  return "set $k\n" unless ($v // ""  and  $v=~m/^t/i);
+		  return "set $k\n" unless (_def($v, "")  and  $v=~m/^t/i);
 		  return "set $k $v\n";rxt hel
                  },
 
@@ -5514,17 +5514,17 @@ our $_OptionEmitters = {
 
 
 		     #looks like 'set <foo>range restore' (only way 'r' can be the first char)
-		     return "set $k ".join(" ",@$v)."\n" if(($v->[0] // '') =~ m/^\s*r/i);
+		     return "set $k ".join(" ",@$v)."\n" if( _def($v->[0], '') =~ m/^\s*r/i);
 
 
 		     # first element is an empty range specifier - emit.
-		     return "set $k ".join(" ",@$v)."\n" if(($v->[0] // '') =~ m/\s*\[\s*\]/);
+		     return "set $k ".join(" ",@$v)."\n" if(_def($v->[0], '') =~ m/\s*\[\s*\]/);
 
 		     my $c = substr($k,0,1);
-		     my $tfmt = ( $h->{$c."data"} // "" ) =~ m/time/;
+		     my $tfmt = _def( $h->{$c."data"}, "" ) =~ m/time/;
 		     
 		     # first element has a nonempty range specifier (naked or not).
-		     if(($v->[0] // '') =~ m/\:/) {
+		     if( _def($v->[0], '') =~ m/\:/) {
 			 $v->[0]=~ s/^\s*((.*[^\s])?)\s*$/$1/; # trim leading and trailing whitespace if present
 
 			 unless($v->[0] =~ m/^\[/) {
@@ -5547,7 +5547,7 @@ our $_OptionEmitters = {
 		     # specifier out of 'em, then emit.
 		     # Here's a little fillip: gnuplot requires quotes around time ranges
 		     # if the corresponding axes are time data.  Handle that bizarre case.
-		     if( ($h->{$c."data"} // "" ) =~ m/time/ ) {
+		     if( _def($h->{$c."data"},  "" ) =~ m/time/ ) {
 			 return sprintf("set %s [%s:%s]\n",$k, ((defined $v->[0])?"\"$v->[0]\"":"*"), ((defined $v->[1])?"\"$v->[1]\"":"*"));
 		     }
 	
@@ -5562,7 +5562,7 @@ our $_OptionEmitters = {
 		      # if the corresponding axes are time data.  Handle that bizarre case.
 		      my $c = substr($k,0,1);
 
-		      if( (($this and $this->{options} and $this->{options}->{$c."data"}) // "" ) =~ m/time/ ) {
+		      if( (_def($this and $this->{options} and $this->{options}->{$c."data"}), "" ) =~ m/time/ ) {
 			  print STDERR "WARNING: gnuplot-4.6.1 date range bug triggered.  Check the date scale.\n";
 			  return sprintf(" [%s:%s] ",((defined $v->[0])?"\"$v->[0]\"":""), ((defined $v->[1])?"\"$v->[1]\"":""));
 		      }
@@ -5909,9 +5909,9 @@ for my $k(keys %$termTabSource) {
     $desc =~ s/\%u/$termTabSource->{$k}->{unit}/;
     $termTab->{$k} = { desc => $desc,
 		       unit => $termTabSource->{$k}->{unit},
-		       mouse => $termTabSource->{$k}->{mouse} // 0,
-		       disp  => $termTabSource->{$k}->{disp} // 0,
-		       int   => $termTabSource->{$k}->{int} // 0,
+		       mouse => _def( $termTabSource->{$k}->{mouse}, 0),
+		       disp  => _def( $termTabSource->{$k}->{disp},  0),
+		       int   => _def( $termTabSource->{$k}->{int},   0),
 		       opt  => [ $terminalOpt, 
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
@@ -5941,17 +5941,17 @@ interactive sessions.  It outputs information directly to the terminal.
 
 sub terminfo {
     my $this = _obj_or_global(\@_);
-    my $terminal = shift // '';
+    my $terminal = _def(shift, '');
     my $brief_form = shift;
     my $dont_print = shift;
     my $s = "";
 
     if($termTabSource->{$terminal}) {
 	if(ref $termTabSource->{$terminal}) {
-	    my $ms = (($termTabSource->{$terminal}->{mouse} //0) ? ", mouse input ok" : "");
+	    my $ms = ( _def($termTabSource->{$terminal}->{mouse}, 0) ? ", mouse input ok" : "");
 	    $s = "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}'$ms, options are:\n";
 	    my $tt = $termTab->{$terminal}->{opt}->[0];
-	    for my $name(sort {($tt->{$a}->[3]//0) <=> ($tt->{$b}->[3]//0)} keys %$tt) {
+	    for my $name(sort { _def($tt->{$a}->[3], 0) <=> _def($tt->{$b}->[3], 0)} keys %$tt) {
 		my @info = ();
 		@info = ($name, $tt->{$name}->[4]);
 		$info[0] =~ s/\_$//;         #remove trailing underscore on "output_" hack
@@ -6177,7 +6177,7 @@ EOM
 	    if(exists($termTab->{$_})) {
 		$this->{valid_terms}->{$_} = 1;
 	    } else {
-		$this->{unknown_terms}{$_} = ($termTabSource->{$_} // "Unknown but reported by gnuplot");
+		$this->{unknown_terms}{$_} = _def($termTabSource->{$_} ,"Unknown but reported by gnuplot");
 	    }
 	}
 
@@ -6324,7 +6324,7 @@ sub _printGnuplotPipe
 	  do {
 	      $len = syswrite($pipein,substr($string,$of),655360);
 	      if(!defined($len) or $len==0) {
-		  my $err = (defined($len) ? "(No error but 0 bytes written)" : ($! // "(Huh - no error code in \$!)"));
+		  my $err = (defined($len) ? "(No error but 0 bytes written)" : _def($!, "(Huh - no error code in \$!)"));
 		  barf "PDL::Graphics::Gnuplot: Error while writing ".
 		      (length($string)).
 		      " bytes to the gnuplot pipe.\nError was:\n\t$err";
@@ -6390,10 +6390,10 @@ our $cp_serial = 0;
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
-    my $opt = shift // {};
-    my $notimeout = $opt->{notimeout} // 0;
-    my $printwarnings = (($opt->{printwarnings} // 0) and !($this->{options}->{silent} // 0));
-    my $ignore_errors = ($opt->{ignore_errors} // 0);
+    my $opt = _def(shift,  {});
+    my $notimeout = _def($opt->{notimeout}, 0);
+    my $printwarnings = (_def($opt->{printwarnings},  0) and !_def($this->{options}->{silent}, 0));
+    my $ignore_errors = _def($opt->{ignore_errors}, 0);
     
     my $pipeerr = $this->{"err-$suffix"};
 
@@ -6436,7 +6436,7 @@ sub _checkpoint {
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
 
 	my $terminal =$this->{options}->{terminal};
-	my $delay = (($this->{'wait'}//0) + 0) || 5;
+	my $delay = (_def($this->{'wait'}, 0) + 0) || 5;
 
 	if($this->{"echobuffer-$suffix"}) {
 	    $fromerr = $this->{"echobuffer-$suffix"};
@@ -6627,7 +6627,7 @@ sub _obj_or_global {
 # Figure the path to the gnuplot binary... lets you set an environment or local variable
 # with the specific path
 sub _gnuplot_binary_path {
-    return $PDL::Graphics::Gnuplot::gnuplot_path // $ENV{'GNUPLOT_BINARY'} // "gnuplot";
+    return _def( _def( $PDL::Graphics::Gnuplot::gnuplot_path,  $ENV{'GNUPLOT_BINARY'}), "gnuplot");
 }
 
 ##############################
@@ -6662,7 +6662,7 @@ sub _with_fits_prefrobnicator {
 	    splice @$with, $i,1; # remove 'resample' from list
 	    $resample_flag = 1;
 	    if( ($with->[$i]) =~ m/(\d+)(\,(\d+))?/ ) {
-		@resample_dims = ($1, $3 // $1);
+		@resample_dims = ($1, _def($3, $1));
 		splice @$with, $i, 1;
 	    }
 	    $i--;
@@ -6782,6 +6782,12 @@ sub _with_fits_prefrobnicator {
 
     barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n";
 
+}
+
+sub _def {
+    my $val = shift;
+    my $or = shift;
+    return (defined($val)?$val : $or);
 }
 
 
