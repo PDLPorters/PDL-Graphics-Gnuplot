@@ -242,6 +242,7 @@ ok($@=~m/No curve option found that matches \'xmin\'/, "xmin after a curve optio
 
 eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),xvals(10)) };
 ok(!$@, "plot works when curve options are given after plot options");
+print STDERR "($@)\n" if($@);
 
 do {
     open FOO,"<$testoutput";
@@ -392,6 +393,7 @@ ok( $nums->nelem==11 && all( $nums == pdl(0,5,10,15,20,25,30,35,40,45,50) ), "au
 
 eval { $w->plot(xvals(50)->sqrt,{xtics=>0}) };
 ok(!$@, "xvals plot (no xtics) succeeded");
+print "($@)\n" if($@);
 
 $line_nums = (get_axis_testoutput($testoutput,1));
 ok($line_nums =~ m/\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-/, "No labels with xtics=>0");
@@ -568,6 +570,7 @@ $dates = pdl(@dates);
 
 eval { $w->plot( {xdata=>'time'}, with=>'points', $dates->clip(0), xvals($dates) ); };
 ok(!$@, "time plotting didn't fail");
+print "($@)\n" if($@);
 open FOO,"<$testoutput";
 $lines1 = join("",(<FOO>));
 close FOO;

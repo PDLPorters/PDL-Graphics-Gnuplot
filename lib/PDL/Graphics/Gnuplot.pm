@@ -1611,11 +1611,11 @@ our $cmdFence = "cmdFENCEcmd";
 =for ref 
 
 gpwin is the PDL::Graphics::Gnuplot exported constructor.  It is
-exported by default and is a synonym for "new PDL::Graphics::Gnuplot(...)".
-object.  If given no arguments, it creates a plot object with the
-default terminal settings for your gnuplot.  You also give it the name
-of a Gnuplot terminal type (e.g. 'x11') followed by output options
-(see "output").
+exported by default and is a synonym for "new
+PDL::Graphics::Gnuplot(...)".  If given no arguments, it creates a
+plot object with the default terminal settings for your gnuplot.  You
+also give it the name of a Gnuplot terminal type (e.g. 'x11') followed
+by output options (see "output").
 
 
 =cut
@@ -3375,7 +3375,22 @@ of each plot within the grid.
 
 =back
 
+=head2 end_multi
+
+=for usage
+
+ $w=gpwin();
+ $w->multiplot(layout=>[2,1]);
+ $w->plot({title=>"points},with=>'points',$a,$b);
+ $w->plot({title=>"lines",with=>"lines",$a,$b);
+ $w->end_multi();
+
+=for ref
+
+Ends a multiplot block (i.e. a block of plots that are meant to render to a single page).
+
 =cut
+
 
 # This table describes gnuplot option parsing for the multiplot command.
 # Its format is the same as the $plotOptionsTable, below.
@@ -3532,17 +3547,53 @@ sub read_mouse {
 
     print STDERR $message;
 
-    _printGnuplotPipe($this, "main", <<"EOC"
+    my($ch,$x,$y,$b,$sft,$alt,$ctl);
+
+    ## Pre-4.7, Gnuplot reported MOUSE_BUTTON on a mouse button.  That changed in 4.7.
+    if($gp_version < 4.7) {
+	_printGnuplotPipe($this, "main", <<"EOC"	    );
 pause mouse any
-if( exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y") )  print "Key: -1 at xy:",MOUSE_X,",",MOUSE_Y," button:",MOUSE_BUTTON," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL; else print "Key: ",MOUSE_KEY;
+if( (exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y")) )  print "Key: -1 at xy:",MOUSE_X,",",MOUSE_Y," button:",MOUSE_BUTTON," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL; else print "Key: ",MOUSE_KEY;
 EOC
-	);
 
-    $string = _checkpoint($this, "main", {notimeout=>1});
+	$string = _checkpoint($this, "main", {notimeout=>1});
+	print "string is $string\n";
+	
+	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/ 
+	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
-    $string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+),([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?/ 
-	|| barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
-    my($ch,$x,$y,$b,$sft,$alt,$ctl) = map { $_ // "" } ($1,$3,$4,$5,$6,$7,$8);
+	($ch,$x,$y,$b,$sft,$alt,$ctl) = map { $_ // "" } ($1,$3,$4,$5,$6,$7,$8);
+
+    } 
+
+    ## Gnuplot 4.7 runs button input into the Key indicator.
+    elsif($gp_version >= 4.7) {
+	_printGnuplotPipe($this,"main",<<"EOC");
+pause mouse any
+if( (exists("MOUSE_X") * exists("MOUSE_Y")) ) print "Key: ",MOUSE_KEY," at xy:",MOUSE_X,",",MOUSE_Y," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL; else print "Key: ",MOUSE_KEY;
+EOC
+	$string = _checkpoint($this, "main", {notimeout=>1});
+	print "4.7: string is $string\n";
+	
+	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+) shift:(\d+) alt:(\d+) ctrl:(\d+))?/
+	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
+
+	($ch,$x,$y,$sft,$alt,$ctl) = map { $_ // "" } ($1,$3,$4,$5,$6,$7);
+
+	print "1:$1, 2:$2, 3:$3, 4:$4, 5:$5, 6:$6, 7:$7\n";
+	print "x=$x;y=$y\n";
+	if($ch == 1063) {
+	    $b = 1;
+	    $ch = -1;
+	} elsif($ch == 2) {
+	    $b = 2;
+	    $ch = -1;
+	} elsif($ch == 65406) {
+	    $b = 3;
+	    $ch = -1;
+	}
+    }
+
 
     if(wantarray) {
 	return ($x,$y, ($ch>=32)?chr($ch):undef, 
@@ -3574,7 +3625,7 @@ Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN P
 
 =over 3
 
-=item message - what to print before collecting points
+=item message - what to print before collecting points  
 
 There are some printf-style escapes for the prompt:
     
@@ -3589,10 +3640,9 @@ There are some printf-style escapes for the prompt:
 
 * C<%%> - %
 
-=item prompt - what to print to prompt the user for the next point
+=item prompt  - what to print to prompt the user for the next point
 
- 
-
+C<prompt> uses the same escapes as C<message>.
 
 =item n_points - number of points to accept (or 0 for indefinite)
 
@@ -3626,11 +3676,13 @@ The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
 
 =item C<$mods> is the modifier string.
 
-You can't override the 'q', or '#027' (ESC) callbacks.  You *can* override
+You can't override the 'q' or '#027' (ESC) callbacks.  You *can* override
 the BUTTON1 and DEL callbacks, potentially preventing the user from entering points
 at all!  You should do that with caution.
 
-=item close - (default true): generate a closed polygon
+=item closed - (default false): generate a closed polygon
+
+This works by duplicating the initial point at the end of the point list.
 
 =item markup - (default 'linespoints'): style to use to render the polygon on the fly
 
@@ -3653,7 +3705,7 @@ our $rpOptionsTable = {
       ['prompt'   =>  "Message to print for each point",              ],
       ['n_points' =>  "Number of points (or 0 for indefinite)"        ],
       ['actions'  =>  "Hash ref containing callbacks for keystrokes"  ],
-      ['close',   =>  "Flag: close polygon by copying first point"    ],
+      ['closed',   =>  "Flag: close polygon by copying first point"    ],
       ['markup'   =>  "Plot option for rendering, or undefined for none" ]
     ) };
 our $rpOpt = [$rpOptionsTable, _gen_abbrev_list(keys %$rpOptionsTable), "read_polygon option"];
@@ -3677,7 +3729,7 @@ EOMSG
 ,
 	prompt   => "(%n points in polygon) Waiting for plot input....",
         n_points => 0,
-	close    => 1,
+	closed    => 0,
 	markup   => "linespoints",
 	actions=> {
 	    # These defaults can be overridden.
@@ -3701,7 +3753,7 @@ EOMSG
 
     my $pstring = sub {
 	my $s = shift;
-	my $z = ($opt->{close}) ? "a closed" : "an open";
+	my $z = ($opt->{closed}) ? "a closed" : "an open";
 	$s =~ s/\%c/$z/g;
 
 	$z = $poly->dim(1);
@@ -3739,18 +3791,22 @@ EOMSG
 	}
 	print "\n";
 
-	if($opt->{markup}){
-	    $this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
+	if($opt->{markup}) {
+	    if($poly->dim(1)>0){
+		$this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
+	    }
 	}
 
     } while(($h->{'b'} || $h->{'k'}) and !$this->{quit} and ($opt->{n_points}==0  or $poly->dim(1)<$opt->{n_points}));
     
     print "\n";
     
-    if($opt->{'close'}) {
+    if($opt->{'closed'}) {
 	$poly = $poly->glue(1,$poly->slice(":,(0)"));
 	if($opt->{markup}) {
-	    $this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
+	    if($poly->dim(1)>0) {
+		$this->markup( with => $opt->{markup},$poly->mv(-1,0)->dog);
+	    }
 	}
     }
 
@@ -6732,10 +6788,12 @@ sub _with_fits_prefrobnicator {
 =head1 COMPATIBILITY
 
 Everything should work on all platforms that support Gnuplot and Perl.
-Currently, only MacOS, Fedora Linux, and Debian Linux have been tested
-to work.  Please report successes or failures on other platforms to
-the authors. A transcript of a failed run with {tee => 1} would be most
-helpful.
+Currently, MacOS, Fedora and Debian Linux, Cygwin, and Microsoft
+Windows 8 (under Strawberry Perl) have been tested to work, although
+the interprocess control link is not as reliable under Microsoft
+Windows as under POSIX systems.  Please report successes or failures
+on other platforms to the authors. A transcript of a failed run with
+{tee => 1} would be most helpful.
 
 =head1 REPOSITORY
 
