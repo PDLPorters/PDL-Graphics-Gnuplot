@@ -1490,11 +1490,11 @@ options for the second curve).
 =for ref 
 
 gpwin is the PDL::Graphics::Gnuplot exported constructor.  It is
-exported by default and is a synonym for "new PDL::Graphics::Gnuplot(...)".
-object.  If given no arguments, it creates a plot object with the
-default terminal settings for your gnuplot.  You also give it the name
-of a Gnuplot terminal type (e.g. 'x11') followed by output options
-(see "output").
+exported by default and is a synonym for "new
+PDL::Graphics::Gnuplot(...)".  If given no arguments, it creates a
+plot object with the default terminal settings for your gnuplot.  You
+also give it the name of a Gnuplot terminal type (e.g. 'x11') followed
+by output options (see "output").
 
 
 =cut
@@ -1870,6 +1870,20 @@ of each plot within the grid.
 
 =back
 
+=head2 end_multi
+
+=for usage
+
+ $w=gpwin();
+ $w->multiplot(layout=>[2,1]);
+ $w->plot({title=>"points},with=>'points',$a,$b);
+ $w->plot({title=>"lines",with=>"lines",$a,$b);
+ $w->end_multi();
+
+=for ref
+
+Ends a multiplot block (i.e. a block of plots that are meant to render to a single page).
+
 =cut
 =head2 read_mouse 
 
@@ -1903,7 +1917,7 @@ Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN P
 
 =over 3
 
-=item message - what to print before collecting points
+=item message - what to print before collecting points  
 
 There are some printf-style escapes for the prompt:
     
@@ -1918,10 +1932,9 @@ There are some printf-style escapes for the prompt:
 
 * C<%%> - %
 
-=item prompt - what to print to prompt the user for the next point
+=item prompt  - what to print to prompt the user for the next point
 
- 
-
+C<prompt> uses the same escapes as C<message>.
 
 =item n_points - number of points to accept (or 0 for indefinite)
 
@@ -1955,11 +1968,13 @@ The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
 
 =item C<$mods> is the modifier string.
 
-You can't override the 'q', or '#027' (ESC) callbacks.  You *can* override
+You can't override the 'q' or '#027' (ESC) callbacks.  You *can* override
 the BUTTON1 and DEL callbacks, potentially preventing the user from entering points
 at all!  You should do that with caution.
 
-=item close - (default true): generate a closed polygon
+=item closed - (default false): generate a closed polygon
+
+This works by duplicating the initial point at the end of the point list.
 
 =item markup - (default 'linespoints'): style to use to render the polygon on the fly
 
@@ -1994,10 +2009,12 @@ interactive sessions.  It outputs information directly to the terminal.
 =head1 COMPATIBILITY
 
 Everything should work on all platforms that support Gnuplot and Perl.
-Currently, only MacOS, Fedora Linux, and Debian Linux have been tested
-to work.  Please report successes or failures on other platforms to
-the authors. A transcript of a failed run with {tee => 1} would be most
-helpful.
+Currently, MacOS, Fedora and Debian Linux, Cygwin, and Microsoft
+Windows 8 (under Strawberry Perl) have been tested to work, although
+the interprocess control link is not as reliable under Microsoft
+Windows as under POSIX systems.  Please report successes or failures
+on other platforms to the authors. A transcript of a failed run with
+{tee => 1} would be most helpful.
 
 =head1 REPOSITORY
 
