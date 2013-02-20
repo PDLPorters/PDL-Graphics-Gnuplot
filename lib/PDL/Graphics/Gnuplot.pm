@@ -2561,7 +2561,9 @@ sub plot
 	    # error.  So we don't barf, we only warn. Blech.
 	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
 	} else {
-	    barf( "The gnuplot process returned an error during plot setup:$optionsWarnings\n\n");
+	    # Used to barf here, but now we just issue an announcement, since 
+	    # some messages are warnings (rather than errors).
+	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
 	}
     }
     

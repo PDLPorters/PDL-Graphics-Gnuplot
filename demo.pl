@@ -97,7 +97,7 @@ $w->plot3d(
     xvals($zv), yvals($zv),
     $zv
     );
-prompt("A gridded surface (feed in a 2-D column)");
+prompt("A gridded surface (feed in a 2-D column)\n  (Incidentally, if you're using the X11 or wxt device you can\n  change the view by dragging your mouse around the window)\n");
 
 # Plot a collection of lines
 $w->plot3d( 
