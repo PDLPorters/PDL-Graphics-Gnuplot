@@ -49,8 +49,8 @@ sub MY::libscan
 sub MY::postamble {
     my $text = <<'FOO';
 install ::
-	@echo "Updating PDL documentation database...";
-	@$(PERL) -e 'use PDL::Doc; eval { PDL::Doc::add_module("PDL::Graphics::Gnuplot"); }; '
+    @echo "Updating PDL documentation database...";
+    @$(PERL) -e 'use PDL::Doc; eval { PDL::Doc::add_module("PDL::Graphics::Gnuplot"); }; ';
 
 FOO
     return $text;
