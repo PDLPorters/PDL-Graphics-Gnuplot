@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 110;
+use Test::More tests => 111;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -428,19 +428,22 @@ unlink($testoutput) or warn "\$!: $!";
 # Interactive tests
 
 SKIP: {
-    unless(exists($ENV{GNUPLOT_INTERACTIVE}) and $ENV{DISPLAY}) {
-	print STDERR "\n\n******************************\nSkipping 18 interactive tests that use X11.\n    Set the environment variables DISPLAY and\n    GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
-	skip "Skipping x11 interactive tests - set environment variables DISPLAY and\nGNUPLOT_INTERACTIVE to enable them.",
-	18;
+    unless(exists($ENV{GNUPLOT_INTERACTIVE})) {
+	print STDERR "\n\n******************************\nSkipping 20 interactive tests.\n    Set the environment variable GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
+	skip "Skipping interactive tests - set env. variable GNUPLOT_INTERACTIVE to enable.",20;
     }
 
-    eval { $w=gpwin(); };
-    ok(!$@, "created a default plot object");
+    eval { $w = gpwin('wxt'); };
+    if($@) {
+	$@ = undef;
+	eval { $w = gpwin('x11'); }
+    }
+    ok(!$@, "created a wxt or x11 plot object");
 
     ok((ref($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}) eq 'HASH'), "Terminal is a known type");
     
     ok($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}, "Default terminal is a display type");
-
+    print STDERR "\nwindow is type ".$w->{terminal}."\n\n";
     $x = sequence(101)-50;
 
     eval { $w->plot($x**2); };
@@ -451,7 +454,7 @@ SKIP: {
     ok($a !~ m/n/i, "parabola looks OK");
 
     if($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}>1) {
-	print STDERR "Mouse over the X11 window.  Are there metrics at bottom that update? (Y/n)";
+	print STDERR "Mouse over the plot window.  Are there metrics at bottom that update? (Y/n)";
 	$a = <STDIN>;
 	ok($a !~ m/n/i, "parabola has metrics");
 
@@ -543,16 +546,27 @@ SKIP: {
     print STDERR "See a double helix plot with variable point sizes and variable color? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "double helix plot is OK");
+
+    if($w->{terminal} eq 'x11') {
+	print STDERR "Click in the window.\n";
+	eval { $h = $w->read_mouse(); };
+	print STDERR "\n$@\n\n" if($@);
+	ok(!$@);
+    } else {
+	ok(1,"Skipping click test for non-x11 device");
+    }
+    
+    # Try with a new window
+    $w=gpwin($w->{terminal}); 
+    eval { print $w->read_mouse(); };
+    ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn't work");
+
 }
 
 
 ##############################
 # Mousing tests
 #
-
-$w=gpwin(x11); 
-eval { print $w->read_mouse(); };
-ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn't work");
 
 
 ##############################
