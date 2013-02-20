@@ -2555,11 +2555,17 @@ sub plot
     ##### Send the PlotOptionsString 
     _printGnuplotPipe( $this, "main", $plotOptionsString);
     my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
+
+    # Mask out some common useless chatter
+    $optionsWarnings =~ s/^Terminal type set to .*$//m;
+    $optionsWarnings =~ s/^Options are \'.*$//m;
+    $optionsWarnings = '' if($optionsWarnings =~ m/^\s+$/s);
+
     if($optionsWarnings) {
 	if($MS_io_braindamage) {
 	    # MS Windows can yield some chatter on the line, and it's not necessarily an
 	    # error.  So we don't barf, we only warn. Blech.
-	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
+	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter during plot setup:\n$optionsWarnings\n\n";
 	} else {
 	    # Used to barf here, but now we just issue an announcement, since 
 	    # some messages are warnings (rather than errors).
