@@ -5310,6 +5310,7 @@ our $_OptionEmitters = {
     ## one-line list with leading quoted string (e.g. for titles)
     'ql' => 
 		    sub { my($k,$v,$h) = @_;
+			  return "" unless defined($v);
 			  unless(ref $v eq 'ARRAY') {
 			      return ( (length($v) eq 0) ? "unset $k\n" : "set $k \"$v\"\n");
 			  }
