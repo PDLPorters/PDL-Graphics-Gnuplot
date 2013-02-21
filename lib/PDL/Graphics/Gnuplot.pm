@@ -5298,9 +5298,9 @@ our $_OptionEmitters = {
     #### A space-separated collection of terms as a plot option
     'l' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
-		 if(ref $v eq 'ARRAY') {
+		 if(ref($v) eq 'ARRAY') {
 		     return "set $k ".join(" ",@$v)."\n";
-		 } elsif(ref $v eq 'HASH') {
+		 } elsif(ref($v) eq 'HASH') {
 		     barf "hash value found for comma-separated list option '$k' -- not allowed";
 		 } else {
 		     return $v ? "set $k\n" : "unset $k\n";

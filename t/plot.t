@@ -549,7 +549,7 @@ SKIP: {
 
     if($w->{terminal} eq 'x11') {
 	print STDERR "Click in the window.\n";
-	eval { $h = $w->read_mouse(); };
+	eval { my $h = $w->read_mouse(); };
 	print STDERR "\n$@\n\n" if($@);
 	ok(!$@);
     } else {
