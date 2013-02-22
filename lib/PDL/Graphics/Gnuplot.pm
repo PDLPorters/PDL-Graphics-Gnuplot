@@ -6524,7 +6524,7 @@ EOM
 	$fromerr =~ s/[\000-\010\013-\014\016-\037\200-\377]/\?/g;
 
 	# Find, report, and strip warnings.
-	my $warningre = qr{^(?:Warning:\s*(.*?)\s*$)\n?}m;
+	my $warningre = qr{^(?:[wW]arning:\s*(.*?)\s*$)\n?}m;
 	while( $fromerr =~ s/$warningre//gm) {
 	    print STDERR "Gnuplot warning: $1\n" if( $printwarnings );
 	}
