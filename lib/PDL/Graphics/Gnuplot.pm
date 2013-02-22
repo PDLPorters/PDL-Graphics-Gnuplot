@@ -6523,11 +6523,21 @@ EOM
 	# (preserve ^I [tab], ^J [newline], and ^M [return])
 	$fromerr =~ s/[\000-\010\013-\014\016-\037\200-\377]/\?/g;
 
-	# Find, report, and strip warnings.
-	my $warningre = qr{^(?:[wW]arning:\s*(.*?)\s*$)\n?}m;
-	while( $fromerr =~ s/$warningre//gm) {
-	    print STDERR "Gnuplot warning: $1\n" if( $printwarnings );
-	}
+	# Find, report, and strip warnings. This is complicated by the fact
+	# that some warnings come with a line specifier and others don't.
+	WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m ) {
+	  if($2){
+	      # it's a warning with a line specifier. Break off two more lines before it.
+	      last WARN unless($fromerr =~ s/^((gnu|multi)plot\>.*\n\s*\^\s*\n\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
+	      my $a = $1;
+	      $a =~ s/^\s*line \d+\:/Gnuplot:/m;
+	      print STDERR $a if($printwarnings);
+	  } else {
+	      last WARN unless($fromerr =~ s/^(\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
+	      print STDERR "Gnuplot warning: $1\n" if($printwarnings);
+	  }
+
+      }
 
 	# Anything else is an error -- except on Microsoft Windows where we 
 	# get additional chaff on the channel.  Try to take it out.
