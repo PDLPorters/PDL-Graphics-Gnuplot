@@ -6533,8 +6533,8 @@ EOM
 	      $a =~ s/^\s*line \d+\:/Gnuplot:/m;
 	      print STDERR $a if($printwarnings);
 	  } else {
-	      last WARN unless($fromerr =~ s/^(\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
-	      print STDERR "Gnuplot warning: $1\n" if($printwarnings);
+	      last WARN unless($fromerr =~ s/^(\s*(line \d+\:\s*)?[wW](arning\:.*(\n|$)))//m);
+	      print STDERR "Gnuplot w$3\n" if($printwarnings);
 	  }
 
       }
