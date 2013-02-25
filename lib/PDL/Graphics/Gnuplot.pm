@@ -6615,9 +6615,15 @@ EOM
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
+	    $fromerr =~ s/^input data ('e' ends) \> +//og;
 	}
 
-	if((!$ignore_errors) and ($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms)) {
+	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
+	    # This is really stupid -- many error messages from gnuplot aren't labeled as such, so we can't mark
+	    # them as errors.  Try some common keywords for genuine error messages.
+	    $fromerr =~ m/(fail(ed|s)?)|(error)|(expected \w+ driver)/io 
+	   )
+	    ) {
 	    if($this->{early_gnuplot}) {
 		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n$fromerr\n";
 	    } else {
@@ -6927,6 +6933,9 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head3 V1.4
 
+ - do better at ignoring chatter on brain-dead platforms that rhyme with Pawberry Sterl
+ - clean up test reporting
+ - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
  - autoranging fix
  - read_polygon fix
  - Many small tweaks to make Microsoft Windows support better
