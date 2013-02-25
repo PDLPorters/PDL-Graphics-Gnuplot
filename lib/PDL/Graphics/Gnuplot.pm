@@ -1565,7 +1565,8 @@ our @EXPORT = qw(gpwin gplot greplot greset grestart);
 
 # Compile time config flags...
 our $check_syntax = 0;
-our $gnuplot_req_v = 4.4;
+our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
+our $gnuplot_req_v = 4.4; # Versions below this are not supported.
 our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
 our $debug_echo = 0;                              # If set, inject commands into the returned stream to mimic Losedows
 
@@ -6245,13 +6246,30 @@ EOM
 	}
 
 	if($gp_version < $gnuplot_req_v) {
-	    print STDERR <<"EOM"
-WARNING: Gnuplot version ($gp_version) is earlier than recommended ($gnuplot_req_v).
-Proceed with caution.  (data xfer is now ASCII by default; this will slow things
-down a bit.  Images may not work.  Some plot styles may not work.)
+	    print STDERR <<"EOM";
+
+**************************************************************************
+WARNING: Your gnuplot ($gp_version) is older than the earliest supported 
+version ($gnuplot_req_v). Proceed with caution.  (data xfer is now ASCII by
+default; this will slow things down a bit.  Images may not work.  Some 
+plot styles may not work.)
+**************************************************************************
+
 EOM
-			    ;
 	    $this->{early_gnuplot} = 1;
+	} elsif( $gp_version < $gnuplot_dep_v  and  !$PDL::Graphics::Gnuplot::deprecated_this_session ) {
+            $PDL::Graphics::Gnuplot::deprecated_this_session = 1;
+	    unless($ENV{GNUPLOT_DEPRECATED}){
+	    print STDERR <<"EOM";
+
+***************************************************************************
+WARNING: Your gnuplot version ($gp_version) is now deprecated and will not 
+be supported for long.  The earliest recommended version is $gnuplot_dep_v.
+To silence this warning, set the GNUPLOT_DEPRECATED environment variable.
+***************************************************************************
+
+EOM
+	    }
 	}
     } else {
 	print STDERR <<"EOM"

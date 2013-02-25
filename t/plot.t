@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 121;
+use Test::More tests => 124;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -14,7 +14,16 @@ eval "use PDL::Graphics::Gnuplot;";
 # Uncomment these to test error handling on Microsoft Windows, from within POSIX....
 # $PDL::Graphics::Gnuplot::debug_echo = 1;
 # $PDL::Graphics::Gnuplot::MS_io_braindamage = 1;
-diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, Perl $], $^X" );
+
+ok( !$@, "loaded the module with no error\n");
+
+$ENV{GNUPLOT_DEPRECATED} = 1;   # shut up deprecation warnings
+eval { $w=gpwin() };
+ok( (!$@ and defined($w) and ref($w) =~m/PDL::Graphics::Gnuplot/), "Constructor created a plotting object" );
+
+ok(length($PDL::Graphics::Gnuplot::gp_version), "Extracted a version string from gnuplot");
+
+diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION against gnuplot $PDL::Graphics::Gnuplot::gp_version, Perl $], $^X" );
 
 my $x = sequence(5);
 
@@ -24,14 +33,12 @@ our (undef, $testoutput) = tempfile('pdl_graphics_gnuplot_test_XXXXXXX');
 
 {
   # test basic plotting
-  print STDERR "testfile: $testoutput\n";
-
-
   eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput}, $x); };
 
 
   ok(! $@,           'basic plotting succeeded without error' )
     or diag "plot() died with '$@'";
+
   ok(-e $testoutput, 'basic plotting created an output file' )
     or diag "plot() didn't create an output file";
 
@@ -242,7 +249,6 @@ ok($@=~m/No curve option found that matches \'xmin\'/, "xmin after a curve optio
 
 eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),xvals(10)) };
 ok(!$@, "plot works when curve options are given after plot options");
-print STDERR "($@)\n" if($@);
 
 do {
     open FOO,"<$testoutput";
@@ -435,10 +441,6 @@ ok( $nums->nelem==6 && all( $nums == pdl(0,10,20,30,40,50) ), "tics with spacing
 
 eval { $w->plot(xvals(50)->sqrt, {xtics=>[]}) };
 ok(!$@, "xvals plot (xtics=>[]) succeeded");
-if($@){
-    print STDERR $PDL::Graphics::Gnuplot::last_plotcmd;
-    print STDERR $@;
-}
 
 $line_nums = (get_axis_testoutput($testoutput, 1));
 $line_nums =~ s/^\s+//;
@@ -486,9 +488,14 @@ SKIP: {
 	ok($a !~ m/n/i, "parabola has metrics");
 
 
-	print STDERR "Try to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
-	$a = <STDIN>;
-	ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
+	if($PDL::Graphics::Gnuplot::gp_version < 4.6) {
+	    print STDERR "\n You're running an older gnuplot ($PDL::Graphics::Gnuplot::gp_version) and \nwon't be able to scroll.  You should upgrade.  Skipping scroll test.\n\n";
+	    ok(1,"no scroll/zoom test");
+	} else {
+	    print STDERR "Try to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
+	    $a = <STDIN>;
+	    ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
+	}
 	
 	
     } else {
@@ -529,7 +536,6 @@ SKIP: {
     $theta = zeros(200)->xlinvals(0, 6*$pi);
     $z     = zeros(200)->xlinvals(0, 5);
     eval { $w->reset; $w->plot3d(cos($theta), sin($theta), $z); };
-    print STDERR $@ if($@);
 
     ok(!$@, "plot3d works");
 
@@ -699,7 +705,7 @@ open FOO,"<$testoutput";
 $lines = join("",<FOO>);
 close FOO;
 
-eval { $w->plot({trid=>1,title=>""},with=>'lines',cdim=>1,sequence(3,3));};
+eval { $w->plot({trid=>1,title=>"",yr=>[-1,1]},with=>'lines',cdim=>1,sequence(3,3));};
 ok(!$@, "3-d threaded plot with single column succeeded");
 open FOO,"<$testoutput";
 $lines2 = join("",<FOO>);
