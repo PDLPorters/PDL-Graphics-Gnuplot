@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 117;
+use Test::More tests => 121;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -452,8 +452,8 @@ unlink($testoutput) or warn "\$!: $!";
 
 SKIP: {
     unless(exists($ENV{GNUPLOT_INTERACTIVE})) {
-	print STDERR "\n\n******************************\nSkipping 20 interactive tests.\n    Set the environment variable GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
-	skip "Skipping interactive tests - set env. variable GNUPLOT_INTERACTIVE to enable.",20;
+	print STDERR "\n\n******************************\nSkipping 24 interactive tests.\n    Set the environment variable GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
+	skip "Skipping interactive tests - set env. variable GNUPLOT_INTERACTIVE to enable.",24;
     }
 
     eval { $w = gpwin('wxt'); };
@@ -570,6 +570,35 @@ SKIP: {
     print STDERR "See a double helix plot with variable point sizes and variable color? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "double helix plot is OK");
+
+    eval { $w->reset; $w->plot( with=>'image', rvals(9,9), {xr=>[undef,9]}) };
+    ok(!$@, "image plot succeeded");
+    print STDERR <<"FOO";
+
+You should see a 9x9 rvals image, scaled from -0.5 to 9.0 in X \nand -0.5 to 
+8.5 in y.  There should be a blank vertical bar 1/2 unit wide at the right 
+side of the image.\nThe other sides of the plot should be flush.  Ok? (Y/n)
+FOO
+    $a =<STDIN>;
+
+    ok($a !~ m/n/i, "image initial ranging plot is OK");
+    
+    eval { $w->plot(with=>'image',rvals(9,9), 
+		    with=>'image', xvals(9,9)+7, yvals(9,9)+4, rvals(9,9),
+		    with=>'line', xvals(20)->sqrt
+	       );
+    };
+    ok(!$@, "two-image range test plot succeeded");
+    print STDERR <<"FOO";
+
+You should see two overlapping rvals images, with lower left pixels centered
+on (0,0) and (7,4), respectively, and a square root curve suprimposed.  
+The y range should be flush with the top and bottom of the two images.  The 
+x range should be set by the image at left and the curve at right, running 
+from -0.5 to 20.0.  The curve should end at 19.0.  Ok? (Y/n)
+FOO
+    $a = <STDIN>;
+    ok($a !~ m/n/i, "image/line ranging plot is OK");
 
     if($w->{terminal} eq 'x11') {
 	print STDERR "Click in the window.\n";

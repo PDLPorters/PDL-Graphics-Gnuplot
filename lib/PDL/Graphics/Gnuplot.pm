@@ -2351,12 +2351,12 @@ sub plot
 	    next if($chunks->[$i]->{imgFlag});
 	    my($cxr, $cyr);
 
-	    if($chunks->[$i]->{ArrayRec}) {
+	    if($chunks->[$i]->{ArrayRec} eq 'array') {
 		if( $chunks->[$i]->{cdims}==2 ) {
 		    $cxr = [0, $chunks->[$i]->{data}->[0]->dim(1)];
 		    $cyr = [0, $chunks->[$i]->{data}->[1]->dim(2)];
 		} elsif( $chunks->[$i]->{cdims}==1 ) {
-		    $cxr = [0, $chunks->[$i]->{data}->[0]->dim(1)];
+		    $cxr = [0, $chunks->[$i]->{data}->[0]->dim(0)];
 		    $cyr = [$chunks->[$i]->{data}->[0]->minmax];
 		} else {
 		    print STDERR "Warning - found an 'impossible' case in autoranging.  Your plot is probably OK.\n\tplease file a bug report for PDL::Graphics::Gnuplot version $VERSION\n";
@@ -2366,14 +2366,13 @@ sub plot
 		$cxr = [$chunks->[$i]->{data}->[0]->minmax];
 		$cyr = [$chunks->[$i]->{data}->[1]->minmax];
 	    }
-	    
+
 	    $xr->[0] = $cxr->[0] if( !defined($xr->[0])  or  $cxr->[0] < $xr->[0] );
 	    $xr->[1] = $cxr->[1] if( !defined($xr->[1])  or  $cxr->[1] > $xr->[1] );
 
 	    $yr->[0] = $cyr->[0] if( !defined($yr->[0])  or  $cyr->[0] < $yr->[0] );
 	    $yr->[1] = $cyr->[1] if( !defined($yr->[1])  or  $cyr->[1] > $yr->[1] );
-	} else {
-	    # includes X and Y coords in first 2 columns
+
 	}
 
 	$im_xrange->[0] = undef if( !defined($im_xrange->[0]) or (defined($xr->[0]) && ($xr->[0] < $im_xrange->[0])) );
