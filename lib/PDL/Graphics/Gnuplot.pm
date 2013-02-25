@@ -1555,6 +1555,8 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 our $VERSION = '1.4b';
+$VERSION .= "_rc1";
+
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
 use base 'Exporter';
@@ -6903,6 +6905,7 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head3 V1.4
 
+ - autoranging fix
  - read_polygon fix
  - Many small tweaks to make Microsoft Windows support better
  - Updates to POD documentation

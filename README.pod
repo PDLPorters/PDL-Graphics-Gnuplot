@@ -2051,56 +2051,38 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head3 V1.4
 
-- Updates to POD documentation
-
-- Improved terminfo reporting
-
-- mouse-enabled default terminals are detected properly (e.g. 'x11').
-
-- includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
-
-- more careful I/O handling in the pipe
-
-- Improved interrupt handling
-
-- Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
-
-- Allows specifying different commands than just "gnuplot" via environment variable.
-
-- Detects available terminal types from Gnuplot on initial startup.
-
-- supports m?tics options with hash syntax
-
-- 
+ - autoranging fix
+ - read_polygon fix
+ - Many small tweaks to make Microsoft Windows support better
+ - Updates to POD documentation
+ - Improved terminfo reporting
+ - mouse-enabled default terminals are detected properly (e.g. 'x11').
+ - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
+ - more careful I/O handling in the pipe
+ - Improved interrupt handling
+ - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
+ - Allows specifying different commands than just "gnuplot" via environment variable.
+ - Detects available terminal types from Gnuplot on initial startup.
+ - supports m?tics options with hash syntax
 
 =head3 v1.3 
 
-- Specifies Perl 5.010 or higher to run
-
-- Tests do not fail on v4.2 Gnuplot (still used on BSD)
-
-- Better error messages in common error cases
-
-- Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
+ - Tests do not fail on v4.2 Gnuplot (still used on BSD)
+ - Better error messages in common error cases
+ - Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
 
 =head3 v1.2
 
-- Handles communication better on Microsoft Windows (MSW has brain damage).
-
-- Improvements in documentation
-
-- Handles PDF output in scripts
-
-- Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
+ - Handles communication better on Microsoft Windows (MSW has brain damage).
+ - Improvements in documentation
+ - Handles PDF output in scripts
+ - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
 
 =head3 v1.1
 
-- Handles communication with command echo on the pipe (for Microsoft Windows)
-
-- Better gnuplot error reporting
-
-- Fixed date range handling
-
+ - Handles communication with command echo on the pipe (for Microsoft Windows)
+ - Better gnuplot error reporting
+ - Fixed date range handling
 
 =head1 LICENSE AND COPYRIGHT
 
