@@ -435,6 +435,10 @@ ok( $nums->nelem==6 && all( $nums == pdl(0,10,20,30,40,50) ), "tics with spacing
 
 eval { $w->plot(xvals(50)->sqrt, {xtics=>[]}) };
 ok(!$@, "xvals plot (xtics=>[]) succeeded");
+if($@){
+    print STDERR $PDL::Graphics::Gnuplot::last_plotcmd;
+    print STDERR $@;
+}
 
 $line_nums = (get_axis_testoutput($testoutput, 1));
 $line_nums =~ s/^\s+//;

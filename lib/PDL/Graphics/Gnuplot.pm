@@ -5128,7 +5128,11 @@ $_pOHInputs = {
 		  @list = @$new;
 
 		  if(!@list) {
-		      @list = "autofreq autojustify";
+		      if($gp_version < 4.6) {
+			  @list = "autofreq";
+		      } else {
+			  @list = "autofreq autojustify"; 
+		      }
 		  }
 		  return \@list;
     }
