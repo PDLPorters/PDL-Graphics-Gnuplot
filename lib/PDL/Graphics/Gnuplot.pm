@@ -847,33 +847,33 @@ Time format specifiers use the following printf-like codes:
 
 =over 3
 
-=item Year A.D.: C<%Y> is 4-digit year; C<%y> is 2-digit year (1969-2068)
+=item * Year A.D.: C<%Y> is 4-digit year; C<%y> is 2-digit year (1969-2068)
 
-=item Month of year: C<%m>: 01-12; C<%b> or C<%h>: abrev. name; C<%B>: full name
+=item * Month of year: C<%m>: 01-12; C<%b> or C<%h>: abrev. name; C<%B>: full name
 
-=item Week of year: C<%W> (week starting Monday); C<%U> (week starting Sunday)
+=item * Week of year: C<%W> (week starting Monday); C<%U> (week starting Sunday)
 
-=item Day of year: C<%j> (1-366; boundary is midnight)
+=item * Day of year: C<%j> (1-366; boundary is midnight)
 
-=item Day of month: C<%d> (01-31)
+=item * Day of month: C<%d> (01-31)
 
-=item Day of week: C<%w> (0-6, Sunday=0), %a (abrev. name), %A (full name)
+=item * Day of week: C<%w> (0-6, Sunday=0), %a (abrev. name), %A (full name)
 
-=item Hour of day: C<%k> (0-23); C<%H> (00-23); C<%l> (1-12); C<%I> (01-12)
+=item * Hour of day: C<%k> (0-23); C<%H> (00-23); C<%l> (1-12); C<%I> (01-12)
 
-=item Am/pm: C<%p> ("am" or "pm")
+=item * Am/pm: C<%p> ("am" or "pm")
 
-=item Minute of hour: C<%M> (00-60)
+=item * Minute of hour: C<%M> (00-60)
 
-=item Second of minute: C<%S> (0-60)
+=item * Second of minute: C<%S> (0-60)
 
-=item Total seconds since start of 2000 A.D.: C<%s>
+=item * Total seconds since start of 2000 A.D.: C<%s>
 
-=item Timestamps: C<%T> (same as C<%H:%M:%S>); C<%R> (same as C<%H:%M>); C<%r> (same as C<%I:%M:%S %p>)
+=item * Timestamps: C<%T> (same as C<%H:%M:%S>); C<%R> (same as C<%H:%M>); C<%r> (same as C<%I:%M:%S %p>)
 
-=item Datestamps: C<%D> (same as C<%m/%d/%y>); C<%F> (same as C<%Y-%m-%d>)
+=item * Datestamps: C<%D> (same as C<%m/%d/%y>); C<%F> (same as C<%Y-%m-%d>)
 
-=item ISO timestamps: use C<%DT%T>.
+=item * ISO timestamps: use C<%DT%T>.
 
 =back
 
