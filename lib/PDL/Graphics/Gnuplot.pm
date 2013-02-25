@@ -1555,7 +1555,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 our $VERSION = '1.4b';
-$VERSION .= "_rc1";
+$VERSION .= "_rc2";
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 

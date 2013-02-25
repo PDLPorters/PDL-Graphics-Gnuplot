@@ -2051,6 +2051,9 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head3 V1.4
 
+ - do better at ignoring chatter on brain-dead platforms that rhyme with Pawberry Sterl
+ - clean up test reporting
+ - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
  - autoranging fix
  - read_polygon fix
  - Many small tweaks to make Microsoft Windows support better
