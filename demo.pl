@@ -198,3 +198,5 @@ eval( <<'EOM' );
 EOM
 print STDERR $@ if $@;
 say STDERR "=================================\n\n";
+say STDERR "This concludes the gnuplot demo!  Enjoy using PDL::Graphics::Gnuplot!\n";
+

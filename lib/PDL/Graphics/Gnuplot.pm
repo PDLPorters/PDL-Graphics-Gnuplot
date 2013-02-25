@@ -1,5 +1,3 @@
-#use 5.010;  # uses modern constructs like "//".
-
 ##############################
 #
 # PDL::Graphics::Gnuplot
@@ -25,11 +23,11 @@
 #      - Plot options     - setup per-plot
 #      - Curve options    - setup per-curve within a plot
 #
-# Option parsing uses branch tables.  Plot and curve options are
+# Option handling uses branch tables.  Plot and curve options are
 # parsed using the $pOptionsTable and $cOptionsTable respectively -
 # these are big global hashes that describe the gnuplot syntax.
 # Terminal options are "worser" - the options that are accepted depend
-# on the terminal device, so the table $termTab contains # a
+# on the terminal device, so the table $termTab contains a
 # description of which terminal options are allowed for each of the
 # supported gnuplot terminals.
 #
@@ -51,7 +49,7 @@
 # is the main workhorse.
 #
 # plot() pulls plot arguments off the front and back of the argument
-# list, and relies on its sub-routine parseArgs to break the remaining
+# list. It relies on its subroutine parseArgs to break the remaining
 # parameters into chunks of parameters, each of which represents a
 # single curve (including curve options and actual data to be
 # plotted).  Because we allow threading, a given batch of curve option
@@ -60,14 +58,14 @@
 # and turned into a colllection of gnuplot commands suitable for plot
 # generation.
 # 
-# Because option parsing is slightly more complicated than simply
-# interpreting values and assigning defaults, we do not use a
-# pre-existing package (such as PDL::Options) for option parsing - we
-# use a dual parse table scheme.  Each option set has an "abbrev"
+# Because option parsing and handling is slightly more complicated
+# than simply interpreting values and assigning defaults, we do not
+# use a pre-existing package (such as PDL::Options) for option parsing
+# - we use a dual parse table scheme.  Each option set has an "abbrev"
 # table that is generated at compile time and resolves unique
-# abbreviations; and a "parse" table that indicates what to do with 
-# each option.  Since this mechanism is near at hand, we use it 
-# even for routines (such as read_polygon) that could and would use
+# abbreviations; and a "parse" table that indicates what to do with
+# each option.  Since this mechanism is near at hand, we use it even
+# for routines (such as read_polygon) that could and would use
 # PDL::Options in other circumstances.
 #
 
@@ -2132,17 +2130,17 @@ sub plot
 	}
     }
 
-    # If we're replotting, start with the last_plot options - which may not be "persistent" in the
-    # object but persist in the last_plot stored state.
-    # 
-    # *but* if we're replotting we have to preserve the current terminal, *not* the last terminal.
+    # Any option parsing we do is ephemeral, so we have to localize the options hash, so we dclone it at
+    # the start.  If we're replotting, start with the last_plot options - which gets the same treatment even
+    # though it will be overwritten with its own clone on successful completion.  That is so, if we fail,
+    # the last_plot hash options hash remains unchanged in the object.
     my $o;
     if($this->{replotting}) {
-	$o = $this->{last_plot}->{options};
+	$o = dclone($this->{last_plot}->{options});
 	$o->{terminal} = $this->{options}->{terminal};
 	$o->{output}   = $this->{options}->{output};
     } else {
-	$o = $this->{options}
+	$o = dclone($this->{options});
 	;
     }
 
@@ -2183,8 +2181,12 @@ sub plot
 	}
     }
 
-    #  Localize the options...
+    #  Localize the options hash for uniform reference.  Now the 
+    #  object options has the full parsed options, but it is fully localized -- 
+    #  it will revert to its pre-call state when we exit this block.
     local($this->{options}) = $o;
+    local($this->{tmp_options}) = {};
+
 
     # Make sure to reset the palette to the gnuplot default if it's not set here
     $this->{options}->{palette} = [] unless($this->{options}->{palette});
@@ -2267,69 +2269,26 @@ sub plot
 	}
     }
 
-
-
-
     ##########
     # Figure per-curve binary/ASCII mode, and fix up some of the option defaults based on context.  
     # In particular, gnuplot 4.4-4.6 don't handle image scaling correctly, so unless an xrange/yrange 
     # is specified we have to take care of it ourselves.  
+    # 
+    # This is complicated in the case when there are multiple chunks, one of which is an image. 
+    # We can't set an overall range until we scan the whole collection of chunks.
     
     my ($cbmin,$cbmax) = (undef, undef);
+    my $im_xrange = [undef,undef];
+    my $im_yrange = [undef,undef];
+
     for my $i(0..$#$chunks) {
 
 	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
 	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $binary_mode);
 
 	# Everything else is an image fix
-	next if( $chunks->[$i]->{cdims} != 2 );
-	
-	# Fix up gnuplot ranging bug for images
-	if(defined($this->{options}->{xrange}) and !defined($chunks->[$i]->{options}->{xrange})) {
-	    $chunks->[$i]->{options}->{xrange} = $this->{options}->{xrange};
-	}
+	next unless($chunks->[$i]->{imgFlag});
 
-	if(defined($this->{options}->{yrange}) and !defined($chunks->[$i]->{options}->{yrange})) {
-	    $chunks->[$i]->{options}->{yrange} = $this->{options}->{yrange};
-	}
-
-	unless( $i or 
-		$chunks->[$i]->{options}->{xrange} or
-		$chunks->[$i]->{options}->{yrange}
-	    ) {
-
-	    # Neither curve nor plot option has been set.  
-	    if($chunks->[$i]->{ArrayRec} eq 'array') {
-		# Autorange using matrix locations -- pixels lop over the edge by 0.5 on bottom and top for
-		# image data, but not at all for vector data
-		if($chunks->[$i]->{imgFlag}) {
-		    $chunks->[$i]->{options}->{xrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(1) - 0.5 ];
-		    $chunks->[$i]->{options}->{yrange} = [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
-		} else {
-		    # Not an image - just use the minmax, and don't pad
-		    $chunks->[$i]->{options}->{xrange} = [ 0, $chunks->[$i]->{data}->[0]->dim(1) - 1 ];
-		    $chunks->[$i]->{options}->{yrange} = [ 0, $chunks->[$i]->{data}->[0]->dim(2) - 1 ];
-		}
-	    } else {
-		# Autorange using x and y ranging -- sleaze out of matching gnuplot's algorithm by
-		# calculating dx and dy.
-		my($xmin,$xmax) = $chunks->[$i]->{data}->[0]->slice("(0)")->minmax;
-		my($ymin,$ymax) = $chunks->[$i]->{data}->[0]->slice("(1)")->minmax;
-		
-		if($chunks->[$i]->{imgFlag}) {
-		    my $dx = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
-		    $chunks->[$i]->{options}->{xrange} = [$xmin - $dx, $xmax + $dx];
-		    
-		    my $dy = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
-		    $chunks->[$i]->{options}->{yrange} = [$ymin - $dy, $ymax + $dy];
-		} else {
-		    # Not an image - just use the minmax, and don't pad
-		    $chunks->[$i]->{options}->{xrange} = [$xmin,$xmax];
-		    $chunks->[$i]->{options}->{yrange} = [$ymin,$ymax];
-		}
-	    }
-	}
-	
 	# Fix up gnuplot color scaling bug/misfeature for RGB images
 	# Here, we accumulate min/max color ranges across *all* imagelike chunks.
 	if(!defined( $this->{options}->{cbrange} )) {
@@ -2345,19 +2304,90 @@ sub plot
 	    $cbmin = $cmin if( !defined($cbmin)   or    $cbmin > $cmin );
 	    $cbmax = $cmax if( !defined($cbmax)   or    $cbmax < $cmax );
 	}
+
+	# Do image ranging.
+	# This is necessary to tighten up the boundaries around images -- gnuplot ranging 
+	# has a wart in that case, where image boundaries are extended to the nearest round 
+	# number of pixels by default.
+	#
+	# We implement that here by accumulating the largest extent covered by images.
+	# If there are images and no xrange/yrange was set by the user, we set it to that.
+
+	my $z; # temp. holding space for xrange/yrange for this chunk
+
+	if($chunks->[$i]->{ArrayRec} eq 'array') {
+	    $z = [-0.5, $chunks->[$i]->{data}->[0]->dim(1) - 0.5];
+	} else {
+	    my($xmin,$xmax) = $chunks->[$i]->{data}->[0]->slice("(0)")->minmax;
+	    my($dx) = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
+	    $z = [$xmin - $dx, $xmax + $dx];
+	}
+	$im_xrange->[0] = $z->[0] if( !defined($im_xrange->[0])   or   $z->[0] < $im_xrange->[0] );
+	$im_xrange->[1] = $z->[1] if( !defined($im_xrange->[1])   or   $z->[1] > $im_xrange->[1] );
+
+	if($chunks->[$i]->{ArrayRec} eq 'array') {
+	    $z= [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
+	} else {
+	    my($ymin,$ymax) = $chunks->[$i]->{data}->[0]->slice("(1)")->minmax;
+	    my($dy) = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
+	    $z = [$ymin - $dy, $ymax + $dy];
+	}
+	$im_yrange->[0] = $z->[0] if( !defined($im_yrange->[0])   or   $z->[0] < $im_yrange->[0] );
+	$im_yrange->[1] = $z->[1] if( !defined($im_yrange->[1])   or   $z->[1] > $im_yrange->[1] );
     }
 
     ##############################
-    # Fix up cbrange if necessary.  We use the same localization trick
-    # as for the whole options hash, only this time on just the single
-    # keyword (in case we're not using a dcloned copy of the hash).
-    $o = $this->{options}->{cbrange};
-    local($this->{options}->{cbrange});
-    if( defined($cbmin)   or   defined($cbmax) ) {
-	$this->{options}->{cbrange} = [$cbmin, $cbmax];
-    } else {
-	$this->{options}->{cbrange} = $o;
+    # If image xrange/yrange has been set, check it against the maximum extent of other types of
+    # data.  If other types of data exceed the image xrange/yrange, then delete the corresponding
+    # element of image xrange/yrange, to allow gnuplot to autoscale.
+    # This is complicated (of course) by the fact that the user can omit the ordinate - so we have
+    # to detect the missing-ordinate case and use the dimension instead.
+    #
+
+    if(defined($im_xrange->[0]) or defined($im_yrange->[0])) {
+	my $xr = [undef,undef];
+	my $yr = [undef,undef];
+	for my $i(0..$#$chunks) {
+	    next if($chunks->[$i]->{imgFlag});
+	    my($cxr, $cyr);
+
+	    if($chunks->[$i]->{ArrayRec}) {
+		if( $chunks->[$i]->{cdims}==2 ) {
+		    $cxr = [0, $chunks->[$i]->{data}->[0]->dim(1)];
+		    $cyr = [0, $chunks->[$i]->{data}->[1]->dim(2)];
+		} elsif( $chunks->[$i]->{cdims}==1 ) {
+		    $cxr = [0, $chunks->[$i]->{data}->[0]->dim(1)];
+		    $cyr = [$chunks->[$i]->{data}->[0]->minmax];
+		} else {
+		    print STDERR "Warning - found an 'impossible' case in autoranging.  Your plot is probably OK.\n\tplease file a bug report for PDL::Graphics::Gnuplot version $VERSION\n";
+		    next;
+		}
+	    } else {
+		$cxr = [$chunks->[$i]->{data}->[0]->minmax];
+		$cyr = [$chunks->[$i]->{data}->[1]->minmax];
+	    }
+	    
+	    $xr->[0] = $cxr->[0] if( !defined($xr->[0])  or  $cxr->[0] < $xr->[0] );
+	    $xr->[1] = $cxr->[1] if( !defined($xr->[1])  or  $cxr->[1] > $xr->[1] );
+
+	    $yr->[0] = $cyr->[0] if( !defined($yr->[0])  or  $cyr->[0] < $yr->[0] );
+	    $yr->[1] = $cyr->[1] if( !defined($yr->[1])  or  $cyr->[1] > $yr->[1] );
+	} else {
+	    # includes X and Y coords in first 2 columns
+	}
+
+	$im_xrange->[0] = undef if( !defined($im_xrange->[0]) or (defined($xr->[0]) && ($xr->[0] < $im_xrange->[0])) );
+	$im_xrange->[1] = undef if( !defined($im_xrange->[1]) or (defined($xr->[1]) && ($xr->[1] > $im_xrange->[1])) );
+	$im_yrange->[0] = undef if( !defined($im_yrange->[0]) or (defined($yr->[0]) && ($yr->[0] < $im_yrange->[0])) );
+	$im_yrange->[1] = undef if( !defined($im_yrange->[1]) or (defined($yr->[1]) && ($yr->[1] > $im_yrange->[1])) );
     }
+    
+
+    ##############################
+    # Fix up cbrange if necessary. 
+    if( defined($cbmin)   or   defined($cbmax) ) {
+	$this->{tmp_options}->{cbrange} = [$cbmin, $cbmax];
+    } 
 
     ##############################
     # Since we accept axis ranges as curve options, but they are only
@@ -2376,13 +2406,33 @@ sub plot
 	}
 	print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n"
 	    if($rangeflag);
-
-#	for my $k(qw/xrange yrange zrange trange/) {
-#	    print STDERR "Warning: curve option $k overriding plot option $k\n"
-#		if(exists($this->{options}->{$k})  and  exists($chunks->[0]->{options}->{$k}));
-#	}
     }
 
+    ##############################
+    # Now reconcile all of the xrange/yrange stuff for the plot itself,
+    # and set it as a temporary plot option.
+    my $po_xrange = [undef, undef];
+    $po_xrange = $this->{options}->{xrange} if(defined($this->{options}->{xrange}));
+    if( defined( $chunks->[0]->{options}->{xrange} ) ) {
+	my $z = $chunks->[0]->{options}->{xrange};
+	$po_xrange->[0] = $z->[0] if( !defined($po_xrange->[0])  or  (defined($z->[0]) and  $z->[0] < $po_xrange->[0]) );
+	$po_xrange->[1] = $z->[1] if( !defined($po_xrange->[1])  or  (defined($z->[1]) and  $z->[1] > $po_xrange->[1]) );
+    }
+
+    $po_xrange->[0] = $im_xrange->[0] unless(defined($po_xrange->[0]));
+    $po_xrange->[1] = $im_xrange->[1] unless(defined($po_xrange->[1]));
+    $this->{tmp_options}->{xrange} = $po_xrange;
+
+    my $po_yrange = [undef, undef];
+    $po_yrange = $this->{options}->{yrange} if(defined($this->{options}->{yrange}));
+    if( defined( $chunks->[0]->{options}->{yrange} ) ) {
+	my $z = $chunks->[0]->{options}->{yrange};
+	$po_yrange->[0] = $z->[0] if( !defined($po_yrange->[0])  or  (defined($z->[0]) and $z->[0]<$po_yrange->[0]) );
+	$po_yrange->[1] = $z->[1] if( !defined($po_yrange->[1])  or  (defined($z->[1]) and $z->[1]>$po_yrange->[1]) );
+    }
+    $po_yrange->[0] = $im_yrange->[0] unless(defined($po_yrange->[0]));
+    $po_yrange->[1] = $im_yrange->[1] unless(defined($po_yrange->[1]));
+    $this->{tmp_options}->{yrange} = $po_yrange;
 
 
     ##############################
@@ -2396,7 +2446,7 @@ sub plot
     # (e.g. prefrobnicators can set plot options via $this->{tmp_options}).  This is OK since 
     # we've already localized $this->{options}.
     if(exists($this->{tmp_options})) {
-	for my $k(%{$this->{tmp_options}}) {
+	for my $k(keys %{$this->{tmp_options}}) {
 	    $this->{options}->{$k} = $this->{tmp_options}->{$k};
 	}
     }
@@ -2406,7 +2456,6 @@ sub plot
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = "";
     $plotOptionsString .= "reset\n" unless($this->{replotting} or $this->{options}->{multiplot});
-
 
     $plotOptionsString .= _emitOpts($this->{options}, $pOpt);
 
@@ -2549,7 +2598,6 @@ sub plot
 	}
     }
 
-
     ##############################
     ##############################
     ##### Send the PlotOptionsString 
@@ -2572,7 +2620,7 @@ sub plot
 	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
 	}
     }
-    
+
     ##############################
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
@@ -2711,6 +2759,7 @@ sub plot
     }
     
     # read and report any warnings that happened during the plot
+
     return $plotWarnings;
 
     #####################
@@ -2760,7 +2809,7 @@ sub plot
 	while($argIndex <= $#args)
 	{
 	    # First, I find and parse the options in this chunk
-	    # Array refs are allowed in some curve options, so, but only as values of key/value
+	    # Array refs are allowed in some curve options, but only as values of key/value
 	    # pairs -- so any list refs glommed in with a bunch of other refs are data.
 	    # This is cheesy because (e.g.) "xrange=>[5],[0,1,2]" works but "xrange=>5,[0,1,2]" does not.
 	    # The only way to get every single case like this is to actually parse a chunk at a time before
@@ -6855,56 +6904,37 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head3 V1.4
 
-- Updates to POD documentation
-
-- Improved terminfo reporting
-
-- mouse-enabled default terminals are detected properly (e.g. 'x11').
-
-- includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
-
-- more careful I/O handling in the pipe
-
-- Improved interrupt handling
-
-- Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
-
-- Allows specifying different commands than just "gnuplot" via environment variable.
-
-- Detects available terminal types from Gnuplot on initial startup.
-
-- supports m?tics options with hash syntax
-
-- 
+ - read_polygon fix
+ - Many small tweaks to make Microsoft Windows support better
+ - Updates to POD documentation
+ - Improved terminfo reporting
+ - mouse-enabled default terminals are detected properly (e.g. 'x11').
+ - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
+ - more careful I/O handling in the pipe
+ - Improved interrupt handling
+ - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
+ - Allows specifying different commands than just "gnuplot" via environment variable.
+ - Detects available terminal types from Gnuplot on initial startup.
+ - supports m?tics options with hash syntax
 
 =head3 v1.3 
 
-- Specifies Perl 5.010 or higher to run
-
-- Tests do not fail on v4.2 Gnuplot (still used on BSD)
-
-- Better error messages in common error cases
-
-- Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
+ - Tests do not fail on v4.2 Gnuplot (still used on BSD)
+ - Better error messages in common error cases
+ - Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
 
 =head3 v1.2
 
-- Handles communication better on Microsoft Windows (MSW has brain damage).
-
-- Improvements in documentation
-
-- Handles PDF output in scripts
-
-- Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
+ - Handles communication better on Microsoft Windows (MSW has brain damage).
+ - Improvements in documentation
+ - Handles PDF output in scripts
+ - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
 
 =head3 v1.1
 
-- Handles communication with command echo on the pipe (for Microsoft Windows)
-
-- Better gnuplot error reporting
-
-- Fixed date range handling
-
+ - Handles communication with command echo on the pipe (for Microsoft Windows)
+ - Better gnuplot error reporting
+ - Fixed date range handling
 
 =head1 LICENSE AND COPYRIGHT
 
