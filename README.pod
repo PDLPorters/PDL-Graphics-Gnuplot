@@ -2143,9 +2143,13 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head1 RELEASE NOTES
 
-=head3 V1.4
+=head3 V1.4 - released 26-Feb-2013
 
- - do better at ignoring chatter on brain-dead platforms that rhyme with Pawberry Sterl
+Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
+we troubleshot Microsoft Windows's bizarre IPC problems!
+
+ - default to ascii data transfer under Microsoft Windows (Juergen's hang issue)
+ - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)
  - clean up test reporting
  - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
  - autoranging fix
@@ -2158,7 +2162,7 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
  - more careful I/O handling in the pipe
  - Improved interrupt handling
  - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
- - Allows specifying different commands than just "gnuplot" via environment variable.
+ - Allows specifying different commands than just "gnuplot" via environment variable GNUPLOT_BINARY.
  - Detects available terminal types from Gnuplot on initial startup.
  - supports m?tics options with hash syntax
 
