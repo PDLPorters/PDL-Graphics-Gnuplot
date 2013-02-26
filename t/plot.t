@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 124;
+use Test::More tests => 128;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -19,11 +19,13 @@ ok( !$@, "loaded the module with no error\n");
 
 $ENV{GNUPLOT_DEPRECATED} = 1;   # shut up deprecation warnings
 eval { $w=gpwin() };
-ok( (!$@ and defined($w) and ref($w) =~m/PDL::Graphics::Gnuplot/), "Constructor created a plotting object" );
+
+ok( (!$@ and defined($w) and ref($w) =~m/PDL::Graphics::Gnuplot/), 
+    "Constructor created a plotting object" );
 
 ok(length($PDL::Graphics::Gnuplot::gp_version), "Extracted a version string from gnuplot");
 
-diag( "Testing PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION against gnuplot $PDL::Graphics::Gnuplot::gp_version, Perl $], $^X" );
+diag( "PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, gnuplot $PDL::Graphics::Gnuplot::gp_version, Perl $], $^X on $^O" );
 
 my $x = sequence(5);
 
@@ -167,11 +169,27 @@ do {
 unlink($testoutput) or warn "\$!: $!";
 
 ##############################
+# Test ascii data transfer (binary is tested by default on platforms where it works)
+eval {$w = gpwin('dumb', size=>[79,24,'ch'],output=>$testoutput);};
+ok((!$@ && !!$w),"opened window for ascii transfer tests");
+
+eval { $w->options( binary=>0 ); }; 
+ok( !$@, "set binary mode to 0" );
+
+eval { $w->plot( xvals(5), xvals(5)**2 ); };
+ok(!$@, "ascii plot succeeded");
+
+eval { $w->plot( xvals(10000), xvals(10000)->sqrt ); };
+ok(!$@, "looong ascii plot succeeded");
+
+
+##############################
 # Test replotting
 print "testing replotting...\n";
 
-$w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
-ok(1,"re-opened w");
+eval {$w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput)};
+ok((!$@ && !!$w),"re-opened window");
+
 eval { $w->plot({xr=>[0,30]},xvals(50),xvals(50)**2); };
 print $@;
 ok(!$@," plot works");

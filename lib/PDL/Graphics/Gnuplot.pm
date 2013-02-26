@@ -2754,11 +2754,43 @@ sub plot
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
 	    # a line with just "e".
 
-	    # Under Microsoft Windows gnuplot will emit a prompt after each row, and we 
-	    # have to clear them to avoid filling the buffer and maybe deadlocking.
+	    # Defining the emitter here lets me keep context inside it instead of breaking it 
+	    # out, which would probably be a better way to do it.
+
+	    my $emitter;
+	    if($MS_io_braindamage) {
+		$emitter = sub {
+		    my @lines = split /\n/, shift;
+		    my $byte; 
+		    my $pipe = $this->{"err-main"};
+		    
+		    for my $line(@lines) {
+			_printGnuplotPipe($this, "main", $line."\n", 1);
+			unless($this->{dumping}) {
+			    do { 
+				sysread $pipe, $byte, 1;
+				if( $byte eq \004 or $byte eq \000 ) {
+				    $byte = undef;
+				}
+			    } until( !defined($byte) or $byte eq '>' );
+			}
+		    }
+		    _printGnuplotPipe($this, "main", "e\n", 1);
+		};
+	    } else {
+		# Under real OSes, we can just send a schwack of stuff - there is no echo.
+		$emitter = sub {
+		    _printGnuplotPipe($this, "main", shift()."e\n", 1);
+		};
+	    }
+
+
+	    # Assemble and dump the ASCII through the just-defined emitter.
 
 	    if(ref $chunk->{data}->[0] eq 'PDL') {
+
 		# It's a collection of PDL data only.
+
 		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
 
@@ -2768,48 +2800,14 @@ sub plot
 		    $this->{last_plotcmd} .= $s;
 		}
 
-		if($MS_io_braindamage) {
-		    # This should probably be broken out so we don't have low-level i/o here.  
-		    # In ASCII mode gnuplot prints a helpful prompt before each line of
-		    # input.  In real operating systems, gnuplot detects pipes and suppresses
-		    # chatter.  Under Microsoft Windows it can't.  We don't use the prompting,
-		    # but we do have to flush it from the pipe to avoid the risk of deadlock
-		    # for large data sets. 
-		    my $byte;
-		    my $pipeerr = $this->{"err-main"};
-		    
-		    for my $row($p->{dog}) {
-			# Print a row of data
-			_printGnuplotPipe($this, 
-					  "main",
-					  join(" ", $row->list) . "\n"
-			    );
-			unless($this->{dumping}) {
-			    # Eat and drop characters until we hit ">", which ends a prompt.
-			    my $backstr = "";
-			    do {
-				sysread $pipeerr, $byte, 1;
-				$backstr .= $byte;
-				if($byte eq \004 or $byte eq \000 ) {
-				    $byte = undef;
-				}
-			    } until( !defined($byte) or $byte eq ">" );
-			}
-		    }
+		my $outbuf = join("\n", map { join(" ", $_->list) } $p->dog) . "\n";
 
-		    _printGnuplotPipe($this,"main", "e\n");
-		} else {
-		    # In the normal case there's no echo, so we just send it as one big schwack.
-		    # Emit $p as a collection of " " separated lines, followed by "e".
-		    _printGnuplotPipe($this,
-				      "main",
-				      join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n",
-				      1
-			);
-		} 
+		&$emitter($outbuf);
 
 	    } else {
+
 		# It's a collection of list ref data only.  Assemble strings.
+
 		my $data = $chunk->{data};
 		my $last = $#{$chunk->{data}->[0]};
 		my $s = "";
@@ -2826,8 +2824,8 @@ sub plot
 		    }
 		    $s .= "\n";                     # add newline
 		}
-		$s .= "e\n";                        # end the command
-		_printGnuplotPipe($this, "main", $s, 1);
+
+		&$emitter( $s );
 	    }
 	}
     }
