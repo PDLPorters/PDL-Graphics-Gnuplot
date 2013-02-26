@@ -2600,7 +2600,8 @@ sub plot
 	if( $chunks->[$i]->{cdims} == 2 ) {
 	    # It's an image -- always use binary to push the image out.
 
-	    unless( $binary_mode ) {
+	    # If the user asked for ASCII explicitly, warn that we're not listening.
+	    if( defined($this->{options}->{binary}) and !$this->{options}->{binary} ) {
 		print STDERR "WARNING: images are generally too large for ASCII.  Using binary instead.\n";
 	    }
 
@@ -2840,10 +2841,10 @@ sub plot
 	}
     }
 
-    if($MS_io_braindamage) {
-	_printGnuplotPipe($this,"main", "\r\n"x256); # Send a bunch of return carriages to get a prompt.
-	_checkpoint($this,"main",{printwarnings=>1});
-    }
+#    if($MS_io_braindamage) {
+#	_printGnuplotPipe($this,"main", "\r\n"); # Send a bunch of return carriages to get a prompt.
+#	_checkpoint($this,"main",{printwarnings=>1});
+#    }
 
     ##############################
     # Finally, finally ...  send any required cleanup commands.  This 
