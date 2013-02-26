@@ -103,17 +103,16 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
 
 This module allows PDL data to be plotted using Gnuplot as a backend
 for 2D and 3D plotting and image display.  Gnuplot (not affiliated
-with the Gnu project) is a venerable, open-source plotting package
-that produces both interactive and publication-quality plots on a very
-wide variety of output devices.  Gnuplot is a standalone package that
-must be obtained separately from this interface module.  It is
-available through most Linux repositories, on MacOS via fink and
-MacPorts, and from its website L<http://www.gnuplot.info>.
+with the Gnu project) is a venerable, open-source program that
+produces both interactive and publication-quality plots on many
+different output devices.  You must obtain it separately from this
+interface module.  It is available through most Linux repositories, on
+MacOS via fink and MacPorts, and from its website L<http://www.gnuplot.info>.
 
 It is not necessary to understand the gnuplot syntax to generate
 basic, or even complex, plots - though the full syntax is available
-for advanced users who want to take advantage of the full flexibility
-of the Gnuplot backend.
+for advanced users who want the full flexibility of the Gnuplot
+backend.
 
 Gnuplot recognizes both hard-copy and interactive plotting devices,
 and on interactive devices (like X11) it is possible to pan, scale,
@@ -6753,7 +6752,7 @@ EOM
 	# Anything else is an error -- except on Microsoft Windows where we 
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
-	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
+	    $fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
 	}
 
 	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
@@ -7030,11 +7029,11 @@ sub _def {
 
 Everything should work on all platforms that support Gnuplot and Perl.
 Currently, MacOS, Fedora and Debian Linux, Cygwin, and Microsoft
-Windows 8 (under Strawberry Perl) have been tested to work, although
-the interprocess control link is not as reliable under Microsoft
-Windows as under POSIX systems.  Please report successes or failures
-on other platforms to the authors. A transcript of a failed run with
-{tee => 1} would be most helpful.
+Windows (under both Active State Strawberry Perl) have been tested to
+work, although the interprocess control link is not as reliable under
+Microsoft Windows as under POSIX systems.  Please report successes or
+failures on other platforms to the authors. A transcript of a failed
+run with {tee => 1} would be most helpful.
 
 =head1 REPOSITORY
 
@@ -7063,7 +7062,8 @@ Further, deeply nested options (e.g. "at" for labels) need attention.
 
 =item - new plot styles
 
-The "boxplot" plot style (new to 4.6?) requires a different using syntax and will require some hacking to support.
+The "boxplot" plot style (new to 4.6?) requires a different using
+syntax and will require some hacking to support.
 
 =back
 
@@ -7072,7 +7072,7 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 =head3 V1.4 - released 26-Feb-2013
 
 Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
-we troubleshot Microsoft Windows's bizarre IPC problems!
+we troubleshot bizarre IPC problems under Microsoft Windows with Strawberry Perl.
 
  - default to ascii data transfer under Microsoft Windows (Juergen's hang issue)
  - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)

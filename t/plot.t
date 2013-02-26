@@ -25,7 +25,7 @@ ok( (!$@ and defined($w) and ref($w) =~m/PDL::Graphics::Gnuplot/),
 
 ok(length($PDL::Graphics::Gnuplot::gp_version), "Extracted a version string from gnuplot");
 
-diag( "PDL::Graphics::Gnuplot $PDL::Graphics::Gnuplot::VERSION, gnuplot $PDL::Graphics::Gnuplot::gp_version, Perl $], $^X on $^O" );
+diag( "\nP::G::G v$PDL::Graphics::Gnuplot::VERSION, gnuplot v$PDL::Graphics::Gnuplot::gp_version, Perl v$], $^X on $^O #\n" );
 
 my $x = sequence(5);
 
@@ -490,37 +490,37 @@ SKIP: {
     ok((ref($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}) eq 'HASH'), "Terminal is a known type");
     
     ok($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}, "Default terminal is a display type");
-    print STDERR "\nwindow is type ".$w->{terminal}."\n\n";
+    print STDERR "\n\nwindow is type ".$w->{terminal}."\n\n";
     $x = sequence(101)-50;
 
     eval { $w->plot($x**2); };
     ok(!$@, "plot a parabola to a the display window");
     
-    print STDERR "Is there a display window and does it show a parabola? (Y/n)";
+    print STDERR "\n\nIs there a display window and does it show a parabola? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "parabola looks OK");
 
     if($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}>1) {
-	print STDERR "Mouse over the plot window.  Are there metrics at bottom that update? (Y/n)";
+	print STDERR "\n\nMouse over the plot window.  Are there metrics at bottom that update? (Y/n)";
 	$a = <STDIN>;
 	ok($a !~ m/n/i, "parabola has metrics");
 
 
 	if($PDL::Graphics::Gnuplot::gp_version < 4.6) {
-	    print STDERR "\n You're running an older gnuplot ($PDL::Graphics::Gnuplot::gp_version) and \nwon't be able to scroll.  You should upgrade.  Skipping scroll test.\n\n";
+	    print STDERR "\n\nYou're running an older gnuplot ($PDL::Graphics::Gnuplot::gp_version) and \nwon't be able to scroll.  You should upgrade.  Skipping scroll test.\n\n";
 	    ok(1,"no scroll/zoom test");
 	} else {
-	    print STDERR "Try to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
+	    print STDERR "\n\nTry to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
 	    $a = <STDIN>;
 	    ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
 	}
 	
 	
     } else {
-	print STDERR "\nThe $w->{terminal} gnuplot terminal has no built-in metrics, skipping that test.\n\n";
+	print STDERR "\n\nThe $w->{terminal} gnuplot terminal has no built-in metrics, skipping that test.\n\n";
 	ok(1,"skipping metrics test");
 
-	print STDERR "\nThe $w->{terminal} gnuplot terminal has no interactive zoom, skipping that test.\n\n";
+	print STDERR "\n\nThe $w->{terminal} gnuplot terminal has no interactive zoom, skipping that test.\n\n";
 	ok(1,"skipping interactive-zoom test");
     }
 
@@ -528,7 +528,7 @@ SKIP: {
 				with=>"xyerrorbars", legend=>"Parabola",
 				$x**2 * 10, abs($x)/10, abs($x)*5 ); };
     
-        print STDERR "Are there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
+        print STDERR "\n\nAre there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "error bars are OK");
 
@@ -536,17 +536,18 @@ SKIP: {
     $z = inner($xy, $xy);
     eval {     $w->reset; $w->plot({title  => 'Heat map', 
 				    '3d' => 1,
-				    view=>[50,30,1]
+				    view=>[50,30,1],
+				    zrange=>[-1,1]
 				   },
 				   with => 'image', $z*2); 
     };
     ok(!$@, "3-d plot didn't crash");
 
-    print STDERR "Do you see a purple-yellow colormap image of a radial target, in 3-D? (Y/n)";
+    print STDERR "\n\nDo you see a purple-yellow colormap image of a radial target, in 3-D? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "3-D heat map plot works OK");
     
-    print STDERR "Try to rotate, pan, and zoom the 3-D image.  Work OK? (Y/n)";
+    print STDERR "\n\nTry to rotate, pan, and zoom the 3-D image.  Work OK? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "Interact with 3-D image");
 
@@ -557,7 +558,7 @@ SKIP: {
 
     ok(!$@, "plot3d works");
 
-    print STDERR "See a nice 3-D plot of a spiral? (Y/n)";
+    print STDERR "\n\nSee a nice 3-D plot of a spiral? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "See a nice 3-D plot of a spiral?");
 
@@ -565,7 +566,7 @@ SKIP: {
     $y = xvals(5)**2;
     $labels = ['one','two','three','four','five'];
     eval { $w->reset; $w->plot(xr=>[-1,6],yr=>[-1,26],with=>'labels',$x,$y,$labels); };
-    print STDERR "See the labels with words 'one','two','three','four', and 'five'? (Y/n)";
+    print STDERR "\n\nSee the labels with words 'one','two','three','four', and 'five'? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "labels plot is OK");
     
@@ -574,7 +575,7 @@ SKIP: {
 		 with=>"yerrorbars", legend=>"data", $x, $y+(random($y)-0.5)*2*$y/20, pdl($y/20),
 		 with=>"lines",      legend=>"fit",  $x, $y); };
     ok(!$@, "mocked-up fit plot works");
-    print STDERR "See a parabola (should be green) with error bar points on it (should be red)? (Y/n)";
+    print STDERR "\n\nSee a green parabola with red error bar points on it? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "parabolic plot is OK");
 
@@ -595,7 +596,7 @@ SKIP: {
 
     ok(!$@, "double helix plot worked");
     
-    print STDERR "See a double helix plot with variable point sizes and variable color? (Y/n)";
+    print STDERR "\n\nSee a double helix plot with variable point sizes and variable color? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "double helix plot is OK");
 
@@ -603,9 +604,10 @@ SKIP: {
     ok(!$@, "image plot succeeded");
     print STDERR <<"FOO";
 
-You should see a 9x9 rvals image, scaled from -0.5 to 9.0 in X \nand -0.5 to 
+
+You should see a 9x9 rvals image, scaled from -0.5 to 9.0 in X and -0.5 to 
 8.5 in y.  There should be a blank vertical bar 1/2 unit wide at the right 
-side of the image.\nThe other sides of the plot should be flush.  Ok? (Y/n)
+side of the image.  The other sides of the plot should be flush.  Ok? (Y/n)
 FOO
     $a =<STDIN>;
 
@@ -619,8 +621,9 @@ FOO
     ok(!$@, "two-image range test plot succeeded");
     print STDERR <<"FOO";
 
+
 You should see two overlapping rvals images, with lower left pixels centered
-on (0,0) and (7,4), respectively, and a square root curve suprimposed.  
+on (0,0) and (7,4), respectively, and a square root curve superimposed.  
 The y range should be flush with the top and bottom of the two images.  The 
 x range should be set by the image at left and the curve at right, running 
 from -0.5 to 20.0.  The curve should end at 19.0.  Ok? (Y/n)
@@ -629,9 +632,9 @@ FOO
     ok($a !~ m/n/i, "image/line ranging plot is OK");
 
     if($w->{terminal} eq 'x11') {
-	print STDERR "Click in the window.\n";
+	print STDERR "\n\nClick in the window.\n";
 	eval { my $h = $w->read_mouse(); };
-	print STDERR "\n$@\n\n" if($@);
+	print STDERR "\n\n$@\n\n" if($@);
 	ok(!$@);
     } else {
 	ok(1,"Skipping click test for non-x11 device");
