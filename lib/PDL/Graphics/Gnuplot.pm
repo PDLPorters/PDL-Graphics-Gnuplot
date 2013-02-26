@@ -1649,7 +1649,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 our $VERSION = '1.4b';
-$VERSION .= "_rc2";
+$VERSION .= "_rc3";
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
@@ -6495,9 +6495,11 @@ sub _printGnuplotPipe
       local $SIG{INT} = sub { $int_flag = 1; };
       
       # Write out the string in 640kiB chunks to enable interruption
+      my $chunksize = 655360;
+      $chunksize = 16384 if($MS_io_braindamage);
       if(length($string)) { # Only write nonempty strings :-)
 	  do {
-	      $len = syswrite($pipein,substr($string,$of),655360);
+	      $len = syswrite($pipein,substr($string,$of),$chunksize);
 	      if(!defined($len) or $len==0) {
 		  my $err = (defined($len) ? "(No error but 0 bytes written)" : _def($!, "(Huh - no error code in \$!)"));
 		  barf "PDL::Graphics::Gnuplot: Error while writing ".
@@ -6709,7 +6711,7 @@ EOM
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
-	    $fromerr =~ s/^input data ('e' ends) \> +//og;
+	    $fromerr =~ s/ *input data ('e' ends) \> *//og;
 	}
 
 	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
