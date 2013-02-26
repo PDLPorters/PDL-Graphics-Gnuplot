@@ -1649,7 +1649,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 our $VERSION = '1.4b';
-$VERSION .= "_rc3";
+$VERSION .= "_rc4";
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
@@ -6493,12 +6493,39 @@ sub _printGnuplotPipe
       my $len;
       my $s = $SIG{INT};
       local $SIG{INT} = sub { $int_flag = 1; };
-      
+
       # Write out the string in 640kiB chunks to enable interruption
+      # Under Microsoft Windows we may have a small pipe buffer and also a chattering gnuplot, so 
+      # we're at risk of deadlock -- therefore we need to clock stuff out a little at a time to be cautious.
       my $chunksize = 655360;
-      $chunksize = 16384 if($MS_io_braindamage);
+      $chunksize = 256 if($MS_io_braindamage); 
+
+      my $pipeerr = $this->{"err-$suffix"};
+      my $pipeselector = $this->{"errSelector-$suffix"};
+
       if(length($string)) { # Only write nonempty strings :-)
 	  do {
+
+	      # Pipe-flushing segment:  before sending a bolus of text, make sure the gnuplot
+	      # isn't also trying to talk to us at the same time.  This isn't necessary
+	      # (but doesn't hurt) under actual operating systems, but under 
+	      # Microsoft Windows, gnuplot will chatter and might deadlock the pipe.
+	      if( defined($pipeerr) and defined($pipeselector)) {
+		  my $chatter = "";
+		  my $byte="";
+		  while( length($byte)==0 and
+			 ( $MS_io_braindamage  or  
+			   $pipeselector->can_read(0.0001) # nonblocking check waits 100 microseconds
+			 )
+		      ) {
+		      sysread $pipeerr,$byte,1;
+		      $s .= $byte;
+		  } 
+		  if($chatter) {
+		      print STDERR "\nPDL::Graphics::Gnuplot: flushed unexpected chatter from the pipe while writing.\n\tIt was: '$chatter'\n";
+		  }
+	      }
+	      # Send the next block out.
 	      $len = syswrite($pipein,substr($string,$of),$chunksize);
 	      if(!defined($len) or $len==0) {
 		  my $err = (defined($len) ? "(No error but 0 bytes written)" : _def($!, "(Huh - no error code in \$!)"));
@@ -6711,7 +6738,7 @@ EOM
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
-	    $fromerr =~ s/ *input data ('e' ends) \> *//og;
+	    $fromerr =~ s/\s*input data ('e' ends) \>\?[\n\r\s]*//og;
 	}
 
 	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
