@@ -1648,8 +1648,7 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-our $VERSION = '1.4b';
-$VERSION .= "_rc5";
+our $VERSION = '1.4';
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
@@ -6723,7 +6722,8 @@ EOM
 	# prints prompts and echoes commands.  Since there isn't much in the 
 	# way of error syntax, we might miss a few errors this way.  Oh well.
 	if($MS_io_braindamage) {
-	    $fromerr =~ s/^[\s\r]*(gnu|multi)plot\>[^\n\r]*$//msg;
+	    $fromerr =~ s/[\s\n\r]*(gnu|multi)plot\>[^\n\r]*$//msg;
+	    $fromerr =~ s/[\s\n\r]*input data \(\'e\' ends\) \>[^\n\r]*$//msg;
 	}
 	
 	# Strip the checkpoint message.
@@ -6753,7 +6753,6 @@ EOM
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/^Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//o;
-	    $fromerr =~ s/\s*input data ('e' ends) \>\?[\n\r\s]*//og;
 	}
 
 	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
@@ -7069,9 +7068,12 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head1 RELEASE NOTES
 
-=head3 V1.4
+=head3 V1.4 - released 26-Feb-2013
 
- - default to ascii data transfer under Microsoft Windows (Jurgen Muck's hang issue)
+Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
+we troubleshot Microsoft Windows's bizarre IPC problems!
+
+ - default to ascii data transfer under Microsoft Windows (Juergen's hang issue)
  - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)
  - clean up test reporting
  - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
@@ -7085,7 +7087,7 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
  - more careful I/O handling in the pipe
  - Improved interrupt handling
  - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
- - Allows specifying different commands than just "gnuplot" via environment variable.
+ - Allows specifying different commands than just "gnuplot" via environment variable GNUPLOT_BINARY.
  - Detects available terminal types from Gnuplot on initial startup.
  - supports m?tics options with hash syntax
 
