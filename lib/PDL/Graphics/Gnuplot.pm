@@ -1649,7 +1649,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 our $VERSION = '1.4b';
-$VERSION .= "_rc4";
+$VERSION .= "_rc5";
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
@@ -1662,7 +1662,7 @@ our $check_syntax = 0;
 our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
 our $gnuplot_req_v = 4.4; # Versions below this are not supported.
 our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
-our $debug_echo = 0;                              # If set, inject commands into the returned stream to mimic Losedows
+our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
@@ -2347,7 +2347,9 @@ sub plot
     unless(defined $binary_mode) {
 
 	# The user didn't explicitly set binary or non-binary mode.  Try to guess.
-	if($this->{early_gnuplot}) {
+	# Also, under Microsoft Windows binary mode seems to be dicey (Juegen Mueck's hang
+	# test), so we default to ascii.  
+	if($this->{early_gnuplot} or $MS_io_braindamage ) {
 	    # Early gnuplot - ASCII mode only (by default)
 	    $binary_mode = 0;
 	} else {
@@ -2752,6 +2754,9 @@ sub plot
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
 	    # a line with just "e".
 
+	    # Under Microsoft Windows gnuplot will emit a prompt after each row, and we 
+	    # have to clear them to avoid filling the buffer and maybe deadlocking.
+
 	    if(ref $chunk->{data}->[0] eq 'PDL') {
 		# It's a collection of PDL data only.
 		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
@@ -2762,12 +2767,47 @@ sub plot
 		    $last_plotcmd .= $s;
 		    $this->{last_plotcmd} .= $s;
 		}
-		# Emit $p as a collection of " " separated lines, followed by "e".
-		_printGnuplotPipe($this,
-				  "main",
-				  join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n",
-				  1
-		    );
+
+		if($MS_io_braindamage) {
+		    # This should probably be broken out so we don't have low-level i/o here.  
+		    # In ASCII mode gnuplot prints a helpful prompt before each line of
+		    # input.  In real operating systems, gnuplot detects pipes and suppresses
+		    # chatter.  Under Microsoft Windows it can't.  We don't use the prompting,
+		    # but we do have to flush it from the pipe to avoid the risk of deadlock
+		    # for large data sets. 
+		    my $byte;
+		    my $pipeerr = $this->{"err-main"};
+		    
+		    for my $row($p->{dog}) {
+			# Print a row of data
+			_printGnuplotPipe($this, 
+					  "main",
+					  join(" ", $row->list) . "\n"
+			    );
+			unless($this->{dumping}) {
+			    # Eat and drop characters until we hit ">", which ends a prompt.
+			    my $backstr = "";
+			    do {
+				sysread $pipeerr, $byte, 1;
+				$backstr .= $byte;
+				if($byte eq \004 or $byte eq \000 ) {
+				    $byte = undef;
+				}
+			    } until( !defined($byte) or $byte eq ">" );
+			}
+		    }
+
+		    _printGnuplotPipe($this,"main", "e\n");
+		} else {
+		    # In the normal case there's no echo, so we just send it as one big schwack.
+		    # Emit $p as a collection of " " separated lines, followed by "e".
+		    _printGnuplotPipe($this,
+				      "main",
+				      join("\n", map { join(" ", $_->list) } $p->dog)  .  "\ne\n",
+				      1
+			);
+		} 
+
 	    } else {
 		# It's a collection of list ref data only.  Assemble strings.
 		my $data = $chunk->{data};
@@ -6495,36 +6535,13 @@ sub _printGnuplotPipe
       local $SIG{INT} = sub { $int_flag = 1; };
 
       # Write out the string in 640kiB chunks to enable interruption
-      # Under Microsoft Windows we may have a small pipe buffer and also a chattering gnuplot, so 
-      # we're at risk of deadlock -- therefore we need to clock stuff out a little at a time to be cautious.
       my $chunksize = 655360;
-      $chunksize = 256 if($MS_io_braindamage); 
 
       my $pipeerr = $this->{"err-$suffix"};
       my $pipeselector = $this->{"errSelector-$suffix"};
 
       if(length($string)) { # Only write nonempty strings :-)
 	  do {
-
-	      # Pipe-flushing segment:  before sending a bolus of text, make sure the gnuplot
-	      # isn't also trying to talk to us at the same time.  This isn't necessary
-	      # (but doesn't hurt) under actual operating systems, but under 
-	      # Microsoft Windows, gnuplot will chatter and might deadlock the pipe.
-	      if( defined($pipeerr) and defined($pipeselector)) {
-		  my $chatter = "";
-		  my $byte="";
-		  while( length($byte)==0 and
-			 ( $MS_io_braindamage  or  
-			   $pipeselector->can_read(0.0001) # nonblocking check waits 100 microseconds
-			 )
-		      ) {
-		      sysread $pipeerr,$byte,1;
-		      $s .= $byte;
-		  } 
-		  if($chatter) {
-		      print STDERR "\nPDL::Graphics::Gnuplot: flushed unexpected chatter from the pipe while writing.\n\tIt was: '$chatter'\n";
-		  }
-	      }
 	      # Send the next block out.
 	      $len = syswrite($pipein,substr($string,$of),$chunksize);
 	      if(!defined($len) or $len==0) {
@@ -7056,7 +7073,8 @@ The "boxplot" plot style (new to 4.6?) requires a different using syntax and wil
 
 =head3 V1.4
 
- - do better at ignoring chatter on brain-dead platforms that rhyme with Pawberry Sterl
+ - default to ascii data transfer under Microsoft Windows (Jurgen Muck's hang issue)
+ - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)
  - clean up test reporting
  - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
  - autoranging fix
