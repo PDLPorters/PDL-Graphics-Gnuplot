@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 128;
+use Test::More tests => 133;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -749,4 +749,28 @@ ok(!$@, "spherical plotting in radians was parsed OK (abbrevs in enums too)");
 undef $w;
 unlink($testoutput) or warn "\$!: $!";
 
+##############################
+##############################
+## Test aspects of the parsers...
+$w = gpwin();
+
+eval { $w->options(xrange=>pdl(1,2)) };
+ok(!$@, "xrange accepts a PDL option");
+
+ok( (ref($w->{options}->{xrange}) eq 'ARRAY'   and 
+    $w->{options}->{xrange}->[0] == 1         and
+    $w->{options}->{xrange}->[1] == 2
+     ),
+    "xrange parses a 2-PDL into a list ref");
+
+eval { $w->options(xrange=>pdl(1,2,3)) };
+ok($@, "xrange rejects a PDL with more than 2 elements");
+
+eval {$w->options(xrange=>[21]);};
+ok(!$@, "xrange accepts a single list element");
+
+ok( (  ref($w->{options}->{xrange}) eq 'ARRAY'   and 
+       $w->{options}->{xrange}->[0] == 21        and 
+       !defined($w->{options}->{xrange}->[1])
+    ), "xrange parses single list element correctly");
 

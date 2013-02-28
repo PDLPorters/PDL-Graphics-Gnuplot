@@ -4333,7 +4333,7 @@ our $pOptionsTable =
 		    'sets maximum end of cbrange'
     ],
 
-    'cbrange'   => ['l','range',['colorbox'], undef,
+    'cbrange'   => ['lr','range',['colorbox'], undef,
 		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'
     ],
     'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
@@ -4465,7 +4465,7 @@ our $pOptionsTable =
     'rmargin'   => ['s','s',undef,undef,
 		    'right margin (chars); rmargin=>"at screen <frac>" for pane-rel. size'
     ],
-    'rrange'    => ['l','range',undef,undef,
+    'rrange'    => ['lr','range',undef,undef,
 		    'radial coordinate range in polar mode: rrange=>[<lo>,<hi>]'
     ],
     'size'      => ['l','l',['view'],undef,
@@ -4508,10 +4508,10 @@ our $pOptionsTable =
     'tmargin'   => ['s','s',undef,undef,
 		    'top margin (chars); tmargin=>"at screen <frac>" for pane-rel. size' 
     ],
-    'trange'    => ['l','range',undef,undef,
+    'trange'    => ['lr','range',undef,undef,
 		    'range for indep. variable in parametric plots: trange=>[<min>,<max>]'
     ],
-    'urange'    => ['l','range',undef,undef,
+    'urange'    => ['lr','range',undef,undef,
 		    'range for indep. variable "u" in 3-d parametric plots: [<min>,<max>]'
     ],
     'view'      => ['l', sub { my($k,$v,$h)=@_;
@@ -4537,7 +4537,7 @@ our $pOptionsTable =
 		    undef,undef,
 		    '3-d view: [r_x, r_z, scale, sc_z,"map","noequal","equal (xy|xyz)"]'
     ],
-    'vrange'    => ['l','range',undef,undef,
+    'vrange'    => ['lr','range',undef,undef,
 		    'range for indep. variable "v" in 3-d parametric plots: [<min>,<max>]'
     ],
     'x2data'    => ['s','bt',undef,undef,
@@ -4558,7 +4558,7 @@ our $pOptionsTable =
     'x2max'      => [sub { my($o,$n,$h)=@_; $h->{x2range}->[1]=$n; return undef},sub{''},undef,undef,
 		    'sets maximum end of x2range'
     ],
-    'x2range'   => ['l','range',undef,undef,
+    'x2range'   => ['lr','range',undef,undef,
 		    'set range of X2 axis: x2range=>[<min>,<max>]'
     ],
     'x2tics'    => ['lt','l',undef,undef,
@@ -4585,7 +4585,7 @@ our $pOptionsTable =
     'xmax'      => [sub { my($o,$n,$h)=@_; $h->{xrange}->[1]=$n; return undef},sub{''},undef,undef,
 		    'sets maximum end of xrange'
     ],
-    'xrange'    => ['l','range',undef,undef,
+    'xrange'    => ['lr','range',undef,undef,
 		    'set range of X axis: xrange=>[<min>,<max>]'
     ],
     'xtics'     => ['lt','l',undef,undef,
@@ -4615,7 +4615,7 @@ our $pOptionsTable =
     'y2max'      => [sub { my($o,$n,$h)=@_; $h->{y2range}->[1]=$n; return undef},sub{''},undef,undef,
 		    'sets maximum end of y2range'
     ],
-    'y2range'   => ['l','range',undef,undef,
+    'y2range'   => ['lr','range',undef,undef,
 		    'set range of Y2 axis: y2range=>[<min>,<max>]'
     ],
     'y2tics'    => ['lt','l',undef,undef,
@@ -4645,7 +4645,7 @@ our $pOptionsTable =
     'ymax'      => [sub { my($o,$n,$h)=@_; $h->{yrange}->[1]=$n; return undef},sub{''},undef,undef,
 		    'sets maximum end of yrange'
     ],
-    'yrange'    => ['l','range',undef,undef,
+    'yrange'    => ['lr','range',undef,undef,
 		    'set range of Y axis: yrange=>[<min>,<max>]'
     ],
     'yzeroaxis' => ['l','l',undef,undef,
@@ -4669,7 +4669,7 @@ our $pOptionsTable =
     'zmax'      => [sub { my($o,$n,$h)=@_; $h->{zrange}->[1]=$n; return undef},sub{''},undef,undef,
 		    'sets maximum end of zrange'
     ],
-    'zrange'    => ['l','range',undef,undef,
+    'zrange'    => ['lr','range',undef,undef,
 		    'set range of Z axis: zrange=>[<min>,<max>]'
     ],
     'zzeroaxis' => ['l','l',undef,undef,
@@ -5043,6 +5043,23 @@ $_pOHInputs = {
 		 # Not setting a boolean value - it's a list (or a trivial list).
 		 if(ref $_[1] eq 'ARRAY') {
 		     return $_[1];
+		 } else {
+#		     return [ split( /\s+/, $_[1] ) ];
+		     return [$_[1]];
+		 }
+                },
+
+    ## list or 2-PDL for a range parameter
+    'lr' => sub { return undef unless(defined $_[1]);
+		 return "" unless(length($_[1]));                                 # false value yields false
+		 return $_[1] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
+		 # Not setting a boolean value - it's a list (or a trivial list).
+		 if(ref $_[1] eq 'ARRAY') {
+		     return $_[1];
+		 } elsif( UNIVERSAL::isa( $_[1], 'PDL' ) ) {
+		     barf "PDL::Graphics::Gnuplot: range parser found a PDL, but it wasn't a 2-PDL (max,min)"
+			 unless( $_[1]->dims==1 and $_[1]->nelem==2 );
+		     return [$_[1]->list];
 		 } else {
 #		     return [ split( /\s+/, $_[1] ) ];
 		     return [$_[1]];
