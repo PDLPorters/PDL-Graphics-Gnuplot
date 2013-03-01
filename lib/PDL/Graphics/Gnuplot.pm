@@ -2600,9 +2600,9 @@ sub plot
 	    # It's an image -- always use binary to push the image out.
 
 	    # If the user asked for ASCII explicitly, warn that we're not listening.
-	    if( defined($this->{options}->{binary}) and !$this->{options}->{binary} ) {
-		print STDERR "WARNING: images are generally too large for ASCII.  Using binary instead.\n";
-	    }
+#	    if( defined($this->{options}->{binary}) and !$this->{options}->{binary} ) {
+#		print STDERR "WARNING: images are generally too large for ASCII.  Using binary instead.\n";
+#	    }
 
 	    # The map statement ensures the main and test cmd get identical sprintf templates.
 	    # Images get transferred as floats, not doubles, to save transfer time.
@@ -4290,6 +4290,15 @@ our $pOptionsTable =
     ], 
 
     'justify'   => [sub { my($old,$new,$opt) = @_;
+			  if(!defined($new)){
+			      return undef;
+			  }			      
+			  if(!$new) {
+			      if(defined($opt->{'size'}) and $opt->{'size'}->[0] =~ m/ratio/) {
+				  $opt->['size'] = undef;
+			      }
+			      return undef;
+			  }
 			  if($new > 0) {
 			      $opt->{'size'} = ["ratio ".(-$new)];
 #			      if($new==1){
