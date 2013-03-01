@@ -720,20 +720,25 @@ SKIP:{
 
 ##############################
 # Check that 3D plotting of grids differs from threaded line plotting
-eval { $w->plot({trid=>1,title=>""},with=>'lines',sequence(3,3)); };
-ok(!$@, "3-d grid plot with single column succeeded");
-open FOO,"<$testoutput";
-$lines = join("",<FOO>);
-close FOO;
+SKIP:{
+    skip "Skipping 3-D plots since gnuplot is ancient",4
+	if($w->{gp_version} < $PDL::Graphics::Gnuplot::gnuplot_req_v);
 
-eval { $w->plot({trid=>1,title=>"",yr=>[-1,1]},with=>'lines',cdim=>1,sequence(3,3));};
-ok(!$@, "3-d threaded plot with single column succeeded");
-open FOO,"<$testoutput";
-$lines2 = join("",<FOO>);
-close FOO;
-
-ok( $lines2 ne $lines, "the two 3-D plots differ");
-ok( ($lines2 =~ m/\#/) && ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
+    eval { $w->plot({trid=>1,title=>""},with=>'lines',sequence(3,3)); };
+    ok(!$@, "3-d grid plot with single column succeeded");
+    open FOO,"<$testoutput";
+    $lines = join("",<FOO>);
+    close FOO;
+    
+    eval { $w->plot({trid=>1,title=>"",yr=>[-1,1]},with=>'lines',cdim=>1,sequence(3,3));};
+    ok(!$@, "3-d threaded plot with single column succeeded");
+    open FOO,"<$testoutput";
+    $lines2 = join("",<FOO>);
+    close FOO;
+    
+    ok( $lines2 ne $lines, "the two 3-D plots differ");
+    ok( ($lines2 =~ m/\#/) && ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
+}
 
 ##############################
 # Test rudimentary polar plots
