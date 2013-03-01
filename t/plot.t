@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 133;
+use Test::More tests => 150;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -774,3 +774,57 @@ ok( (  ref($w->{options}->{xrange}) eq 'ARRAY'   and
        !defined($w->{options}->{xrange}->[1])
     ), "xrange parses single list element correctly");
 
+##############################
+##############################
+## Test explicit and implicit plotting in 2-D and 3-D, both binary and ASCII
+
+$w = gpwin(dumb, output=>$testoutput);
+
+# Test ASCII plot handling
+$w->options(binary=>0);
+
+eval { $w->plot(with=>'lines',xvals(5)) };
+ok(!$@, "ascii plot with implicit col succeeded");
+
+ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/plot +\'\-\' +using 0\:1 /,
+   "ascii plot with implicit col uses explicit reference to column 0");
+
+eval { $w->plot(with=>'lines',xvals(5),xvals(5)) };
+ok(!$@, "ascii plot with no implicit col succeeded");
+ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/plot +\'\-\' +using 1\:2 /s,
+   "ascii plot with no implicit cols uses columns 1 and 2");
+
+eval { $w->plot(with=>'lines',xvals(5,5)) };
+ok(!$@, "ascii plot with threaded data and implicit column succeeded");
+ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/plot +\'-\' +using 0\:1 [^u]+using 0\:1 /s,
+   "threaded ascii plot with one implicit col does the Right Thing");
+
+
+eval { $w->plot(with=>'lines',xvals(5),{trid=>1}) };
+ok(!$@, "ascii 3-d plot with 2 implicit cols succeeded");
+ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/plot +\'-' +using 0\:\(\$0\*0\)\:1 /s,
+   "ascii plot with two implicit cols uses column 0 and zeroed-out column 0");
+
+eval { $w->plot(with=>'lines',xvals(5),xvals(5),{trid=>1})};
+ok($@, "ascii 3-d plot with 1 implicit col fails (0 or 2 only)");
+
+eval { $w->plot(with=>'lines',xvals(5),xvals(5),xvals(5),{trid=>1}) };
+ok(!$@, "ascii 3-d plot with no implicit cols succeeds");
+ok($PDL::Graphics::Gnuplot::last_plotcmd=~ m/plot +\'-\' +using 1\:2\:3 /s,
+   "ascii 3-d plot with no implicit cols does the Right Thing");
+
+eval { $w->plot(with=>'lines',xvals(5,5),{trid=>1}) };
+ok(!$@, "ascii 3-d plot with 2-D data and 2 implicit cols succeeded");
+ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/splot +\"-\" binary array\=\(5,5\) /s,
+   "ascii plot with 2-D data and 2 implicit cols uses binary ARRAY mode");
+
+eval { $w->plot(with=>'lines',xvals(5,5),xvals(5,5),{trid=>1}) };
+ok($@, "ascii 3-d plot with 2-D data and 1 implicit col fails (0 or 2 only)");
+
+eval { $w->plot(with=>'lines',xvals(5,5),xvals(5,5),xvals(5,5),{trid=>1}) };
+ok(!$@, "ascii 3-d plot with 2-D data and no implicit cols succeeded");
+ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/splot +\"-\" binary record\=\(5,5\) /s,
+   "ascii plot with 2-D data and no implicit cols uses binary RECORD mode");
+
+eval { $w->plot(with=>'yerrorbars', (xvals(50)-25)**2, pdl(0.5),{binary=>0})  };
+ok(!$@, "yerrorbars plot succeeded in ASCII mode");
