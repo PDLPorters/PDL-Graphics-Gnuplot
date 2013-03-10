@@ -5718,7 +5718,7 @@ our $_OptionEmitters = {
 		 }
 		 return join ("", map { my $l;
 					if(defined($v->[$_])) {
-					    $l = "set   $k $_ ";
+					    $l = "set   $k ".($_+1)." ";
 					    if(ref $v->[$_] eq 'ARRAY') {                      # It's an array
 						$v->[$_]->[0] = "\"$v->[$_]->[0]\""            # quote the first element
 						    unless($v->[$_]->[0] =~ m/^\".*\"$/);      # unless it's already quoted
@@ -5735,7 +5735,7 @@ our $_OptionEmitters = {
 					    $l = "unset $k $_\n";
 					}
 					$l;
-			      } (1..$#$v)
+			      } (0..$#$v)
 		     );
                  },
     
@@ -6428,6 +6428,10 @@ EOM
 		$this->{unknown_terms}{$_} = _def($termTabSource->{$_} ,"Unknown but reported by gnuplot");
 	    }
 	}
+
+	# Copy the valid terminals out to a package global for future re-use.
+	%PDL::Graphics::Gnuplot::valid_terms = %{$this->{valid_terms}};
+	$PDL::Graphics::Gnuplot::valid_terms = \%PDL::Graphics::Gnuplot::valid_terms;
 
 	if($gp_version < $gnuplot_req_v) {
 	    print STDERR <<"EOM";
