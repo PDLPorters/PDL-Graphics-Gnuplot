@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 150;
+use Test::More tests => 153;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -779,11 +779,21 @@ ok( (  ref($w->{options}->{xrange}) eq 'ARRAY'   and
        !defined($w->{options}->{xrange}->[1])
     ), "xrange parses single list element correctly");
 
+eval { $w->options(justify=>"0") };
+ok(!$@, "justify accepts quoted zero");
+
+eval { $w->options(justify=>"-1") };
+ok($@ =~ m/positive/, "justify rejects negative numbers");
+undef $@;
+
+eval { $w->options(justify=>"1") };
+ok(!$@, "justify accepts positive numbers");
+
 ##############################
 ##############################
 ## Test explicit and implicit plotting in 2-D and 3-D, both binary and ASCII
 
-$w = gpwin(dumb, output=>$testoutput);
+$w = gpwin('dumb', output=>$testoutput);
 
 # Test ASCII plot handling
 $w->options(binary=>0);

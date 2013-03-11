@@ -4293,21 +4293,16 @@ our $pOptionsTable =
 			  if(!defined($new)){
 			      return undef;
 			  }			      
-			  if(!$new) {
+			  if($new > 0) {
+			      $opt->{'size'} = ["ratio ".(-$new)];
+			      return undef;
+			  } elsif($new<0) {
+			      die "justify: positive value needed\n";
+			  } else {
 			      if(defined($opt->{'size'}) and $opt->{'size'}->[0] =~ m/ratio/) {
 				  $opt->['size'] = undef;
 			      }
 			      return undef;
-			  }
-			  if($new > 0) {
-			      $opt->{'size'} = ["ratio ".(-$new)];
-#			      if($new==1){
-#				  $opt->{'view'} = [] unless defined($opt->{'view'});
-#				  @{$opt->{'view'}}[2..5] = ($new,$new,"equal","xyz");
-#			      }
-			      return undef;
-			  } else {
-			      die "justify: positive value needed\n";
 			  }
 		    }, 
 		    sub { '' }, undef, undef,
