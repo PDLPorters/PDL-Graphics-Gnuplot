@@ -6375,7 +6375,8 @@ sub _startGnuplot
 	$this->{dumping} = 0;
     }
 
-    my @gnuplot_options = $gnuplotFeatures{persist} ? qw(--persist) : ();
+#    my @gnuplot_options = $gnuplotFeatures{persist} ? qw(--persist) : ();
+    my @gnuplot_options;
     
     my $in  = gensym();
     my $err = gensym();

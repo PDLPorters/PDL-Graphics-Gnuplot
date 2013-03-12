@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 153;
+use Test::More tests => 154;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -631,26 +631,35 @@ FOO
     $a = <STDIN>;
     ok($a !~ m/n/i, "image/line ranging plot is OK");
 
-    if($w->{terminal} eq 'x11') {
-	print STDERR "\n\nClick in the window.\n";
-	eval { my $h = $w->read_mouse(); };
-	print STDERR "\n\n$@\n\n" if($@);
-	ok(!$@);
-    } else {
-	ok(1,"Skipping click test for non-x11 device");
-    }
-    
-    # Try with a new window
-    $w=gpwin($w->{terminal}); 
-    eval { print $w->read_mouse(); };
-    ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn't work");
-
-}
-
 
 ##############################
 # Mousing tests
 #
+
+    if( $ENV{DISPLAY}  and  $PDL::Graphics::Gnuplot::valid_terms->{x11} ) {
+	eval { $w=gpwin(x11); $w->image(rvals(9,9), {title=>"X11 window for mouse test"}) };
+	ok(!$@, "plotting to x11 window worked.");
+
+	print STDERR "\n\nClick in the X11 window for mouse test.\n";
+	eval { my $h = $w->read_mouse(); };
+	print STDERR "\n\n$@\n\n" if($@);
+	ok(!$@, "Mouse test read a click");
+
+	# Try with a new window
+	$w=gpwin($w->{terminal}); 
+	eval { print $w->read_mouse(); };
+	ok($@ =~ m/no existing/,"Trying to read the mouse input on an empty window doesn't work");
+	
+    } else {
+	ok(1,"Skipping x11 plot");
+	ok(1,"Skipping click test for non-x11 device");
+	ok(1,"Skipping mouse input test for non-x11 device");
+    }
+    
+
+}
+
+
 
 
 ##############################
