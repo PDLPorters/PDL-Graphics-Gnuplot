@@ -379,13 +379,14 @@ Here the only given piddle has dimensions (21,21). This is a 3D plot, so we are
 exactly 2 piddles short. Thus, PDL::Graphics::Gnuplot generates an implicit
 domain, corresponding to a 21-by-21 grid.
 
-C<PDL::Graphics::Gnuplot> will group arguments greedily, so you need
-to add separators when overplotting two separate curves on an implicit
-domain.  For example, C<plot($a,$b)> is intepreting as plotting C<$b>
-vs. C<$a>.  If you actually want to plot an overlay of both C<$a> and
-C<$b> against array index, you want C<plot($a,{},$b)> instead.  The 
-C<{}> is an empty hash ref. It serves to separate the argument list into
-two curves.
+C<PDL::Graphics::Gnuplot> requires explicit separators between tuples
+for different plots, so it is always clear from the arguments you pass
+in just how many columns you are supplying. For example,
+C<plot($a,$b)> will plot C<$b> vs. C<$a>.  If you actually want to
+plot an overlay of both C<$a> and C<$b> against array index, you want
+C<plot($a,{},$b)> instead.  The C<{}> is a hash ref containing a 
+collection of all the curve options that you are changing between
+the two curves -- in this case, zero of them.
 
 =head2 Images
 
@@ -1394,9 +1395,6 @@ from the center; this is how Gnuplot does it)
 
 =head3 More multi-value styles
 
-In Gnuplot 4.4.0, these generally only work in ASCII mode. This is a bug in
-Gnuplot that will hopefully get resolved.
-
 Plotting with variable-size circles (size given in plot units, requires Gnuplot >= 4.4)
 
   plot(with => 'circles', $x, $y, $radii);
@@ -2145,6 +2143,12 @@ syntax and will require some hacking to support.
 =back
 
 =head1 RELEASE NOTES
+
+=head3 V1.5 - several bug fixes
+
+ - bad value support
+ - justify problem
+ - several minor cross-platform issues
 
 =head3 V1.4 - released 26-Feb-2013
 

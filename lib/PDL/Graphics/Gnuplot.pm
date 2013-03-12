@@ -442,13 +442,14 @@ Here the only given piddle has dimensions (21,21). This is a 3D plot, so we are
 exactly 2 piddles short. Thus, PDL::Graphics::Gnuplot generates an implicit
 domain, corresponding to a 21-by-21 grid.
 
-C<PDL::Graphics::Gnuplot> will group arguments greedily, so you need
-to add separators when overplotting two separate curves on an implicit
-domain.  For example, C<plot($a,$b)> is intepreting as plotting C<$b>
-vs. C<$a>.  If you actually want to plot an overlay of both C<$a> and
-C<$b> against array index, you want C<plot($a,{},$b)> instead.  The 
-C<{}> is an empty hash ref. It serves to separate the argument list into
-two curves.
+C<PDL::Graphics::Gnuplot> requires explicit separators between tuples
+for different plots, so it is always clear from the arguments you pass
+in just how many columns you are supplying. For example,
+C<plot($a,$b)> will plot C<$b> vs. C<$a>.  If you actually want to
+plot an overlay of both C<$a> and C<$b> against array index, you want
+C<plot($a,{},$b)> instead.  The C<{}> is a hash ref containing a 
+collection of all the curve options that you are changing between
+the two curves -- in this case, zero of them.
 
 =head2 Images
 
@@ -1456,9 +1457,6 @@ from the center; this is how Gnuplot does it)
   plot(with => 'yerrorbars', $y, $y - $y->ones, $y + 2*$y->ones);
 
 =head3 More multi-value styles
-
-In Gnuplot 4.4.0, these generally only work in ASCII mode. This is a bug in
-Gnuplot that will hopefully get resolved.
 
 Plotting with variable-size circles (size given in plot units, requires Gnuplot >= 4.4)
 
@@ -3769,10 +3767,24 @@ read_mouse blocks execution for input, but responds gracefully to interrupts.
 my $mouse_serial = 0;
 sub read_mouse {
     my $this = shift;
-    my $message = _def(shift(), "Click mouse in plot to continue...");
+    my $message = _def(shift(), "Click mouse or press key in plot to continue...");
 
-    barf "read_mouse: This plot uses the '$this->{terminal}' terminal, which doesn't support mousing\n"
-	unless($this->{mouse});
+    unless($this->{mouse}) {
+	my $s = "read_mouse: This plot uses the '$this->{terminal}' terminal, which doesn't support mousing\n";
+	my @terms = ();
+	for my $k(sort keys %$termTab) {
+	    push(@terms, $k) if($termTab->{$k}->{mouse} );
+	}
+	if(@terms==0) {
+	    $s .= "Sorry, your gnuplot engine doesn't have any mousing terminal types.\n";
+	} elsif(@terms==1) {
+	    $s .= "Your gnuplot supports mousing only on the $terms[0] device.\n";
+	} else {
+	    $s .= "Your gnuplot supports mousing on these devices: ".join(", ", @terms)."\n";
+	}
+	    
+	barf $s."\n";
+    }
 
     barf "read_mouse: no existing plot to mouse on!\n"
 	unless($this->{replottable});
@@ -3792,7 +3804,6 @@ if( (exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y")) )  print "K
 EOC
 
 	$string = _checkpoint($this, "main", {notimeout=>1});
-	print "string is $string\n";
 	
 	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/ 
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
@@ -3805,18 +3816,20 @@ EOC
     elsif($gp_version >= 4.7) {
 	_printGnuplotPipe($this,"main",<<"EOC");
 pause mouse any
-if( (exists("MOUSE_X") * exists("MOUSE_Y")) ) print "Key: ",MOUSE_KEY," at xy:",MOUSE_X,",",MOUSE_Y," shift:",MOUSE_SHIFT," alt:",MOUSE_ALT," ctrl:",MOUSE_CTRL; else print "Key: ",MOUSE_KEY;
+if( (exists("MOUSE_KEY")) )                   print "Key:",MOUSE_KEY;             else print "Key:";
+if( (exists("MOUSE_X") * exists("MOUSE_Y")) ) print "at xy:",MOUSE_X,",",MOUSE_Y; else print "at xy:-1,-1";
+if( (exists("MOUSE_SHIFT") ) )                print "shift:",MOUSE_SHIFT;         else print "shift:";
+if( (exists("MOUSE_ALT")))                    print "alt:",MOUSE_ALT;             else print "alt:";
+if( (exists("MOUSE_CTRL")) )                  print "ctrl:",MOUSE_CTRL;           else print "ctrl:";
 EOC
 	$string = _checkpoint($this, "main", {notimeout=>1});
-	print "4.7: string is $string\n";
-	
-	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+) shift:(\d+) alt:(\d+) ctrl:(\d+))?/
+	$string =~ s/[\r\n]/ /sg;
+
+	$string =~ m/Key:(\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+) shift:(\d+) alt:(\d+) ctrl:(\d+))?/
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
 	($ch,$x,$y,$sft,$alt,$ctl) = map { _def($_, "") } ($1,$3,$4,$5,$6,$7);
 
-	print "1:$1, 2:$2, 3:$3, 4:$4, 5:$5, 6:$6, 7:$7\n";
-	print "x=$x;y=$y\n";
 	if($ch == 1063) {
 	    $b = 1;
 	    $ch = -1;
@@ -6122,7 +6135,7 @@ our $termTabSource = {
 		 opt=>[ qw/color monochrome font title size/,
 			['position','l','csize','pixel location of the window'],
 			'output']},
-    'wxt'     =>{unit=>"px", mouse=>1,desc=>"WxWidgets display", mouse=>1,ok=>1,disp=>2,
+    'wxt'     =>{unit=>"px", desc=>"WxWidgets display", mouse=>0,ok=>1,disp=>2,
 		 opt=>[ qw/size enhanced font title dashed solid dashlength persist raise/,
 			['ctrl',  'b','cf','enable (or disable) control-Q to quit window'],
 			['close', 'b','cf','close window on completion?']
