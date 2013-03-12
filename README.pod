@@ -59,12 +59,12 @@ hardcopy devices (e.g. "PDF") that support multipage output, it is
 necessary to close the device after plotting to ensure a valid file is
 written out.
 
-The main subroutine that C<PDL::Graphics::Gnuplot> exports by default
-is C<gplot()>, which produces one or more overlain plots and/or images
-in a single plotting window.  Depending on options, C<gplot()> can 
-produce line plots, scatterplots, error boxes, "candlesticks", images,
-or any overlain combination of these elements; or perspective views
-of 3-D renderings such as surface plots.  
+C<PDL::Graphics::Gnuplot> exports two routines by default: a
+constructor, C<gpwin()> and a general purpose plot routine,
+C<gplot()>.  Depending on options, C<gplot()> can produce line plots,
+scatterplots, error boxes, "candlesticks", images, or any overlain
+combination of these elements; or perspective views of 3-D renderings
+such as surface plots.
 
 A call to C<gplot()> looks like:
 
@@ -1798,6 +1798,9 @@ Each C<plot()> call creates a new plot from whole cloth, either creating
 or overwriting the output for that device.
 
 If you want to add features to an existing plot, use C<replot>.  
+
+C<plot()> understands the PDL bad value mechanism.  Bad values are omitted
+from the plot.
 
 =for usage
 

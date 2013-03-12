@@ -122,12 +122,12 @@ hardcopy devices (e.g. "PDF") that support multipage output, it is
 necessary to close the device after plotting to ensure a valid file is
 written out.
 
-The main subroutine that C<PDL::Graphics::Gnuplot> exports by default
-is C<gplot()>, which produces one or more overlain plots and/or images
-in a single plotting window.  Depending on options, C<gplot()> can 
-produce line plots, scatterplots, error boxes, "candlesticks", images,
-or any overlain combination of these elements; or perspective views
-of 3-D renderings such as surface plots.  
+C<PDL::Graphics::Gnuplot> exports two routines by default: a
+constructor, C<gpwin()> and a general purpose plot routine,
+C<gplot()>.  Depending on options, C<gplot()> can produce line plots,
+scatterplots, error boxes, "candlesticks", images, or any overlain
+combination of these elements; or perspective views of 3-D renderings
+such as surface plots.
 
 A call to C<gplot()> looks like:
 
@@ -2144,6 +2144,9 @@ or overwriting the output for that device.
 
 If you want to add features to an existing plot, use C<replot>.  
 
+C<plot()> understands the PDL bad value mechanism.  Bad values are omitted
+from the plot.
+
 =for usage
 
  $w=gpwin();
@@ -3125,7 +3128,22 @@ sub plot
 
 	    $chunk{tuplesize} = @dataPiddles;
 	    
+	    # Gnuplot doesn't handle bad values, but it *does* know to omit nans.  Replace bad values with nan.
+	    # This is in an eval so it will do nothing (un)gracefully if our pdl doesn't support badvals.
+	    eval { 
+		for my $n(0..$#dataPiddles) {
+		    my $dp = $dataPiddles[$n];
+		    if($dp->badflag) {
+			$dp = $dataPiddles[$n] = $dp->copy;
+			$dp->where($dp->isbad) .= asin(pdl(1.1)); # NaN
+		    }
+		}
+	    };
+	    undef $@;
+
+	    # Get the threading dims right
 	    @dataPiddles = matchDims( @dataPiddles );
+	    
 
 
 	    ##############################
@@ -7120,6 +7138,12 @@ syntax and will require some hacking to support.
 =back
 
 =head1 RELEASE NOTES
+
+=head3 V1.5 - several bug fixes
+
+ - bad value support
+ - justify problem
+ - several minor cross-platform issues
 
 =head3 V1.4 - released 26-Feb-2013
 
