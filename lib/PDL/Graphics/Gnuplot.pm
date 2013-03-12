@@ -3134,7 +3134,7 @@ sub plot
 		for my $n(0..$#dataPiddles) {
 		    my $dp = $dataPiddles[$n];
 		    if($dp->badflag) {
-			$dp = $dataPiddles[$n] = $dp->copy;
+			$dp = $dataPiddles[$n] = $dp + pdl(0.0);  # force copy and convert to double
 			$dp->where($dp->isbad) .= asin(pdl(1.1)); # NaN
 		    }
 		}
