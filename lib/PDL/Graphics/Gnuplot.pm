@@ -2729,6 +2729,20 @@ sub plot
     for my $chunk(@$chunks){
 	my $p;
 
+	# Gnuplot doesn't handle bad values, but it *does* know to
+	# omit nans.  If we're running under a PDL that uses the
+	# bad value handling stuff, replace bad values with nan in the current chunk.
+	if($PDL::Bad::Status) {
+	    for my $n(0..$#{$chunk->{data}}) {
+		my $dp = $chunk->{data}->[$n];
+		next if(ref($dp) eq 'ARRAY');
+		if($dp->badflag) {
+		    $dp = $chunk->{data}->[$n] = $dp + pdl(0.0);  # force copy and convert to floating point
+		    $dp->where($dp->isbad) .= asin(pdl(1.1));     # NaN
+		}
+	    }
+	}
+	
 	if($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
 #	    $p = $chunk->{data}->[0]->float->sever;
@@ -3126,27 +3140,9 @@ sub plot
 
 	    $chunk{tuplesize} = @dataPiddles;
 	    
-
-	    # Gnuplot doesn't handle bad values, but it *does* know to
-	    # omit nans.  If we're running under a PDL that uses the
-	    # bad value handling stuff, replace bad values with nan.
-	    if($PDL::Bad::Status) {
-		for my $n(0..$#dataPiddles) {
-		    my $dp = $dataPiddles[$n];
-		    next if(ref($dp) eq 'ARRAY');
-		    if($dp->badflag) {
-			$dp = $dataPiddles[$n] = $dp + pdl(0.0);  # force copy and convert to double
-			$dp->where($dp->isbad) .= asin(pdl(1.1)); # NaN
-		    }
-		}
-	    };
-	    undef $@;
-
 	    # Get the threading dims right
 	    @dataPiddles = matchDims( @dataPiddles );
 	    
-
-
 	    ##############################
 	    # Make sure there is a using spec, in case one wasn't given.
 	    # If we have one implicit dim in ASCII, we need a different using spec

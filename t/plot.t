@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 154;
+use Test::More tests => 156;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -476,8 +476,8 @@ unlink($testoutput) or warn "\$!: $!";
 
 SKIP: {
     unless(exists($ENV{GNUPLOT_INTERACTIVE})) {
-	print STDERR "\n\n******************************\nSkipping 24 interactive tests.\n    Set the environment variable GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
-	skip "Skipping interactive tests - set env. variable GNUPLOT_INTERACTIVE to enable.",24;
+	print STDERR "\n\n******************************\nSkipping 27 interactive tests.\n    Set the environment variable GNUPLOT_INTERACTIVE to enable them.\n******************************\n\n";
+	skip "Skipping interactive tests - set env. variable GNUPLOT_INTERACTIVE to enable.",27;
     }
 
     eval { $w = gpwin('wxt'); };
@@ -630,6 +630,35 @@ from -0.5 to 20.0.  The curve should end at 19.0.  Ok? (Y/n)
 FOO
     $a = <STDIN>;
     ok($a !~ m/n/i, "image/line ranging plot is OK");
+
+    if($PDL::Bad::Status) {
+	eval { 
+	    $w = gpwin();
+	    $w->multiplot(layout=>[2,1]);
+	    $a = xvals(11)**2; 
+	    $a->slice("(5)") .= asin(pdl(1.1));
+	    $b = (xvals(11)**2)->setbadif(xvals(11)==5);
+	    print "a=$a\n";
+	    print "b=$b\n";
+	    $w->options(xlab=>"X", ylab=>"Y");
+	    $w->line($a, {title=>"Parabola with NaN at x=5"});
+	    $w->line($b, {title=>"Parabola with BAD at x=5"});
+	    $w->end_multi;
+	};
+
+	ok(!$@, "bad value plot succeeded");
+	print $@ if($@);
+	print STDERR <<"FOO";
+
+The two panels should have the same plot with different titles:  Y=X**2, 
+with a segment missing from X=4 to X=6.  OK?
+FOO
+$a = <STDIN>;
+	ok($a !~ m/n/i, "bad value plot looks OK");
+    } else {
+	ok(1, "Skipping bad-value test since this PDL doesn't support badvals");
+	ok(1, "Skipping bad-value test since this PDL doesn't support badvals");
+    }
 
 
 ##############################
