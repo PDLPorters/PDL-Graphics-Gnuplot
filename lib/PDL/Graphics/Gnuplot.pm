@@ -3126,11 +3126,14 @@ sub plot
 
 	    $chunk{tuplesize} = @dataPiddles;
 	    
-	    # Gnuplot doesn't handle bad values, but it *does* know to omit nans.  Replace bad values with nan.
-	    # This is in an eval so it will do nothing (un)gracefully if our pdl doesn't support badvals.
-	    eval { 
+
+	    # Gnuplot doesn't handle bad values, but it *does* know to
+	    # omit nans.  If we're running under a PDL that uses the
+	    # bad value handling stuff, replace bad values with nan.
+	    if($PDL::Bad::Status) {
 		for my $n(0..$#dataPiddles) {
 		    my $dp = $dataPiddles[$n];
+		    next if(ref($dp) eq 'ARRAY');
 		    if($dp->badflag) {
 			$dp = $dataPiddles[$n] = $dp + pdl(0.0);  # force copy and convert to double
 			$dp->where($dp->isbad) .= asin(pdl(1.1)); # NaN
