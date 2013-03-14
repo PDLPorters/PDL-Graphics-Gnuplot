@@ -1645,7 +1645,8 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-our $VERSION = '1.4';
+our $VERSION = '1.490';
+eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
@@ -7164,8 +7165,9 @@ syntax and will require some hacking to support.
 
 =head3 V1.5 - several bug fixes
 
+ - windows don't persist, by default
  - bad value support
- - justify problem
+ - fixed a justify problem
  - several minor cross-platform issues
 
 =head3 V1.4 - released 26-Feb-2013
