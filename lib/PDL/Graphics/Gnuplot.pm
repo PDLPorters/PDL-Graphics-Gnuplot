@@ -1939,8 +1939,16 @@ FOO
 	    
 	    # Stuff the default size unit into the options hash, so that the parser has access to it.
 	    $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
-	    
+
 	    _parseOptHash( $termOptions, $termTab->{$terminal}->{opt}, @_ );
+
+	    # Default the 'persist' option to 0, so that interactive windows behave nicely unless
+	    # asked to stay.
+	    print "term is $terminal\n";
+	    if(exists($termTab->{$terminal}->{opt}->[0]->{persist})  and
+	       !defined($termOptions->{persist}) ) {
+		$termOptions->{persist} = 0;
+	    }
 	    
 	    $this->{options}->{output} = $termOptions->{output};
 	    $this->{wait} = $termOptions->{wait};  
@@ -6374,8 +6382,10 @@ sub _startGnuplot
 	$this->{dumping} = 0;
     }
 
-#    my @gnuplot_options = $gnuplotFeatures{persist} ? qw(--persist) : ();
-    my @gnuplot_options;
+    # We don't actually want the --persist option, but gnuplot crashes on some platforms without it.
+    # (I'm looking at you, Microsoft Windows...)
+    # Instead, we default the "persist" plot option to be 0, if unspecified.
+    my @gnuplot_options = $gnuplotFeatures{persist} ? qw(--persist) : ();
     
     my $in  = gensym();
     my $err = gensym();
