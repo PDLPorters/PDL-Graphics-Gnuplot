@@ -1645,7 +1645,7 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
-our $VERSION = '1.490';
+our $VERSION = '1.490_001';                    # Development of better curve options
 eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -1949,6 +1949,12 @@ FOO
 	    if(exists($termTab->{$terminal}->{opt}->[0]->{persist})  and
 	       !defined($termOptions->{persist}) ) {
 		$termOptions->{persist} = 0;
+	    }
+
+	    # Default the 'dashed' option to 1.
+	    if(exists($termTab->{$terminal}->{opt}->[0]->{dashed})  and  
+	       !defined($termOptions->{dashed}) ) {
+		$termOptions->{dashed} = 1;
 	    }
 	    
 	    $this->{options}->{output} = $termOptions->{output};
@@ -4174,6 +4180,7 @@ sub _expand_abbrev {
 #        accepted/understood keywords, values are output form for further keywords.  
 #        This is only valid with options lists ('l' input), and is used to keep track of 
 #        (e.g.) which keywords should be auto-quoted.
+#     * array ref is not allowed in pOptionsTable but *is* allowed in cOptionsTable below.
 #
 #   - sort-after:
 #     * nothing: can appear in no particular order
@@ -4181,6 +4188,7 @@ sub _expand_abbrev {
 #
 #   - sort-order
 #     * a number: numbered options, if present appear at the beginning of the option dump, in numerical order.
+#
 #   - documentation-string (optional)
 #
 # keywords with capital-letter value types are recognized even with a trailing number in the keyword;
@@ -4763,11 +4771,12 @@ $pOpt = [$pOptionsTable, $pOptionsAbbrevs, "plot option"];
 ##########
 # cOptionsTable - describes valid curve options and their allowed value types
 #
-# This works similarly to the pOptionsTable, above.
-# 
 # The output types are different so that they can all be interpolated into the same
 # master table.  Curve option output routines have a 'c' in front of the name.  
-#
+# 
+
+# parameterize a curve option scalar... 
+my $cs_param = sub { my($name, $k, $v, $h) = @_; return "" unless($v); return " $name $v "; };
 
 our $cOptionsTable = {
     'trange'   => ['l','crange',undef,1],  # parametric range modifier
@@ -4796,10 +4805,58 @@ our $cOptionsTable = {
     'axes'     => [['(x[12])(y[12])'],'cs',undef,8],
     'smooth'   => ['s','cs',undef,8.1],
     'with'     => ['l', 'cl', undef, 9],
+    'linetype' => ['s', sub { &$cs_param('lt',@_) }, undef, 10],
+    'linestyle'=> ['s', sub { &$cs_param('ls',@_) }, undef, 11],
+    'linecolor'=> ['l',
+		   sub { my($k,$v,$h) = @_;  
+			 return "" unless($v); 
+			 my @words;
+			 unless(ref($v)) {
+			     $v =~ s/^\s+//;
+			     $v =~ s/\s+$//;
+			     @words = split /\s+/, $v;
+			 } elsif(ref($v) eq 'ARRAY') {
+			     if(@$v > 1) {
+				 @words = @$v;
+			     } else {
+				 $v->[0] =~ s/^\s+//;
+				 $v->[0] =~ s/\s+$//;
+				 @words = split /\s+/, $v->[0];
+			     }
+			 } else {
+			     die "linecolor curve option: only scalar and ARRAY values are supported";
+			 }
+
+			 my $s = " lc ";
+			 $s .= shift @words if(lc($words[0]) eq 'rgb');
+
+			 if( $words[0] =~ m/\#[0-9a-fA-F]{6}/ ) {
+			     $s .= " rgb " unless($s =~ m/rgb/);
+			     $s .= join(" ",@words);
+			     return $s;
+			 }
+			 elsif($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
+			     $s .= " rgb " unless($s =~ m/rgb/);
+			     $s .= " \"$words[0]\" ";
+			     shift @words;
+			     $s .= join(" ",@words)." ";
+			     return $s;
+			 } else {
+			     return $s." ".join(" ",@words)." "; # maybe wrong - let gnuplot sort it out
+			 }
+		   },
+		   undef, 12
+		   ],
+    'linewidth'=> ['s', sub { &$cs_param('lw',@_) }, undef, 13],
     'tuplesize'=> ['s',sub { return ""}]    # holds tuplesize option for explicit setting
 };
 
 our $cOptionsAbbrevs = _gen_abbrev_list(keys %$cOptionsTable);
+$cOptionsAbbrevs->{'lt'} = ["linetype"];
+$cOptionsAbbrevs->{'ls'} = ["linestyle"];
+$cOptionsAbbrevs->{'lw'} = ["linewidth"];
+$cOptionsAbbrevs->{'lc'} = ["linecolor"];
+
 $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 
 
@@ -6414,14 +6471,14 @@ sub _startGnuplot
     my $s = "";
     our $gp_version;
     if(!$this->{dumping}) {
-	print $in "show version\nset terminal\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nprint \"finished\"\n";
+	print $in "show version\nset terminal\n\n\n\n\n\n\n\n\n\nprint \"CcColors\"\nshow colornames\n\n\n\n\n\n\n\n\nprint \"FfFinished\"\n";
 	do {
-	    if($errSelector->can_read(2) or $MS_io_braindamage) {
+	    if($errSelector->can_read(1) or $MS_io_braindamage) {
 		my $byte;
 		sysread $err, $byte, 1;
 		$s .= $byte;
 	    } else {
-		print STDERR <<"EOM"
+		print STDERR <<"EOM";
 WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read 
    a version number and some terminal information.  Ah, well, I\'m returning 
    the object anyway -- but don\'t be surprised if it doesn\'t work.
@@ -6434,7 +6491,7 @@ EOM
 ;
 		return $this;
 	    }
-	} until($s =~ m/^finished$/m);
+	} until($s =~ m/^FfFinished$/m);
 
 ##############################
 # Parse version number; fail gracefully
@@ -6454,11 +6511,18 @@ EOM
 	}
 
 ##############################
-# Parse terminals.
+# Parse terminals and colors...
 	$this->{valid_terms} = {};
 	$this->{unknown_terms} = {};
 
-	for( grep( ((m/^\s+(\w+)\s\s/) && s/^\s+// && s/\s\s.*$//), split(/\n/,$s) ) ) {
+	my @lines = split /\r?\n\r?/,$s;
+	my @toplines = ();
+	LINE:while(@lines) {
+	    last LINE if($lines[0] =~ m/^CcColors/);
+	    push(@toplines, shift @lines);
+	}
+
+	for( grep( ((m/^\s+(\w+)\s\s/) && s/^\s+// && s/\s\s.*$//), @toplines ) ) {
 	    if(exists($termTab->{$_})) {
 		$this->{valid_terms}->{$_} = 1;
 	    } else {
@@ -6466,9 +6530,16 @@ EOM
 	    }
 	}
 
+	$PDL::Graphics::Gnuplot::colornames = {};
+	for my $l(@lines){
+	    next unless( $l =~ m/^\s+([\w\-0-9]+)\s+(\#......)/ );
+	    $PDL::Graphics::Gnuplot::colornames->{$1} = $2;
+	}
+
 	# Copy the valid terminals out to a package global for future re-use.
 	%PDL::Graphics::Gnuplot::valid_terms = %{$this->{valid_terms}};
 	$PDL::Graphics::Gnuplot::valid_terms = \%PDL::Graphics::Gnuplot::valid_terms;
+
 
 	if($gp_version < $gnuplot_req_v) {
 	    print STDERR <<"EOM";
@@ -7165,6 +7236,8 @@ syntax and will require some hacking to support.
 
 =head3 V1.5 - several bug fixes
 
+ - curve options exist for the major plot variants (line color etc.)
+ - lines are dashed, by default
  - windows don't persist, by default
  - bad value support
  - fixed a justify problem

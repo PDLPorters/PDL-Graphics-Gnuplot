@@ -524,10 +524,10 @@ SKIP: {
 	ok(1,"skipping interactive-zoom test");
     }
 
-    eval { $w->reset; $w->plot( {title => "Parabola with error bars"},
+    eval { $w->reset; $w->options(binary=>0,tee=>1); $w->plot( {title => "Parabola with error bars"},
 				with=>"xyerrorbars", legend=>"Parabola",
 				$x**2 * 10, abs($x)/10, abs($x)*5 ); };
-    
+    print $PDL::Graphics::Gnuplot::last_plotcmd."\n";
         print STDERR "\n\nAre there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "error bars are OK");
