@@ -1713,7 +1713,7 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '1.490_001';                    # Development of better curve options
+our $VERSION = '1.5';                    # Development of better curve options
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
