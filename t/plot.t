@@ -881,3 +881,7 @@ ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/splot +\"-\" binary record\=\(5,5\
 
 eval { $w->plot(with=>'yerrorbars', (xvals(50)-25)**2, pdl(0.5),{binary=>0})  };
 ok(!$@, "yerrorbars plot succeeded in ASCII mode");
+
+undef $w;
+unlink($testoutput) or warn "\$!: $!";
+
