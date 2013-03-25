@@ -87,9 +87,12 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
 
  pdl> $xy = zeros(21,21)->ndcoords - pdl(10,10);
  pdl> $z = inner($xy, $xy);
- pdl> gplot({title  => 'Heat map', '3d' => 1,
-        extracmds => 'set view 0,0'},
-        with => 'image', xvals($z),yvals($z),zeroes($z),$z*2);
+ pdl> gplot({title  => 'Heat map', 
+             trid   => 1, 
+             view   => [0,0]
+            },
+            with => 'image', xvals($z),yvals($z),zeroes($z),$z*2
+           );
 
  pdl> $w = gpwin();                             # constructor
  pdl> $pi    = 3.14159;
