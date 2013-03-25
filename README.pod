@@ -1266,50 +1266,6 @@ They are in a hash, whose keys are as follows:
 
 Specifies the legend label for this curve
 
-=item with
-
-Specifies the style for this curve. The value is passed to gnuplot
-using its 'with' keyword, so valid values are whatever gnuplot
-supports.  See above ("Plot styles supported") for a list of supported
-curve styles.
-
-Gnuplot supports modifiers for most plot styles, and this is a major 
-way of customizing plot output.  The modifiers are not (yet) parsed
-at all by PDL::Graphics::Gnuplot.  You can pass in with style modifiers
-directly in the plot style C<with> curve option, as in C<< with=>'line lw 5' >>,
-which plots a single trace with a linewidth of 5.
-
-Different curve styles have different sets of options, so it is necessary
-to refer to the gnuplot manual to identify which options are relevant to each
-particular curve style.  
-
-A few common curve style modifiers are:
-
-=over 3
-
-=item * C<lw> - line width: sets the line width, as a multiplier on the default width.
-
-=item * C<lc> - line color: sets the color of drawn lines to a given rgb value or to the 
-pseudocolor lookup table (e.g. C<< with=>'line lc rgb "#00ff00" lw 5' >> plots a 
-bold bright-green line, or C<< with=>'line lc palette' >> plots a line with 
-its color looked up from the pseudocolor lookup table that you can set with 
-the C<clut> or C<palette> plot options.  If you use C<palette> you must also include an 
-extra data column in the associated tuple.
-
-=item * C<ls> - linestyle: indexes the line style list for dashes and default color. Works
-for non-linelike curves as well (e.g. linestyle modifies the points in C<< with=>'points ls 5' >>).
-
-=item * C<pt> - pointtype: sets the type of glyph use for points in the plot, without modifying
-other characteristics of the style.  (if you use C<ls>, you change the whole style including color;
-if you use C<pt>, you just change the glyph).
-
-=item * C<ps> - pointsize: can be a multiplier or the word C<variable>. If you use 
-C<variable> you must also include an extra data column in the associated tuple.
-
-=back
-
-See the examples in this POD or in the included demo plotting scripts for details.
-
 =item axes
 
 Lets you specify which X and/or Y axes to plot on.  Gnuplot supports
@@ -1317,6 +1273,108 @@ a main and alternate X and Y axis.  You specify them as a packed string
 with the x and y axes indicated: for example, C<x1y1> to plot on the main
 axes, or C<x1y2> to plot using an alternate Y axis (normally gridded on
 the right side of the plot).
+
+=item with
+
+Specifies the plot style for this curve. The value is passed to gnuplot
+using its 'with' keyword, so valid values are whatever gnuplot
+supports.  See above ("Plot styles supported") for a list of supported
+curve styles.
+
+The following curve options in this list modify the plot style further.
+Not all of them are applicable to all plot styles -- for example, it makes
+no sense to specify a fill style for C<< with=>lines >>.
+
+For historical reasons, you can supply the with modifier curve options
+as a single string in the "with" curve option.  That usage is deprecated
+and will disappear in a future version of PDL::Graphics::Gnuplot. 
+
+=item linetype (abbrev 'lt')
+
+This is a numeric selector from the default collection of line styles.
+It includes automagic selection of dash style, color, and width from the 
+default set of linetypes for your current output terminal.
+
+=item linestyle (abbrev 'ls')
+
+This works exactly like C<< linetype >> above, except that you can modify 
+individual line styles by setting the C<< style line <num> >> plot option.
+That is handy for a custom style you might use across several curves either
+a single plot or several plots.
+
+=item linewidth (abbrev 'lw')
+
+This is a numeric multiplier on the usual default line width in your current
+terminal.
+
+=item linecolor (abbrev 'lc')
+
+This is a color specifier for the color of the line.  You can feed in
+a standard color name (they're listed in the package-global variable
+C<@PDL::Graphics::Gnuplot::colornames>), a small integer to index the
+standard linetype colors, the word "variable" to indicate that the
+line color is a standard linetype color to be drawn from an additional
+column of data, C<< [rgbcolor=><num>] >> to specify an RGB color as a
+24-bit packed integer, C<< [rgbcolor=>'variable'] >> to specify an
+additional column of data containing 24-bit packed integers with RGB
+color values, C<< [palette=>'frac',<val>] >> to specify a single
+fractional position (scaled 0-1) in the current palette, or C<<
+[palette=>'cb',<val>] >> to specify a single value in the scaled
+cbrange.
+
+=item textcolor (abbrev 'tc')
+
+For plot styles like C<labels> that specify text, this sets the color
+of the text.  It has the same format as C<linecolor> (above).
+
+=item pointtype (abbrev 'pt')
+
+Selects a point glyph shape from the built-in list for your terminal,
+for plots that render points as small glyphs (like C<points> and
+C<linespoints>).
+
+=item pointsize (abbrev 'ps')
+
+Selects a fractional size for point glyphs, relative to the default size
+on your terminal, for plots that render points as small glyphs.
+
+=item fillstyle (abbrev 'fs') 
+
+Specify the way that filled regions should be colored, in plots that
+have fillable areas (like C<boxes>).  Unlike C<linestyle> above,
+C<fillstyle> accepts a full specification rather than an index into a
+set of predefined styles. You can feed in: C<empty> for no fill; 
+C<solid> for a solid fill; C<< ['transparent','solid', <density>] >> for
+a transparent solid fill on terminals that support it; C<< pattern >>
+for a cycling-per-curve pattern fill; C<< ['pattern',<n>] >> to specify 
+a particular fill pattern.  
+
+Any of those fill style specifications can have a border specification appended to it.
+To specify a border, append C<< 'border', lt=><type>, lc=><colorspec> >> to the list.
+(You can omit the lt or the lc).  To specify no border, append C<<'noborder'>>.
+
+=item nohidden3d
+
+If you are making a 3D plot and have used the plot option C<hidden3d> to get
+hidden line removal, you can override that for a particular curve by setting
+the C<nohidden3d> option to a true value.  Only the single curve with C<nohidden3d> 
+set will have its hidden points rendered.
+
+=item nocontours
+
+If you are making a contour 3D plot, you can inhibit rendering of
+contours for a particular curve by setting C<nocontours> to a true
+value.
+
+=item nosurface
+
+If you are making a surface 3D plot, you can inhibit rendering of the
+surface associated with a particular curve, by setting C<nosurface> to
+a true value.
+
+=item palette
+
+Setting C<< palette => 1 >> is equivalent to setting C<< lc => variable >>
 
 =item tuplesize
 
@@ -2126,8 +2184,6 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =over 3
 
-=item - options to "with" selection: accept a list ref instead of a string with args
-
 =item - labels need attention (plot option labels)
 
 They need to be handled as hashes, not just as array refs.  Also, they don't seem to be working with timestamps.
@@ -2140,14 +2196,24 @@ Further, deeply nested options (e.g. "at" for labels) need attention.
 The "boxplot" plot style (new to 4.6?) requires a different using
 syntax and will require some hacking to support.
 
+=item - Regularize colorspec parsing
+
+Currently colorspecs are parsed independently for axis/tics plot option specifications and 
+the colorspec-accepting curve options.  That needs to be broken out into a single 
+colorspec parser, for consistency.
+
 =back
 
 =head1 RELEASE NOTES
 
 =head3 V1.5 - several bug fixes
 
+ - complex 'with' specifiers are deprecated.
+ - curve options exist for plot variants (line color etc.)
+ - lines are dashed, by default
+ - windows don't persist, by default
  - bad value support
- - justify problem
+ - fixed a justify problem
  - several minor cross-platform issues
 
 =head3 V1.4 - released 26-Feb-2013
