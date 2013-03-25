@@ -7,7 +7,7 @@ sub parseversion
     my $version;
   open GP, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open Gnuplot.pm";
   for(<GP>){
-      if(m/our \$VERSION = \'([\d\.]+b?)\'/) {$version = $1;}
+      if(m/our \$VERSION = \'([\d\.\_]+b?)\'/) {$version = $1;}
       last if($version);
   }
   die "Couldn't parse version from Gnuplot.pm" unless($version);

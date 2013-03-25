@@ -318,10 +318,10 @@ ok(!$@, "2-D line plot accepts two PDLs");
 eval { $w->plot(xvals(10),xvals(10),xvals(10));};
 ok($@ =~ m/Found 3 PDLs for 2D plot type/, "2-D line plot rejects three PDLs");
 
-eval { $w->plot(with=>'points pointsize variable',xvals(10),xvals(10),xvals(10)) };
+eval { $w->plot(ps=>'variable',with=>'points',xvals(10),xvals(10),xvals(10)) };
 ok(!$@, "2-D plot with one variable parameter takes three PDLs");
 
-eval { $w->plot(with=>'points pointsize variable',xvals(10),xvals(10),xvals(10),xvals(10)) };
+eval { $w->plot(ps=>'variable',with=>'points',xvals(10),xvals(10),xvals(10),xvals(10)) };
 ok($@ =~ m/Found 4 PDLs for 2D/, "2-D plot with one variable parameter rejects four PDLs");
 
 SKIP: {
@@ -340,20 +340,20 @@ ok(!$@, "3-D plot accepts three PDLs");
 eval { $w->plot3d(xvals(10),xvals(10),xvals(10),xvals(10)); };
 ok($@ =~ m/Found 4 PDLs for 3D/,"3-D plot rejects four PDLs");
 
-eval { $w->plot3d(with=>'points pointsize variable',xvals(10),xvals(10),xvals(10),xvals(10));};
+eval { $w->plot3d(ps=>'variable',with=>'points',xvals(10),xvals(10),xvals(10),xvals(10));};
 ok(!$@, "3-D plot accepts four PDLs with one variable element");
 
-eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10));};
+eval { $w->plot3d(with=>'points',ps=>'variable',palette=>1,xvals(10),xvals(10),xvals(10),xvals(10));};
 ok($@ =~ m/Found 4 PDLs for 3D/,"3-D plot rejects four PDLs with two variable elements");
 
 SKIP: {
     skip "Skipping unsupported mode for deprecated earlier gnuplot",1  
 	if($PDL::Graphics::Gnuplot::gp_version < 4.4);
-    eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
+    eval { $w->plot3d(with=>'points',ps=>'variable',palette=>1,xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
     ok(!$@, "3-D plot accepts five PDLs with one variable element");
 }    ;
 
-eval { $w->plot3d(with=>'points pointsize variable palette',xvals(10),xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
+eval { $w->plot3d(with=>'points',ps=>'variable',palette=>1,xvals(10),xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
 ok($@ =~ m/Found 6 PDLs for 3D/,"3-D plot rejects six PDLs with two variable elements");
 
 
