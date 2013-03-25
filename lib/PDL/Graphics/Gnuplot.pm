@@ -1383,7 +1383,12 @@ additional column of data containing 24-bit packed integers with RGB
 color values, C<< [palette=>'frac',<val>] >> to specify a single
 fractional position (scaled 0-1) in the current palette, or C<<
 [palette=>'cb',<val>] >> to specify a single value in the scaled
-cbrange.
+cbrange. 
+
+There is no C<< linecolor=>[palette=>variable] >> due to Gnuplot's
+non-orthogonal syntax.  To draw line color from the palette, via an
+additional data column, see the separate "palette" curve option 
+(below).
 
 =item textcolor (abbrev 'tc')
 
@@ -1437,7 +1442,11 @@ a true value.
 
 =item palette
 
-Setting C<< palette => 1 >> is equivalent to setting C<< lc => variable >>
+Setting C<< palette => 1 >> causes line color to be drawn from an additional
+column in the data tuple.  This column is always the very last column in the
+tuple, in case of conflict (e.g. if you set both C<< pointsize=>variable >> and
+C<< palette=>1 >>, then the palette column is the last column and the pointsize
+column is second-to-last).
 
 =item tuplesize
 
