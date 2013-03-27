@@ -2955,8 +2955,6 @@ sub plot
 
     } 
 
-    $cleanup_cmd .= "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
-
     # Mark the gnuplot as replottable - we now have a full set of plot parameters stashed away.
     $this->{replottable} = 1;
 
@@ -3771,6 +3769,7 @@ sub multiplot {
 			       'termoption' => $this->{options}->{termoption}
 			     },
 			     $pOpt);
+
     my $checkpointMessage;
     if($check_syntax){
 	my $test_preamble = "set terminal dumb\nset output \" \"\n";
@@ -6902,7 +6901,7 @@ sub _checkpoint {
     
     # if no error pipe exists, we can't check for errors, so we're done. Usually
     # happens if($dump)
-    return unless defined $pipeerr;
+    return "" unless defined $pipeerr;
     
     my $fromerr = '';
 
@@ -7316,11 +7315,12 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =head1 STILL TO DO
 
+
 =over 3
 
 =item some plot and curve options need better parsing:
 
-=over 3
+=over 3 
 
 =item - labels need attention (plot option labels)
 
