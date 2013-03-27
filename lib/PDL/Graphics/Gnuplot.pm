@@ -2638,7 +2638,15 @@ sub plot
     # Emit the plot options lines that go above the plot command.  We do this 
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = "";
-    $plotOptionsString .= "reset\n" unless($this->{replotting} or $this->{options}->{multiplot});
+
+    if($this->{options}->{multiplot}) {
+	# In multiplot we can't issue a "reset", because that would end the multiplot.
+	# This should take care of the major view stuff, but state might leak in here!
+	$plotOptionsString .= "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
+    } else {
+	# In single-plot mode, just issue a reset.
+	$plotOptionsString .= "reset\n";
+    }
 
     $plotOptionsString .= _emitOpts($this->{options}, $pOpt);
 
@@ -6098,7 +6106,7 @@ our $termTab_types = {
     newstyle   => ['b','cff',   "Force new-style text spacing (default; see 'oldstyle')"],
     auxfile    => ['b','cf',    "Generate (or not) an auxiliary .aux file for LaTeX"],
     persist    => ['b','cf',    'enable (or disable) persistence after plotting is done'],
-    raise      => ['b','cf',    'enable (or disable) raising the display window to the top']
+    raise      => ['b','cf',    'enable (or disable) raising the display window to the top'],
 };    
 
 # This table includes all terminals named in the gnuplot 4.4 documentation.  Unsupported terminals have 
@@ -7314,6 +7322,14 @@ L<https://github.com/drzowie/PDL-Graphics-Gnuplot>
 Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauce.net> >>
 
 =head1 STILL TO DO
+
+=item deal with stored state in gnuplot
+
+    the postamble formerly had: 
+    "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
+
+    That was to prevent state from persisting across plots.  Those are better implemented as custom defaults for plot options.
+
 
 
 =over 3

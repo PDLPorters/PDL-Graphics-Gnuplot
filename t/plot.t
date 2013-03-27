@@ -303,7 +303,7 @@ ok( $PDL::Graphics::Gnuplot::last_plotcmd =~ m/set\s+output\s+\"[^\"]+\"\s+reset
 
 eval { $w->plot(xmin=>3,bottomcmds=>'reset',xrange=>[4,5],xvals(10),xvals(10)**2);};
 ok(!$@, "bottomcmds does not cause an error");
-ok( $PDL::Graphics::Gnuplot::last_plotcmd =~ m/\]\s+reset\s+set\ssize\snoratio/o, "bottomcmds inserts exactly one copy in the right place");
+ok( $PDL::Graphics::Gnuplot::last_plotcmd =~ m/\]\s+reset\s*$/o, "bottomcmds inserts exactly one copy in the right place");
 
 ##############################
 # Test tuple size determination: 2-D, 3-D, and variables (palette and variable)
