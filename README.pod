@@ -2190,11 +2190,12 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =head1 STILL TO DO
 
+
 =over 3
 
 =item some plot and curve options need better parsing:
 
-=over 3
+=over 3 
 
 =item - labels need attention (plot option labels)
 

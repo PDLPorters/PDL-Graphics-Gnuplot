@@ -7328,14 +7328,6 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =head1 STILL TO DO
 
-=item deal with stored state in gnuplot
-
-    the postamble formerly had: 
-    "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
-
-    That was to prevent state from persisting across plots.  Those are better implemented as custom defaults for plot options.
-
-
 
 =over 3
 
