@@ -4307,7 +4307,12 @@ our $pOptionsTable =
 		    '[pseudo] Make the current plot 3d (synonym for "3d").'
 		    ],
     'binary'    => ['b', sub {""}, undef, undef, 
-                    '[pseudo] Communicate with gnuplot in binary mode (default).'
+                    '[pseudo] Communicate with gnuplot in binary mode (default on non-Microsoft platforms).'
+    ],
+    'ascii'     => [sub { my($old, $new, $hash) = @_;
+			  $hash->{binary} = !$new;
+		    }, sub {""}, undef, undef,
+                    '[pseudo] Antonym for "binary" (default is 0 for non-Microsoft platforms).'
     ],
     'device'     => [ sub { my ($old, $new, $hash) = @_; 
 			    barf "Can't set device while in multiplot mode!\n" if($hash->{multiplot});
