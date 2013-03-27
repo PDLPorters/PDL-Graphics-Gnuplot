@@ -6719,18 +6719,22 @@ sub _killGnuplot {
     {
 	my $goner = $this->{"pid-$suffix"};
 
+	my $z;
+
 	if($kill_it_dead) {
 	    # Just want it dead.
 	    kill 'KILL', $goner;
+
+	    $z = waitpid($goner,0);
 
 	} else {
 	    # Try Mr. Nice Guy first.
 	    
 	    _printGnuplotPipe($this,$suffix,"exit\n");
 
-	    # Give it two seconds to quit, then interrupt it again.  
+	    # Give it 1 second to quit, then interrupt it again.  
 	    # If that doesn't work kill it dead.
-	    my $countdown = 3;
+	    my $countdown = 2;
 	    
 	    # In case of ^C, give up and kill the process dead.
 	    local($SIG{INT}) = sub {
@@ -6753,10 +6757,12 @@ sub _killGnuplot {
 	    };
 	    
 	    alarm(1);
+
+	    $z = waitpid($goner, 0);
+	    alarm(0);
+
 	}
 	    
-	my $z = waitpid($goner, 0);
-	alarm(0);
 	
 	unless($z == $goner) {
 	    # If for some reason it didn't die, fire and forget.
