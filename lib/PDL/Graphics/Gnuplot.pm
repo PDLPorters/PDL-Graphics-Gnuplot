@@ -1290,7 +1290,7 @@ C<zero> sets the approximation threshold for zero values within gnuplot.  Its de
 
 C<fontpath> sets a font search path for gnuplot.  It accepts a collection of file names as a list ref.
 
-=head2 POs for advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, log
+=head2 POs for advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, tee
 
 Plotting is carried out by sending a collection of commands to an underlying
 gnuplot process.  In general, the plot options cause "set" commands to be 
