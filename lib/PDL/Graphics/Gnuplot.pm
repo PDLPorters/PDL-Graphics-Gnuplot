@@ -3139,7 +3139,28 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 	    my $tupleSizes     = $psProps->[ !!$is3d ];  # index is 0 or 1 depending on truth of 3D flag
 	    my $imgFlag        = $psProps->[ 2 ];        
 	    $chunk{binaryWith} = $psProps->[ 3 ]; 
-	    
+
+	    # If the user wanted binary but this style requires ASCII (or vice
+	    # versa) I throw a warning
+	    if ( !$ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} &&
+		 defined $chunk{binaryWith} )
+	    {
+	      # style requires some specific ascii/binary transfer
+	      my $got	= $chunk{binaryWith}	     ? "binary" : "ascii";
+	      my $asked = $this->{options}->{binary} ? "binary" : "ascii";
+
+	      if( $got ne $asked )
+	      {
+		print STDERR <<EOF;
+PDL::Graphics::Gnuplot warning: user asked for $asked data transfer, but
+'$with[0]' plots are ALWAYS sent in $got. Ignoring '$asked' request.
+Set environment variable PGG_SUPPRESS_BINARY_MISMATCH_WARNING to suppress
+this warning.
+EOF
+	      $ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} = 1;
+	      }
+	    }
+
 	    # Reject disallowed plot styles
 	    unless(ref $tupleSizes) {
 		barf "plotstyle 'with ".($with[0])."' isn't valid in $ND plots\n";
