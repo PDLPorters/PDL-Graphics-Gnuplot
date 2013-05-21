@@ -4911,7 +4911,7 @@ our $cOptionsTable = {
 		   ],
     'using'    => ['l','cl',undef,6],        # using clauses in order (straight passthrough)
 # legend is a special case -- it gets parsed as a list but emitted as a quoted scalar.
-    'legend'   => ['l', sub { if(defined($_[1]) and $_[1]->[0]) {return "title \"$_[1]->[0]\"";} else {return "notitle"}},
+    'legend'   => ['l', sub { if(defined($_[1]) and defined $_[1]->[0]) {return "title \"$_[1]->[0]\"";} else {return "notitle"}},
 		   undef, 7],
     'axes'     => [['(x[12])(y[12])'],'cs',undef,8],
     'smooth'   => ['s','cs',undef,8.1],
