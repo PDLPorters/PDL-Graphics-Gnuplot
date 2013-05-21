@@ -437,9 +437,9 @@ used if we are exactly 2 piddles short. In this case,
 PDL::Graphics::Gnuplot will use a 2D grid as a domain. Example:
 
  my $xy = zeros(21,21)->ndcoords - pdl(10,10);
- plot({'3d' => 1},
-       with => 'points', inner($xy, $xy));
- plot( with => 'image',  sin(rvals(51,51)) );
+ gplot({'3d' => 1},
+        with => 'points', inner($xy, $xy));
+ gplot( with => 'image',  sin(rvals(51,51)) );
 
 Here the only given piddle has dimensions (21,21). This is a 3D plot, so we are
 exactly 2 piddles short. Thus, PDL::Graphics::Gnuplot generates an implicit
@@ -491,7 +491,7 @@ of them you must specify the channels as separate PDLs:
 According to the gnuplot specification you can also give X and Y
 values for each pixel, as in
 
- plot( with=>'image', xvals($im), yvals($im), $im )
+ gplot( with=>'image', xvals($im), yvals($im), $im )
 
 but this appears not to work properly for anything more complicated
 than a trivial matrix of X and Y values.
@@ -1490,65 +1490,65 @@ details.
 If we're plotting a piddle $y of y-values to be plotted sequentially (implicit
 domain), all you need is
 
-  plot($y);
+  gplot($y);
 
 If we also have a corresponding $x domain, we can plot $y vs. $x with
 
-  plot($x, $y);
+  gplot($x, $y);
 
 =head3 Simple style control
 
 To change line thickness:
 
-  plot(with => 'lines linewidth 4', $x, $y);
+  gplot(with => 'lines linewidth 4', $x, $y);
 
 To change point size and point type:
 
-  plot(with => 'points pointtype 4 pointsize 8', $x, $y);
+  gplot(with => 'points pointtype 4 pointsize 8', $x, $y);
 
 =head3 Errorbars
 
 To plot errorbars that show $y +- 1, plotted with an implicit domain
 
-  plot(with => 'yerrorbars', $y, $y->ones);
+  gplot(with => 'yerrorbars', $y, $y->ones);
 
 Same with an explicit $x domain:
 
-  plot(with => 'yerrorbars', $x, $y, $y->ones);
+  gplot(with => 'yerrorbars', $x, $y, $y->ones);
 
 Symmetric errorbars on both x and y. $x +- 1, $y +- 2:
 
-  plot(with => 'xyerrorbars', $x, $y, $x->ones, 2*$y->ones);
+  gplot(with => 'xyerrorbars', $x, $y, $x->ones, 2*$y->ones);
 
 To plot asymmetric errorbars that show the range $y-1 to $y+2 (note that here
 you must specify the actual errorbar-end positions, NOT just their deviations
 from the center; this is how Gnuplot does it)
 
-  plot(with => 'yerrorbars', $y, $y - $y->ones, $y + 2*$y->ones);
+  gplot(with => 'yerrorbars', $y, $y - $y->ones, $y + 2*$y->ones);
 
 =head3 More multi-value styles
 
 Plotting with variable-size circles (size given in plot units, requires Gnuplot >= 4.4)
 
-  plot(with => 'circles', $x, $y, $radii);
+  gplot(with => 'circles', $x, $y, $radii);
 
 Plotting with an variably-sized arbitrary point type (size given in multiples of
 the "default" point size)
 
-  plot(with => 'points pointtype 7 pointsize variable', 
-       $x, $y, $sizes);
+  gplot(with => 'points pointtype 7 pointsize variable', 
+        $x, $y, $sizes);
 
 Color-coded points
 
-  plot(with => 'points palette', 
-       $x, $y, $colors);
+  gplot(with => 'points palette', 
+        $x, $y, $colors);
 
 Variable-size AND color-coded circles. A Gnuplot (4.4.0) bug make it necessary to
 specify the color range here
 
-  plot(cbmin => $mincolor, cbmax => $maxcolor,
-       with => 'circles palette', 
-       $x, $y, $radii, $colors);
+  gplot(cbmin => $mincolor, cbmax => $maxcolor,
+        with => 'circles palette', 
+        $x, $y, $radii, $colors);
 
 =head2 3D plotting
 
@@ -1557,11 +1557,11 @@ General style control works identically for 3D plots as in 2D plots.
 To plot a set of 3d points, with a square aspect ratio (squareness requires
 Gnuplot >= 4.4):
 
-  plot3d(square => 1, $x, $y, $z);
+  splot(square => 1, $x, $y, $z);
 
 If $xy is a 2D piddle, we can plot it as a height map on an implicit domain
 
-  plot3d($xy);
+  splot($xy);
 
 Complicated 3D plot with fancy styling:
 
@@ -1569,32 +1569,32 @@ Complicated 3D plot with fancy styling:
   my $theta = zeros(200)->xlinvals(0, 6*$pi);
   my $z     = zeros(200)->xlinvals(0, 5);
 
-  plot3d(title => 'double helix',
+  splot(title => 'double helix',
 
-         { with => 'linespoints pointsize variable pointtype 7 palette',
-           legend => 'spiral 1' },
-         { legend => 'spiral 2' },
+        { with => 'linespoints pointsize variable pointtype 7 palette',
+          legend => 'spiral 1' },
+        { legend => 'spiral 2' },
 
-         # 2 sets of x, 2 sets of y, single z
-         PDL::cat( cos($theta), -cos($theta)),
-         PDL::cat( sin($theta), -sin($theta)),
-         $z,
+        # 2 sets of x, 2 sets of y, single z
+        PDL::cat( cos($theta), -cos($theta)),
+        PDL::cat( sin($theta), -sin($theta)),
+        $z,
 
-         # pointsize, color
-         0.5 + abs(cos($theta)), sin(2*$theta) );
+        # pointsize, color
+        0.5 + abs(cos($theta)), sin(2*$theta) );
 
 3D plots can be plotted as a heat map.
 
-  plot3d( extracmds => 'set view 0,0',
-          with => 'image',
-          $xy );
+  splot( extracmds => 'set view 0,0',
+         with => 'image',
+         $xy );
 
 =head2 Hardcopies
 
 To send any plot to a file, instead of to the screen, one can simply do
 
-  plot(hardcopy => 'output.pdf',
-       $x, $y);
+  gplot(hardcopy => 'output.pdf',
+        $x, $y);
 
 The C<hardcopy> option is a shorthand for the C<terminal> and
 C<output> options. The output device is chosen from the file name
@@ -1606,9 +1606,9 @@ C<output> method or the constructor itself -- or the corresponding plot
 options in the non-object mode. For example, to generate a PDF of a
 particular size with a particular font size for the text, one can do
 
-  plot(terminal => 'pdfcairo solid color font ",10" size 11in,8.5in',
-       output   => 'output.pdf',
-       $x, $y);
+  gplot(terminal => 'pdfcairo solid color font ",10" size 11in,8.5in',
+        output   => 'output.pdf',
+        $x, $y);
 
 This command is equivalent to the C<hardcopy> shorthand used previously, but the
 fonts and sizes can be changed.
