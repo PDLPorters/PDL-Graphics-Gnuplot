@@ -2016,7 +2016,6 @@ FOO
 
 	    # Default the 'persist' option to 0, so that interactive windows behave nicely unless
 	    # asked to stay.
-	    print STDERR "term is $terminal\n";
 	    if(exists($termTab->{$terminal}->{opt}->[0]->{persist})  and
 	       !defined($termOptions->{persist}) ) {
 		$termOptions->{persist} = 0;
