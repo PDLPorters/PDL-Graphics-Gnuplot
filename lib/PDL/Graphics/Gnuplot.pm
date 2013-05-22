@@ -564,11 +564,12 @@ C<terminal>, C<termoption>, and C<output> plot options.
 C<terminal> sets the output device type for Gnuplot, and C<output> sets the 
 actual output file or window number.  
 
-C<device> and C<hardcopy> are for convenience.  C<device> offers a 
+C<device> and C<hardcopy> are for convenience. C<device> offers a
 PGPLOT-style device specifier in "filename/device" format (the "filename"
 gets sent to the "output" option, the "device" gets sent to the "terminal"
-option). C<hardcopy> takes an output file name and attempts to parse out a 
-file suffix and infer a device type.
+option). C<hardcopy> takes an output file name, attempts to parse out a
+file suffix and infer a device type. C<hardcopy> also uses a common set of
+terminal options needed to fill an entire letter page with a plot.
 
 For finer grained control of the plotting environment, you can send 
 "terminal options" to Gnuplot.  If you set the terminal directly with 
@@ -4304,14 +4305,14 @@ sub _expand_abbrev {
 # empty string causes "unset" to be emitted, while undef causes nothing to be emitted.
 our $palettesTab;
 
-# suffix => terminal type
+# suffix => terminal type, options
 our $hardCopySuffixes = {
     'gif'=>'gif',
     'jpg'=>'jpeg',
     'jpeg'=>'jpeg',
-    'pdf'=>'pdfcairo',
+    'pdf'=>'pdfcairo solid color font ",10" size 11in,8.5in',
     'png'=>'png',
-    'ps'=>'postscript',
+    'ps'=>'postscript solid color landscape 10 size 11in,8.5in',
     'eps'=>'postscript eps',
     'svg'=>'svg'
 };
