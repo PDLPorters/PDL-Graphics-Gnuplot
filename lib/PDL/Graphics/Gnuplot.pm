@@ -4350,7 +4350,7 @@ our $pOptionsTable =
     
     'hardcopy'  => [ sub { my ($old, $new, $hash) = @_;
 			   barf "Can't set hardcopy while in multiplot mode!\n" if($hash->{multiplot});
-			   if( $new =~ m/\.([a-z]+)$/) {
+			   if( $new =~ m/\.([a-z]+)$/i) {
 			       my $suffix = lc $1;
 			       if($hardCopySuffixes->{$suffix}) {
 				   $hash->{terminal} = $hardCopySuffixes->{$suffix};
