@@ -6660,6 +6660,7 @@ EOM
 	my @toplines = ();
 	LINE:while(@lines) {
 	    last LINE if($lines[0] =~ m/^CcColors/);
+	    $lines[0] =~ s/^Press return for more\://;
 	    push(@toplines, shift @lines);
 	}
 
