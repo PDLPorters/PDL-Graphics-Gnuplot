@@ -1312,15 +1312,18 @@ In particular, time series and label data require transmission in ASCII (as of G
 You can force ASCII transmission of all but image data by explicitly setting the
 C<< binary=>0 >> option.
 
-C<dump> is used for debugging. If true, it writes out the gnuplot commands to STDOUT
-I<instead> of writing to a gnuplot process. Useful to see what commands would be
-sent to gnuplot. This is a dry run. Note that this dump will contain binary
-data, if the 'binary' option is given (see below)
+C<dump> is used for debugging. If true, it writes out the gnuplot commands to
+STDOUT I<instead> of writing to a gnuplot process. Useful to see what commands
+would be sent to gnuplot. This is a dry run. Note that if the 'binary' option is
+given (see below), then this dump will contain binary data. If this binary data
+should be suppressed from the dump, set C<dump => 'nobinary'>.
 
-C<tee> is used for debugging. If true, writes out the gnuplot commands to STDERR I<in
-addition> to writing to a gnuplot process. This is I<not> a dry run: data is
-sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
-this log will contain binary data, if the 'binary' option is given (see below)
+C<tee> is used for debugging. If true, writes out the gnuplot commands to STDERR
+I<in addition> to writing to a gnuplot process. This is I<not> a dry run: data
+is sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
+if the 'binary' option is given (see below), then this log will contain binary
+data. If this binary data should be suppressed from the log, set C<tee =>
+'nobinary'>.
 
 =head1 CURVE OPTIONS 
 
@@ -2839,7 +2842,7 @@ sub plot
 		$last_plotcmd .= $s;
 		$this->{last_plotcmd} .= $s;
 	    }
-	    _printGnuplotPipe($this, "main", ${$p->get_dataref},1);
+	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 } );
 
 	} elsif( $chunk->{binaryCurveFlag}  ) {
 	    # Send in binary if the binary flag is set.
@@ -2849,7 +2852,7 @@ sub plot
 		$last_plotcmd .= $s;
 		$this->{last_plotcmd} .= $s;
 	    }
-	    _printGnuplotPipe($this, "main", ${$p->get_dataref},1);
+	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 });
 
 	} else {
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
@@ -2866,7 +2869,7 @@ sub plot
 		    my $pipe = $this->{"err-main"};
 		    
 		    for my $line(@lines) {
-			_printGnuplotPipe($this, "main", $line."\n", 1);
+			_printGnuplotPipe($this, "main", $line."\n", {data => 1 });
 			unless($this->{dumping}) {
 			    do { 
 				sysread $pipe, $byte, 1;
@@ -2876,12 +2879,12 @@ sub plot
 			    } until( !defined($byte) or $byte eq '>' );
 			}
 		    }
-		    _printGnuplotPipe($this, "main", "e\n", 1);
+		    _printGnuplotPipe($this, "main", "e\n", {data => 1} );
 		};
 	    } else {
 		# Under real OSes, we can just send a schwack of stuff - there is no echo.
 		$emitter = sub {
-		    _printGnuplotPipe($this, "main", shift()."e\n", 1);
+		    _printGnuplotPipe($this, "main", shift()."e\n", {data => 1} );
 		};
 	    }
 
@@ -4368,7 +4371,7 @@ our $pOptionsTable =
     ],
 
     'dump'      => [
-	sub { my $newval = ( (defined $_[1]) ? ($_[1] ? 1 : 0) : undef); # same as boolean code
+	sub { my $newval = $_[1];
 	      if($newval && !$_[2]->{dump}) {
 		  print STDERR "WARNING - dumping ON - gnuplot commands go to the terminal only.\n";
 	      } elsif($_[2]->{dump} && !$newval) {
@@ -4380,7 +4383,7 @@ our $pOptionsTable =
 	            '[pseudo] Redirect gnuplot commands to stdout for inspection'
     ],
 
-    'tee'       => ['b', sub { "" }, undef, undef,
+    'tee'       => [ sub { $_[1]; }, sub { "" }, undef, undef,
 		    '[pseudo] Tee gnuplot commands to stdout for inspection'
     ],
 
@@ -6569,10 +6572,10 @@ sub _startGnuplot
     
     $this->{options}->{multiplot} = 0;
 
-    if( $this->{options}->{dump} ) {
+    if( $this->{options}{dump} ) {
 	$this->{"in-$suffix"} = \*STDOUT;
 	$this->{"pid-$suffix"} = undef; 
-	$this->{dumping} = 1;
+	$this->{dumping} = $this->{options}{dump};
 	return $this;
     } else {
 	$this->{dumping} = 0;
@@ -6815,8 +6818,13 @@ sub _printGnuplotPipe
   my $this   = shift;
   my $suffix = shift;
   my $string = shift;
-  my $data = shift;    # flag whether this transmission be data (0 for a command)
-  
+
+  # hashref
+  # $flags->{data}   if this is data, not a command;
+  # $flags->{binary} if $string has binary data
+  my $flags  = shift;
+  $flags = {} unless defined $flags;
+
   # Autodetect the dump option
   # If it gets set or unset, restart gnuplot
   if(($this->{options}->{dump} && !$this->{dumping})  or  
@@ -6881,30 +6889,38 @@ sub _printGnuplotPipe
       my $k = "echobuffer-$suffix";
       $this->{$k} = "" unless(defined($this->{$k}));
       my $s = $string;
-      $s =~ s/^/gnuplot> /msg unless($data);
+      $s =~ s/^/gnuplot> /msg unless($flags->{data});
       $this->{$k} .= $s;
   }
   
   # Various debugging options. 
-  if($this->{dumping}) {
-      my $ss = $string;
-
-      # Replace non-printable ASCII characters with '?'
-      $ss =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g;
-      
-      if($this->{tee}) {
-	  print "_printGnuplotPipe-$suffix: ".length($string)." chars: '$ss'\n";
-      } elsif($this->{dumping}) {
-	  print $ss;
-      }
-  }
-
-  if( $this->{options}{tee} )
+  if( $this->{dumping} || $this->{options}{tee} )
   {
-    my $len = length $string;
-    $string =~ s/[\000-\011\013-\014\016-\037\200-\377]/\?/g; 
-    _logEvent($this,
-              "Sent to child process (suffix $suffix) $len bytes==========\n" . $string . "\n=========================" );
+    my $debug_display_string;
+    if ( $flags->{binary} &&
+         (
+          $this->{options}{tee} && $this->{options}{tee} eq 'nobinary' ||
+          $this->{dumping}      && $this->{dumping}      eq 'nobinary'
+         )
+       )
+    {
+      $debug_display_string = '<binary data suppressed by the user passing in "nobinary">';
+    }
+    else
+    {
+      $debug_display_string = $string;
+    }
+
+    if($this->{dumping}) {
+      print $debug_display_string;
+    }
+
+    if( $this->{options}{tee} )
+    {
+      my $len = length $string;
+      _logEvent($this,
+                "Sent to child process (suffix $suffix) $len bytes==========\n" . $debug_display_string . "\n=========================" );
+    }
   }
 }
 
