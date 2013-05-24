@@ -2387,6 +2387,35 @@ sub plot
 
     }
 
+    ##############################
+    # Set binary mode default. This is a bit complex since
+    # we sometimes default to binary and sometimes to ascii.  It has to be
+    local($this->{binary_flag_defaulted});
+
+    unless(defined $this->{options}->{binary}) {
+	# The user didn't explicitly set binary or non-binary mode.  Try to guess.
+	# Also, under Microsoft Windows binary mode seems to be dicey (Juegen Mueck's hang
+	# test), so we default to ascii.  
+	if($this->{early_gnuplot} or $MS_io_braindamage ) {
+	    # Early gnuplot - ASCII mode only (by default)
+	    $this->{options}->{binary} = 0;
+	} else {
+	    # Late-model gnuplot - binary for non time format plots, ASCII for time plots.
+	    # (Note: some transfer formats force binary transfer)
+		my $using_times = 0;
+		for my $k( qw/x x2 y y2 z cb/ ) {
+		    if($this->{options}->{$k."data"} and $this->{options}->{$k."data"} =~ m/time/) {
+			$using_times = 1;
+			last;
+		    }
+		}
+		$this->{options}->{binary} = !$using_times;
+	}
+	$this->{binary_flag_defaulted} = 1; # Mark that we set the binary/ascii mode by default rather than user command
+    } else {
+	$this->{binary_flag_defaulted} = 0;
+    }
+    
     # Store the current arguments into the state array for next time.
     # (This has to be done here because plot options need to be stripped out first).
     # 
@@ -2402,6 +2431,7 @@ sub plot
 	$this->{last_plot}->{args}  = [@_];
 	$this->{last_plot}->{options} = dclone($this->{options});
     }
+	
 
     # Now parse the rest of the arguments into chunks.
     # parseArgs is a nested sub at the bottom of this one.
@@ -2427,36 +2457,6 @@ sub plot
     #
     
     ##########
-    # Check binary mode operation.  We normally let everything default to binary, but 
-    # if certain bug-triggering conditions are identified we switch to ASCII.  This is
-    # the "global" mode calculation, which can be overridden on a per-chunk basis.
-
-    my $binary_mode = $this->{options}->{binary};
-    unless(defined $binary_mode) {
-
-	# The user didn't explicitly set binary or non-binary mode.  Try to guess.
-	# Also, under Microsoft Windows binary mode seems to be dicey (Juegen Mueck's hang
-	# test), so we default to ascii.  
-	if($this->{early_gnuplot} or $MS_io_braindamage ) {
-	    # Early gnuplot - ASCII mode only (by default)
-	    $binary_mode = 0;
-	} else {
-
-	    # Late-model gnuplot - binary for non time format plots, ASCII for time plots.
-	    # (Note: some transfer formats force binary transfer)
-
-	    my $using_times = 0;
-	    for my $k( qw/x x2 y y2 z cb/ ) {
-		if($this->{options}->{$k."data"} and $this->{options}->{$k."data"} =~ m/time/) {
-		    $using_times = 1;
-		    last;
-		}
-	    }
-	    $binary_mode = !$using_times;
-	}
-    }
-
-    ##########
     # Figure per-curve binary/ASCII mode, and fix up some of the option defaults based on context.  
     # In particular, gnuplot 4.4-4.6 don't handle image scaling correctly, so unless an xrange/yrange 
     # is specified we have to take care of it ourselves.  
@@ -2471,7 +2471,7 @@ sub plot
     for my $i(0..$#$chunks) {
 
 	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
-	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $binary_mode);
+	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $this->{options}->{binary});
 
 	# Everything else is an image fix
 	next unless($chunks->[$i]->{imgFlag});
@@ -3001,7 +3001,7 @@ sub plot
     # 
     # parseArgs - helper sub nested inside plot
     # 
-    # This breaks out the parsing of the plot arguments. 
+    # This breaks out the parsing of the curve arguments. 
     # 
     # Each chunk of data to plot appears in the argument list as 
     #      plot(options, options, ..., data, data, ....). 
@@ -3022,7 +3022,6 @@ sub plot
     sub parseArgs
     {
 	my $this = shift;
-
 
 	##############################
 	# Parse curve option / data chunks.
@@ -3152,7 +3151,7 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 	      my $got	= $chunk{binaryWith}	     ? "binary" : "ascii";
 	      my $asked = $this->{options}->{binary} ? "binary" : "ascii";
 
-	      if( $got ne $asked )
+	      if( $got ne $asked  and  !($this->{binary_flag_defaulted}))
 	      {
 		print STDERR <<EOF;
 PDL::Graphics::Gnuplot warning: user asked for $asked data transfer, but
