@@ -6683,20 +6683,7 @@ EOM
 	%PDL::Graphics::Gnuplot::valid_terms = %{$this->{valid_terms}};
 	$PDL::Graphics::Gnuplot::valid_terms = \%PDL::Graphics::Gnuplot::valid_terms;
 
-
-	if($gp_version < $gnuplot_req_v) {
-	    print STDERR <<"EOM";
-
-**************************************************************************
-WARNING: Your gnuplot ($gp_version) is older than the earliest supported 
-version ($gnuplot_req_v). Proceed with caution.  (data xfer is now ASCII by
-default; this will slow things down a bit.  Images may not work.  Some 
-plot styles may not work.)
-**************************************************************************
-
-EOM
-	    $this->{early_gnuplot} = 1;
-	} elsif( $gp_version < $gnuplot_dep_v  and  !$PDL::Graphics::Gnuplot::deprecated_this_session ) {
+	if( $gp_version < $gnuplot_dep_v  and  !$PDL::Graphics::Gnuplot::deprecated_this_session ) {
             $PDL::Graphics::Gnuplot::deprecated_this_session = 1;
 	    unless($ENV{GNUPLOT_DEPRECATED}){
 	    print STDERR <<"EOM";
@@ -6710,6 +6697,8 @@ To silence this warning, set the GNUPLOT_DEPRECATED environment variable.
 EOM
 	    }
 	}
+	$this->{early_gnuplot} = 1;
+
     } else {
 	print STDERR <<"EOM"
 WARNING: Gnuplot commands are being dumped to stdout.
@@ -7089,7 +7078,7 @@ EOM
 	   )
 	    ) {
 	    if($this->{early_gnuplot}) {
-		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_req_v gnuplot backend issued an error:\n$fromerr\n";
+		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_dep_v gnuplot backend issued an error:\n$fromerr\n";
 	    } else {
 	        barf "PDL::Graphics::Gnuplot: ERROR: the gnuplot backend issued an error:\n$fromerr\n";
 	    }
