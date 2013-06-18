@@ -2432,6 +2432,9 @@ sub plot
     unless($this->{ephemeral}) {
 	$this->{last_plot}->{args}  = [@_];
 	$this->{last_plot}->{options} = dclone($this->{options});
+	if($this->{binary_flag_defaulted}) {
+	    delete $this->{last_plot}->{options}->{binary};
+	}
     }
 	
 
