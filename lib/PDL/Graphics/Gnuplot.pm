@@ -1720,7 +1720,16 @@ use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
-our $VERSION = '1.5';                    # Development of better curve options
+use Alien::Gnuplot 4.4;  # Ensure gnuplot exists and is recent, and get ancillary info about it.
+our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
+
+# Compile time config flags...
+our $check_syntax = 0;
+our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
+our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
+
+
+our $VERSION = '1.510_devel';                     # Migration to Alien::Gnuplot
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -1728,13 +1737,6 @@ our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version nu
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
 our @EXPORT = qw(gpwin gplot greplot greset grestart);
-
-# Compile time config flags...
-our $check_syntax = 0;
-our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
-our $gnuplot_req_v = 4.4; # Versions below this are not supported.
-our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
-our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
@@ -2944,11 +2946,6 @@ sub plot
 	}
     }
 
-#    if($MS_io_braindamage) {
-#	_printGnuplotPipe($this,"main", "\r\n"); # Send a bunch of return carriages to get a prompt.
-#	_checkpoint($this,"main",{printwarnings=>1});
-#    }
-
     ##############################
     # Finally, finally ...  send any required cleanup commands.  This 
     # starts with {bottomcmds} and includes several things we don't want to persist,
@@ -3681,7 +3678,7 @@ sub fits {
  $a = (xvals(101)/100) * 6 * 3.14159/180;
  $b = sin($a);
 
- $w->multiplot(layout=>[2,2],"columnsfirst");
+ $w->multiplot(layout=>[2,2,"columnsfirst"]);
  $w->plot({title=>"points"},with=>"points",$a,$b);
  $w->plot({title=>"lines"}, with=>"lines", $a,$b);
  $w->plot({title=>"image"}, with=>"image", $a->(*1) * $b );
@@ -3706,7 +3703,7 @@ The options hash will accept:
 
 =item layout - define a regular grid of plots to multiplot
 
-C<layout> should be followed by a hash ref that contains at least
+C<layout> should be followed by an ARRAY ref that contains at least
 number of columns ("NX") followed by number of rows ("NY).  After
 that, you may include any of the "rowsfirst", "columnsfirst",
 "downwards", or "upwards" keywords to specify traversal order through
@@ -4209,12 +4206,16 @@ no PDL::NiceSlice;
 ##### Parsing routines
 #####
 ##### The task of parsing input parameters is nontrivial.  It is 
-##### pushed off to several internal routines:
+##### pushed off to several internal routines, which are here.
 #####
 
 ######################################################################
 # parsing helpers...
 
+##############################
+# _gen_abbrev_list breaks a collection of keywords out into a hash linking
+# unique abbreviations to the expanded keyword, for _expand_abbrev below.
+# Cheesy and also awful as an added bonus.
 sub _gen_abbrev_list {
     my @keys = @_;
     my $hash = {};
@@ -4263,7 +4264,7 @@ sub _expand_abbrev {
 ##########
 # pOptionsTable - describes valid plot options and their allowed value types
 #
-# The keywords are the option name (from the Gnuplot 4.4 manual); the values are 
+# The keywords are the option name (from the Gnuplot 4.6 manual); the values are 
 # a list ref containing:
 #   - value type:
 #     * list ref for a single value with options (first is default)
@@ -7107,6 +7108,8 @@ EOM
 
 ##############################
 # Get gnuplot to report its own supported feature-set.
+#
+# NOTE this needs to be fixed-up to just copy the featuresets from Alien::Gnuplot!
 
 sub _getGnuplotFeatures
 {
@@ -7187,7 +7190,7 @@ sub _obj_or_global {
 # Figure the path to the gnuplot binary... lets you set an environment or local variable
 # with the specific path
 sub _gnuplot_binary_path {
-    return _def( _def( $PDL::Graphics::Gnuplot::gnuplot_path,  $ENV{'GNUPLOT_BINARY'}), "gnuplot");
+    return $Alien::Gnuplot::executable;
 }
 
 ##############################
@@ -7399,6 +7402,12 @@ colorspec parser, for consistency.
 =back
 
 =head1 RELEASE NOTES
+
+=head3 V2.0
+
+ - Use Alien::Gnuplot
+ - Don't complain about 'with'-modifiers
+ - Several edge-case bugs fixed (thanks, Dima)
 
 =head3 V1.5 - several bug fixes
 
