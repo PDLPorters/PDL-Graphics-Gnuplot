@@ -64,7 +64,8 @@ WriteMakefile(
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
      ? ('LICENSE'=> 'perl')
      : ()),
-    PREREQ_PM => { 'Test::More'  => 0,
+    PREREQ_PM => { 'Alien::Gnuplot' => 0,
+		   'Test::More'  => 0,
                    'PDL'         => 0,
                    'IPC::Run'    => 0,
 		   'List::Util'  => 0,

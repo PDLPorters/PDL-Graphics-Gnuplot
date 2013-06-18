@@ -1729,7 +1729,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '1.510_devel';                     # Migration to Alien::Gnuplot
+our $VERSION = '1.990';                           # Migration to Alien::Gnuplot
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
