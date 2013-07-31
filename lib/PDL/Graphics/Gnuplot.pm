@@ -4073,14 +4073,15 @@ The routine will call markup after each click.
 # application, but it's present in the module so what the heck...
 
 our $rpOptionsTable = {
-    map { ( $_->[0] => ['ps',undef,undef,undef,$_->[1]] ) }
+    map { ( $_->[0] => ['s',undef,undef,undef,$_->[1]] ) }
     ( ['message'  =>  "Message to print before reading in polygon"    ],
       ['prompt'   =>  "Message to print for each point",              ],
       ['n_points' =>  "Number of points (or 0 for indefinite)"        ],
-      ['actions'  =>  "Hash ref containing callbacks for keystrokes"  ],
       ['closed',   =>  "Flag: close polygon by copying first point"    ],
       ['markup'   =>  "Plot option for rendering, or undefined for none" ]
     ) };
+$rpOptionsTable->{actions} = ['H',undef,undef,undef,"Action table entries"];
+
 our $rpOpt = [$rpOptionsTable, _gen_abbrev_list(keys %$rpOptionsTable), "read_polygon option"];
 
 sub read_polygon {
@@ -4088,8 +4089,6 @@ sub read_polygon {
     
     barf "read_polygon: $this->{terminal} terminal doesn't support mousing\n"
 	unless($this->{mouse});
-
-    my $u_opt = shift;
 
     my $poly = zeroes(2,0); # list of zero 2-D points
     local($this->{quit}) = 0;
@@ -4104,7 +4103,9 @@ EOMSG
         n_points => 0,
 	closed    => 0,
 	markup   => "linespoints",
-	actions=> {
+    };
+
+    $opt->{actions} = {
 	    # These defaults can be overridden.
 	    'd'        => ['Delete last point (or DEL or backspace or shift-button)', \&__del],
 	    '#010'     => \&__quit, # NEWLINE (ENTER)
@@ -4113,10 +4114,11 @@ EOMSG
 	    "#008"     => \&__del,  # BS
 	    'BUTTON1S' => \&__del,  # shift-click
 	    'BUTTON1'  => ['Add a point',\&__add],
-	}
     };
-
+    print "\@_ is ".join(", ",@_)."\n";
     _parseOptHash( $opt, $rpOpt, @_ );
+
+    print "actions table has keys: ",join(", ",sort keys %{$opt->{actions}}),"\n";
 
     my $a = $opt->{actions};
     $a->{"q"}    = ['Quit / finish entry (or ESC)', \&__quit ];
@@ -4933,6 +4935,7 @@ our $cOptionsTable = {
     'linetype' => ['s', 'cs',  undef, 11],
     'linewidth'=> ['s', 'cs',  undef, 12],
     'linecolor'=> ['l', 'ccolor',  undef, 13],
+    'fillcolor'=> ['l', 'ccolor',  undef, 13.5],
     'textcolor'=> ['l', 'ccolor',  undef, 14],
     'pointtype'=> ['s', 'cs',  undef, 15],
     'pointsize'=> ['s', 'cs',  undef, 16],
@@ -4954,6 +4957,7 @@ our $cOptionsAbbrevs = _gen_abbrev_list(keys %$cOptionsTable);
 	ls => ["linestyle"],
 	lw => ["linewidth"],
 	lc => ["linecolor"],
+	fc => ["fillcolor"],
 	pt => ["pointtype"],
 	ps => ["pointsize"],
 	fs => ["fillstyle"]
@@ -6699,8 +6703,9 @@ To silence this warning, set the GNUPLOT_DEPRECATED environment variable.
 
 EOM
 	    }
+	    $this->{early_gnuplot} = 1;
 	}
-	$this->{early_gnuplot} = 1;
+
 
     } else {
 	print STDERR <<"EOM"
