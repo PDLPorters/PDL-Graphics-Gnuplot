@@ -1729,7 +1729,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '1.990';                           # Migration to Alien::Gnuplot
+our $VERSION = '2.0';                             # Migration to Alien::Gnuplot
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -6565,6 +6565,13 @@ sub terminfo {
 ##############################
 ##############################
 ## _startGnuplot - fire off a gnuplot process, and pull in some information from it about what it can do.
+##
+## Although Alien::Gnuplot already parsed a bunch of terminal types, we do it again 
+## mostly for legacy reasons (TODO: clean up).  The parsing here compares the 
+## reported terminals to our own list of terminals we know about.  It could/should be done
+## with the @Alien::Gnuplot::terms list. Similarly, the colors parsing should probably
+## be moved out to Alien::Gnuplot.
+##
 sub _startGnuplot
 {
     ## Object code handles gnuplot in-place.
@@ -6594,15 +6601,10 @@ sub _startGnuplot
     my $in  = gensym();
     my $err = gensym();
 
-    my $pid = open3($in,$err,$err,_gnuplot_binary_path(), @gnuplot_options);
+    my $pid = open3($in,$err,$err, $Alien::Gnuplot::executable, @gnuplot_options);
 
     unless($pid) {
-	my $g = _gnuplot_binary_path();
-	if($g eq 'gnuplot') {
-	    barf "Couldn't run the 'gnuplot' backend (is gnuplot in your path?)";
-	} else {
-	    barf "Couldn't run the '$g' backend (check $ENV{'GNUPLOT_BINARY'} or \n   \$PDL::Graphics::Gnuplot::gnuplot_path)\n";
-	}
+	barf("PDL::Graphics::Gnuplot: Couldn't run the '$Alien::Gnuplot::executable' backend that was found by Alien::Gnuplot");
     }
 
     my $errSelector;
@@ -6726,7 +6728,9 @@ sub _killGnuplot {
     my $this = shift;
     my $suffix = shift;
     my $kill_it_dead = shift;
-
+    
+    local($SIG{PIPE}) = sub { };
+    
     unless(defined($suffix)) {
 	for my $k(keys %$this) {
 	    next unless $k =~ m/^pid\-(.*)$/;
@@ -6814,6 +6818,12 @@ sub _printGnuplotPipe
   my $this   = shift;
   my $suffix = shift;
   my $string = shift;
+  
+  local($SIG{PIPE}) = sub { _killGnuplot($this,undef,1); die "PDL::Graphics::Gnuplot: subproc died.\n";};
+
+  unless(defined($this->{"in-$suffix"})) {
+      _startGnuplot($this,$suffix);
+  }
 
   # hashref
   # $flags->{data}   if this is data, not a command;
@@ -6918,6 +6928,7 @@ sub _printGnuplotPipe
                 "Sent to child process (suffix $suffix) $len bytes==========\n" . $debug_display_string . "\n=========================" );
     }
   }
+
 }
 
 ##############################
@@ -6985,7 +6996,7 @@ sub _checkpoint {
 
 	my $subproc_gone = 0 ;
 
-	local($SIG{PIPE}) = sub { our $subproc_gone = 1; };
+	local($SIG{PIPE}) = sub { $subproc_gone = 1; };
 
 	do
 	{ 
@@ -7119,7 +7130,7 @@ sub _getGnuplotFeatures
     my $in  = '';
     my $out = '';
     my $err = '';
-    eval{ IPC::Run::run([_gnuplot_binary_path(),"--help"], \$in, \$out, \$err) };
+    eval{ IPC::Run::run([ $Alien::Gnuplot::executable, "--help"], \$in, \$out, \$err) };
     barf $@ if $@;
 
     foreach ( "$out\n$err\n" =~ /--([a-zA-Z0-9_]+)/g )
@@ -7138,7 +7149,7 @@ EOM
     my $err = '';
 
 
-    eval{ IPC::Run::run([_gnuplot_binary_path()], \$in, \$out, \$err) };
+    eval{ IPC::Run::run([ $Alien::Gnuplot::executable ], \$in, \$out, \$err) };
     barf $@ if $@;
 
     # no output if works; some output if error
@@ -7179,13 +7190,6 @@ sub _obj_or_global {
 	$this = $globalPlot;
     }
     return $this;
-}
-
-##############################
-# Figure the path to the gnuplot binary... lets you set an environment or local variable
-# with the specific path
-sub _gnuplot_binary_path {
-    return $Alien::Gnuplot::executable;
 }
 
 ##############################
