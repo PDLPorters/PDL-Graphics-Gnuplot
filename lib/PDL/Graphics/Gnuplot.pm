@@ -5742,10 +5742,11 @@ our $_OptionEmitters = {
 		      my $s = " $k ";
 		      $s .= shift @words if(lc($words[0]) eq 'rgb');
 		      
-		      if( $words[0] =~ m/\#[0-9a-fA-F]{6}/ ) {
+		      if( $words[0] =~ s/\"?(\#[0-9a-fA-F]{6})\"?/\"$1\"/ ) {
 			  $s .= " rgb " unless($s =~ m/rgb/);
-			  $s .= join(" ",@words);
-			     return $s;
+			  $s .= " ".join(" ",@words);
+			  print "returning '$s' from colorspec parser\n";
+			  return $s;
 		      }
 		      elsif($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
 			  $s .= " rgb " unless($s =~ m/rgb/);
@@ -5753,9 +5754,17 @@ our $_OptionEmitters = {
 			  shift @words;
 			  $s .= join(" ",@words)." ";
 			  return $s;
+		      } elsif($words[0] =~ m/(^[0-9]+$)|(variable)|(palette)/) {
+			  return join(" ",($s,@words,"")); 
 		      } else {
-			  return join(" ",($s,@words,"")); # maybe wrong - let gnuplot sort it out
+			  my $ww = join(" ",@words);
+			  die <<"EOD";
+PDL::Graphics::Gnuplot: Unknown color spec '$ww'. 
+  Use an integer, an '#RRGGBB' spec, 'variable', 'palette', or a name from 
+  the list in \@PDL::Graphics::Gnuplot::colornames.
+EOD
 		      }
+		      die "Can't get here!  (colorspec parser)";
     },
     
     
@@ -6561,6 +6570,37 @@ sub terminfo {
 #####  case we simply dropkick gnuplot and restart it.
 #####
 
+##############################
+##############################
+## _load_alien_gnuplot -- load up the local caches of terminal support and color names.
+## This is necessary because Alien::Gnuplot doesn't know which terminals we support, 
+## and is in a separate subroutine so we can call it to reload the cached terminal 
+## database.
+
+_load_alien_gnuplot();   # Execute this during module load!
+
+sub _load_alien_gnuplot {
+    our %valid_terms = ();
+    our $valid_terms = \%valid_terms;
+    our $unknown_terms = {};
+
+    for ( @Alien::Gnuplot::terms ) {
+	if(exists($termTab->{$_})) {
+	    $valid_terms->{$_} = 1;
+	} else {
+	    $unknown_terms->{$_} = _def($termTabSource->{$_}, "Unknown but reported by gnuplot");
+	}
+    }
+
+    our @colornames = @Alien::Gnuplot::colors;
+    our %colornames = %Alien::Gnuplot::colors;
+    our $colornames = \%colornames;
+}
+
+
+
+
+
 
 ##############################
 ##############################
@@ -6613,13 +6653,17 @@ sub _startGnuplot
     $this->{"errSelector-$suffix"} = $errSelector = IO::Select->new($err);
     $this->{"pid-$suffix"} = $pid;
 
-    ## Find Gnuplot version and do some binary/ASCII magic.
-    ## This uses the same chintzy read-one-byte-at-a-time logic as checkpoint --
-    ## it's more or less cut-and-pasted from there
+    ## Make sure the executable is working as expected.  We do this by
+    ## telling it to emit a version number.  (Alien::Gnuplot did this at 
+    ## load time, so we can check both that the gnuplot works, and also
+    ## that it is probably the same executable that Alien::Gnuplot reported.)
+
     my $s = "";
     our $gp_version;
+    our $gp_pl;
+
     if(!$this->{dumping}) {
-	print $in "show version\nset terminal\n\n\n\n\n\n\n\n\n\nprint \"CcColors\"\nshow colornames\n\n\n\n\n\n\n\n\nprint \"FfFinished\"\n";
+	print $in "show version\n\nprint \"FfFinished\"\n\n";
 	do {
 	    if($errSelector->can_read(1) or $MS_io_braindamage) {
 		my $byte;
@@ -6628,8 +6672,7 @@ sub _startGnuplot
 	    } else {
 		print STDERR <<"EOM";
 WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read 
-   a version number and some terminal information.  Ah, well, I\'m returning 
-   the object anyway -- but don\'t be surprised if it doesn\'t work.
+   a version number.  Carry on, but don\'t be surprised if it doesn\'t work.
 
 -
    $s
@@ -6642,10 +6685,13 @@ EOM
 	} until($s =~ m/^FfFinished$/m);
 
 ##############################
-# Parse version number; fail gracefully
-	if( $s =~ m/Version (.*) patchlevel/i ) {
+# Parse version number.  If the version or pl changed, try reloading Alien::Gnuplot
+# to get them in sync.
+	if( $s =~ m/Version (\d+\.\d+) (patchlevel (\d+))?/i ) {
 	    $gp_version = $1;
+	    $gp_pl = $3;
 	    $this->{gp_version} = $1;
+	    $this->{gp_pl} = $3;
 	} else {
 	    print STDERR <<"EOM"
 WARNING: gnuplot seems to be emitting prompts correctly but I couldn\'t parse a
@@ -6658,37 +6704,21 @@ EOM
 	    return $this;
 	}
 
-##############################
-# Parse terminals and colors...
-	$this->{valid_terms} = {};
-	$this->{unknown_terms} = {};
+	if( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
+	    print STDERR <<"EOM";
+WARNING: we found gnuplot version '$gp_version' pl '$gp_pl' but Alien::Gnuplot reported 
+a different version ('$Alien::Gnuplot::version' pl '$Alien::Gnuplot::pl').  Reloading Alien::Gnuplot...
+EOM
+            Alien::Gnuplot::load_gnuplot();
+            _load_alien_gnuplot();
+	    if( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
+		print STDERR <<"EOM"
+Hmmm, that\'s funny.  Reloading Alien::Gnuplot gave version '$Alien::Gnuplot::version' pl '$Alien::Gnuplot::pl',
+which still doesn\'t match.  Proceed with caution!
 
-	my @lines = split /\r?\n\r?/,$s;
-	my @toplines = ();
-	LINE:while(@lines) {
-	    last LINE if($lines[0] =~ m/^CcColors/);
-	    $lines[0] =~ s/^Press return for more\://;
-	    push(@toplines, shift @lines);
-	}
-
-	for( grep( ((m/^\s+(\w+)\s\s/) && s/^\s+// && s/\s\s.*$//), @toplines ) ) {
-	    if(exists($termTab->{$_})) {
-		$this->{valid_terms}->{$_} = 1;
-	    } else {
-		$this->{unknown_terms}{$_} = _def($termTabSource->{$_} ,"Unknown but reported by gnuplot");
+EOM
 	    }
 	}
-
-	$PDL::Graphics::Gnuplot::colornames = {};
-	for my $l(@lines){
-	    next unless( $l =~ m/^\s+([\w\-0-9]+)\s+(\#......)/ );
-	    $PDL::Graphics::Gnuplot::colornames->{$1} = $2;
-	}
-	@PDL::Graphics::Gnuplot::colornames = sort keys %$PDL::Graphics::Gnuplot::colornames;
-
-	# Copy the valid terminals out to a package global for future re-use.
-	%PDL::Graphics::Gnuplot::valid_terms = %{$this->{valid_terms}};
-	$PDL::Graphics::Gnuplot::valid_terms = \%PDL::Graphics::Gnuplot::valid_terms;
 
 	if( $gp_version < $gnuplot_dep_v  and  !$PDL::Graphics::Gnuplot::deprecated_this_session ) {
             $PDL::Graphics::Gnuplot::deprecated_this_session = 1;
@@ -6715,6 +6745,12 @@ EOM
 	$this->{early_gnuplot} = 0;
     }
 
+    ## Stash these in the object (legacy)
+    our $valid_terms;   # defined in _load_alien_gnuplot.
+    our $unknown_terms; # ditto
+    $this->{valid_terms} = $valid_terms;
+    $this->{unknown_terms} = $unknown_terms;
+    
     _checkpoint($this, "main");
 
     $this;
