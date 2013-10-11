@@ -1721,6 +1721,11 @@ use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
 
 use Alien::Gnuplot 4.4;  # Ensure gnuplot exists and is recent, and get ancillary info about it.
+if($Alien::Gnuplot::VERSION < 1.001) {
+    # Have to check explicitly since we use the version hack to check the *gnuplot* version.
+    die "PDL::Graphics::Gnuplot requires Alien::Gnuplot version 1.001 or higher\n (v$Alien::Gnuplot::VERSION found). You can pull the latest from CPAN.\n";
+}
+
 our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
 
 # Compile time config flags...
@@ -7440,9 +7445,12 @@ colorspec parser, for consistency.
 
 =head3 V2.0
 
- - Use Alien::Gnuplot
+ - Use Alien::Gnuplot extensively
  - Don't complain about 'with'-modifiers
  - Several edge-case bugs fixed (thanks, Dima)
+ - Colorspec parsing is better
+ - SIGPIPE crashes fixed (mixing gnuplot and forking used to be dangerous)
+ - 
 
 =head3 V1.5 - several bug fixes
 
