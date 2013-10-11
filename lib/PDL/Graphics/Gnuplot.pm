@@ -2396,7 +2396,7 @@ sub plot
 
     ##############################
     # Set binary mode default. This is a bit complex since
-    # we sometimes default to binary and sometimes to ascii.  It has to be
+    # we sometimes default to binary and sometimes to ascii. 
     local($this->{binary_flag_defaulted});
 
     unless(defined $this->{options}->{binary}) {
@@ -2475,15 +2475,32 @@ sub plot
     # We can't set an overall range until we scan the whole collection of chunks.
     
     my ($cbmin,$cbmax) = (undef, undef);
-    my $im_xrange = [undef,undef];
-    my $im_yrange = [undef,undef];
+    my $im_ranges = {};
+    my $active_axes = {};
+    my @axes_by_chunkno = ();
 
     for my $i(0..$#$chunks) {
-
+	
 	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
 	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $this->{options}->{binary});
 
-	# Everything else is an image fix
+	# Figure which axes are active
+	my $axis_str = _def($chunks->[$i]->{axes}, 'x1y1');
+	my ($xax,$yax);
+
+	if($axis_str =~ m/x([12])y([12])/i) {
+	    my($x,$y) = ($1,$2);
+	    ($xax,$yax) = ( ($x==1 ? 'x' : 'x2') , ($y==1 ? 'y' : 'y2'));
+	} else {
+	    print STDERR "WARNING: axes specifier '$axis_str' doesn't make sense.  Continuing anyway...\n";
+	    ($xax,$yax) = ('x','y');
+	}
+	$axes_by_chunkno[$i] = [$xax,$yax];
+
+	$active_axes->{$xax}++;
+	$active_axes->{$yax}++;
+
+	# Everything else in this block is an image fix
 	next unless($chunks->[$i]->{imgFlag});
 
 	# Fix up gnuplot color scaling bug/misfeature for RGB images
@@ -2519,8 +2536,10 @@ sub plot
 	    my($dx) = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
 	    $z = [$xmin - $dx, $xmax + $dx];
 	}
-	$im_xrange->[0] = $z->[0] if( !defined($im_xrange->[0])   or   $z->[0] < $im_xrange->[0] );
-	$im_xrange->[1] = $z->[1] if( !defined($im_xrange->[1])   or   $z->[1] > $im_xrange->[1] );
+
+	$im_ranges->{$xax} = [undef, undef] unless(defined($im_ranges->{$xax}));
+	$im_ranges->{$xax}->[0] = $z->[0]  if( !defined( $im_ranges->{$xax}->[0] ) or $z->[0] < $im_ranges->{$xax}->[0] );
+	$im_ranges->{$xax}->[1] = $z->[1]  if( !defined( $im_ranges->{$xax}->[1] ) or $z->[1] > $im_ranges->{$xax}->[1] ); 
 
 	if($chunks->[$i]->{ArrayRec} eq 'array') {
 	    $z= [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
@@ -2529,8 +2548,10 @@ sub plot
 	    my($dy) = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
 	    $z = [$ymin - $dy, $ymax + $dy];
 	}
-	$im_yrange->[0] = $z->[0] if( !defined($im_yrange->[0])   or   $z->[0] < $im_yrange->[0] );
-	$im_yrange->[1] = $z->[1] if( !defined($im_yrange->[1])   or   $z->[1] > $im_yrange->[1] );
+
+	$im_ranges->{$yax} = [undef, undef] unless(defined($im_ranges->{$yax}));
+	$im_ranges->{$yax}->[0] = $z->[0]  if( !defined( $im_ranges->{$yax}->[0] ) or $z->[0] < $im_ranges->{$yax}->[0] );
+	$im_ranges->{$yax}->[1] = $z->[1]  if( !defined( $im_ranges->{$yax}->[1] ) or $z->[1] > $im_ranges->{$yax}->[1] );
     }
 
     ##############################
@@ -2540,12 +2561,14 @@ sub plot
     # This is complicated (of course) by the fact that the user can omit the ordinate - so we have
     # to detect the missing-ordinate case and use the dimension instead.
     #
+    # We don't actually keep the non-image range limits, since we want to fall back to gnuplot's 
+    # axis estimator in the case where a non-image curve is setting the size of the axis.
 
-    if(defined($im_xrange->[0]) or defined($im_yrange->[0])) {
-	my $xr = [undef,undef];
-	my $yr = [undef,undef];
+    if( 0 + (keys %$im_ranges) ) {
+	my $ranges = {};
 	for my $i(0..$#$chunks) {
 	    next if($chunks->[$i]->{imgFlag});
+
 	    my($cxr, $cyr);
 
 	    if($chunks->[$i]->{ArrayRec} eq 'array') {
@@ -2563,28 +2586,42 @@ sub plot
 		$cxr = [$chunks->[$i]->{data}->[0]->minmax];
 		$cyr = [$chunks->[$i]->{data}->[1]->minmax];
 	    }
-
-	    $xr->[0] = $cxr->[0] if( !defined($xr->[0])  or  $cxr->[0] < $xr->[0] );
-	    $xr->[1] = $cxr->[1] if( !defined($xr->[1])  or  $cxr->[1] > $xr->[1] );
-
-	    $yr->[0] = $cyr->[0] if( !defined($yr->[0])  or  $cyr->[0] < $yr->[0] );
-	    $yr->[1] = $cyr->[1] if( !defined($yr->[1])  or  $cyr->[1] > $yr->[1] );
-
+	    
+	    my $xax = $axes_by_chunkno[$i]->[0];
+	    my $yax = $axes_by_chunkno[$i]->[1];
+	    
+	    $ranges->{$xax} = [undef,undef] unless defined($ranges->{$xax});
+	    $ranges->{$xax}->[0] = $cxr->[0] if( !defined( $ranges->{$xax}->[0] ) or $cxr->[0] < $ranges->{$xax}->[0]);
+	    $ranges->{$xax}->[1] = $cxr->[1] if( !defined( $ranges->{$xax}->[1] ) or $cxr->[1] > $ranges->{$xax}->[1]);
+	    
+	    $ranges->{$yax} = [undef,undef] unless defined($ranges->{$yax});
+	    $ranges->{$yax}->[0] = $cyr->[0] if( !defined( $ranges->{$yax}->[0] ) or $cyr->[0] < $ranges->{$yax}->[0]);
+	    $ranges->{$yax}->[1] = $cyr->[1] if( !defined( $ranges->{$yax}->[1] ) or $cyr->[1] > $ranges->{$yax}->[1]);
 	}
 
-	$im_xrange->[0] = undef if( !defined($im_xrange->[0]) or (defined($xr->[0]) && ($xr->[0] < $im_xrange->[0])) );
-	$im_xrange->[1] = undef if( !defined($im_xrange->[1]) or (defined($xr->[1]) && ($xr->[1] > $im_xrange->[1])) );
-	$im_yrange->[0] = undef if( !defined($im_yrange->[0]) or (defined($yr->[0]) && ($yr->[0] < $im_yrange->[0])) );
-	$im_yrange->[1] = undef if( !defined($im_yrange->[1]) or (defined($yr->[1]) && ($yr->[1] > $im_yrange->[1])) );
+	# Having accumulated the max/min values for non-image plots on this axis, 
+	# if one of them goes past the image, then void the im_range for that axis
+	# in that direction (to allow gnuplot to autoscale that axis in that direction).
+	for my $ax(keys %$im_ranges) {
+	    if(defined($ranges->{$ax})) {
+		$im_ranges->{$ax}->[0] = undef if( defined($im_ranges->{$ax}->[0]) and 
+						   defined($ranges->{$ax}->[0])    and 
+						   $ranges->{$ax}->[0] < $im_ranges->{$ax}->[0] );
+
+		$im_ranges->{$ax}->[1] = undef if( defined($im_ranges->{$ax}->[1]) and 
+						   defined($ranges->{$ax}->[1]) and
+						   $ranges->{$ax}->[1] > $im_ranges->{$ax}->[1] );
+	    }
+	}
     }
-    
+
 
     ##############################
     # Fix up cbrange if necessary. 
     if( defined($cbmin)   or   defined($cbmax) ) {
 	$this->{tmp_options}->{cbrange} = [$cbmin, $cbmax];
     } 
-
+    
     ##############################
     # Since we accept axis ranges as curve options, but they are only
     # allowed in the first curve of a single multi-curve plot, we
@@ -2593,7 +2630,7 @@ sub plot
 	my $rangeflag = 0;
 	for my $i(1..$#$chunks) {
 	    my $h = $chunks->[$i]->{options};
-	    for my $k( qw/xrange yrange zrange trange/ ) {
+	    for my $k( qw/xrange yrange zrange trange x2range y2range/ ) {
 		if(defined $h->{$k}) {
 		    delete $h->{$k};
 		    $rangeflag++;
@@ -2605,31 +2642,33 @@ sub plot
     }
 
     ##############################
-    # Now reconcile all of the xrange/yrange stuff for the plot itself,
+    # Now reconcile all of the <axis>range stuff for the plot itself,
     # and set it as a temporary plot option.
-    my $po_xrange = [undef, undef];
-    $po_xrange = $this->{options}->{xrange} if(defined($this->{options}->{xrange}));
-    if( defined( $chunks->[0]->{options}->{xrange} ) ) {
-	my $z = $chunks->[0]->{options}->{xrange};
-	$po_xrange->[0] = $z->[0] if( !defined($po_xrange->[0])  or  (defined($z->[0]) and  $z->[0] < $po_xrange->[0]) );
-	$po_xrange->[1] = $z->[1] if( !defined($po_xrange->[1])  or  (defined($z->[1]) and  $z->[1] > $po_xrange->[1]) );
+    #
+    # Remember, the purpose of this whole shenanigan is to fix up image ranging.
+    # Axes whose values are set by option only or by non-image curves only are just fine.
+    # (Maybe it would have been better to just submit a gnuplot patch...)
+    for my $k(keys %$im_ranges) {
+	my $rkey = $k."range";
+	
+	# Calculate the widest-range merge of any supplied plot options and curve options
+	# for this axis.
+	my $po_range = _def( $this->{options}->{$rkey}, [undef,undef] );
+	if( defined( $chunks->[0]->{options}->{$rkey} ) ) {
+	    my $z = $chunks->[0]->{options}->{$rkey};
+	    $po_range->[0] = $z->[0] if( !defined($po_range->[0]) or (defined($z->[0]) and  $z->[0] < $po_range->[0]) );
+	    $po_range->[1] = $z->[1] if( !defined($po_range->[1]) or (defined($z->[1]) and  $z->[1] > $po_range->[1]) );
+	}
+
+	# If an image range exists for this axis, use it for any default (undef) values.
+	$po_range->[0] = $im_ranges->{$k}->[0] unless(defined($po_range->[0]));
+	$po_range->[1] = $im_ranges->{$k}->[1] unless(defined($po_range->[1]));
+
+	# Now we have a merged range value whose limits come from supplied options or existing image "curve"s.
+	# Normal curves are not represented and appear as undef, allowing gnuplot to pix the axis range.
+	# Create a temporary option representing this.
+	$this->{tmp_options}->{$rkey} = $po_range;
     }
-
-    $po_xrange->[0] = $im_xrange->[0] unless(defined($po_xrange->[0]));
-    $po_xrange->[1] = $im_xrange->[1] unless(defined($po_xrange->[1]));
-    $this->{tmp_options}->{xrange} = $po_xrange;
-
-    my $po_yrange = [undef, undef];
-    $po_yrange = $this->{options}->{yrange} if(defined($this->{options}->{yrange}));
-    if( defined( $chunks->[0]->{options}->{yrange} ) ) {
-	my $z = $chunks->[0]->{options}->{yrange};
-	$po_yrange->[0] = $z->[0] if( !defined($po_yrange->[0])  or  (defined($z->[0]) and $z->[0]<$po_yrange->[0]) );
-	$po_yrange->[1] = $z->[1] if( !defined($po_yrange->[1])  or  (defined($z->[1]) and $z->[1]>$po_yrange->[1]) );
-    }
-    $po_yrange->[0] = $im_yrange->[0] unless(defined($po_yrange->[0]));
-    $po_yrange->[1] = $im_yrange->[1] unless(defined($po_yrange->[1]));
-    $this->{tmp_options}->{yrange} = $po_yrange;
-
 
     ##############################
     # If we're working with time data, and timefmt isn't set, then default it to '%s'.
@@ -4251,8 +4290,11 @@ sub _expand_abbrev {
     my $name = shift;
 
     my $snum = undef;
-    if($sl =~ s/(\d+)\s*$//) {
-	$snum = $1;
+
+    unless(exists($abbrevs->{$sl})) {
+	if($sl =~ s/(\d+)\s*$//) {
+	    $snum = $1;
+	}
     }
 
     if(exists($abbrevs->{$sl})) {
@@ -4394,7 +4436,7 @@ our $pOptionsTable =
     ],
 
     'tee'       => [ sub { $_[1]; }, sub { "" }, undef, undef,
-		    '[pseudo] Tee gnuplot commands to stdout for inspection'
+		    '[pseudo] Tee gnuplot commands to stdout (set to "nobinary" for viewing)'
     ],
 
     'silent'      => ['b', sub { "" }, undef, undef, 
@@ -4903,10 +4945,10 @@ $pOpt = [$pOptionsTable, $pOptionsAbbrevs, "plot option"];
 # 
 
 our $cOptionsTable = {
-    'trange'   => ['l','crange',undef,1],  # parametric range modifier
-    'xrange'   => ['l','crange',undef,2],  # x range modifier
-    'yrange'   => ['l','crange',undef,3],  # y range modifier
-    'zrange'   => ['l','crange',undef,4],  # z range modifier
+    'trange'   => ['l','crange',undef,1],   # parametric range modifier
+    'xrange'   => ['l','crange',undef,2],   # x range modifier
+    'yrange'   => ['l','crange',undef,3],   # y range modifier
+    'zrange'   => ['l','crange',undef,4],   # z range modifier
          # data is here so that it gets sorted properly into each chunk -- but it doesn't get specified this way.
          # the output string just specifies STDIN.   The magic output string gets replaced post facto with the test and
          # real output format specifiers.
@@ -6951,7 +6993,7 @@ sub _printGnuplotPipe
          )
        )
     {
-      $debug_display_string = '<binary data suppressed by the user passing in "nobinary">';
+      $debug_display_string = sprintf('< %d bytes of binary data suppressed >',length($string));
     }
     else
     {
