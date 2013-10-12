@@ -2485,7 +2485,7 @@ sub plot
 	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $this->{options}->{binary});
 
 	# Figure which axes are active
-	my $axis_str = _def($chunks->[$i]->{axes}, 'x1y1');
+	my $axis_str = _def($chunks->[$i]->{options}->{axes}, 'x1y1');
 	my ($xax,$yax);
 
 	if($axis_str =~ m/x([12])y([12])/i) {
@@ -2675,6 +2675,32 @@ sub plot
     $this->{options}->{timefmt} = '%s'
 	if ( !defined($this->{options}->{timefmt}) and  
 	     grep { _def($this->{options}->{$_."data"}, "") =~ m/^time/i }  qw/x x2 y y2 z cb/ );
+
+    ##############################
+    # Now deal with x2/y2 ticks.  By default they don't get turned on (blech).  So if they are
+    # active, we turn them on with default values -- and also turn off mirroring for the x/y ticks.
+    # (all by default -- if the user sets those options then keep those)
+    for my $ax(qw/x y/) {
+	my $ax2 = $ax.'2';
+	my $axtics = $ax.'tics';
+	my $ax2tics = $ax2.'tics';
+	
+	if($active_axes->{$ax2}) {
+	    # Turn on the axis2 tick marks
+	    unless( exists($this->{options}->{$ax2tics} ) ) {
+		$this->{tmp_options}->{$ax2tics} = ' ';
+	    }
+	   
+	    # Turn off the opposite axis mirror marks
+	    unless( exists($this->{options}->{$axtics}) ) {
+		# No options for that axis - just make some
+		$this->{tmp_options}->{$axtics} = ['nomirror'];
+	    } else {
+		
+	    }
+	}
+    }
+	
     
     ##########
     # Merge in any temporary options that have been set by the argument parsing.
@@ -4589,7 +4615,7 @@ our $pOptionsTable =
     'cbmax'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[1]=$n; return undef},sub{''},undef,undef,
 		    'sets maximum end of cbrange'
     ],
-    'cbtics'    => ['lt','l',  ['colorbox'], undef,
+    'cbtics'    => ['lt','lt',  ['colorbox'], undef,
 		    'controls major (labelled) ticks on the color box axis (see docs)'
     ],
     'clabel'    => ['s','q',undef,undef,
@@ -4663,19 +4689,19 @@ our $pOptionsTable =
     # multiplot: this is not emitted as part of any plot command, only by the special multiplot method.
     'multiplot' => [sub { die "multiplot: use the 'multiplot' method, don't set this directly\n" },sub { ""},undef,undef,undef]
     ,
-    'mxtics'    => ['lt','l',undef,undef,
+    'mxtics'    => ['lt','lt',undef,undef,
 		    'set and control minor ticks on the X axis: mxtics=><freq>'
     ],
-    'mx2tics'   => ['lt','l',undef,undef,
+    'mx2tics'   => ['lt','lt',undef,undef,
 		    'set and control minor ticks on the X2 axis: mx2tics=><freq>'
     ],
-    'mytics'    => ['lt','l',undef,undef,
+    'mytics'    => ['lt','lt',undef,undef,
 		    'set and control minor ticks on the Y axis: mytics=><freq>'
     ],
-    'my2tics'   => ['lt','l',undef,undef,
+    'my2tics'   => ['lt','lt',undef,undef,
 		    'set and control minor ticks on the Y2 axis: my2tics=><freq>'
     ],
-    'mztics'    => ['lt','l',undef,undef,
+    'mztics'    => ['lt','lt',undef,undef,
 		    'set and control minor ticks on the Z axis: mztics=><freq>'
     ],
     'object'    => ['N','NO',undef,undef,
@@ -4808,7 +4834,7 @@ our $pOptionsTable =
     'x2range'   => ['lr','range',undef,undef,
 		    'set range of X2 axis: x2range=>[<min>,<max>]'
     ],
-    'x2tics'    => ['lt','l',undef,undef,
+    'x2tics'    => ['lt','lt',undef,undef,
 		    'Control tick mark formatting (X2 axis; see docs)'
     ],
     'x2zeroaxis'=> ['l','l',undef,undef,
@@ -4835,7 +4861,7 @@ our $pOptionsTable =
     'xrange'    => ['lr','range',undef,undef,
 		    'set range of X axis: xrange=>[<min>,<max>]'
     ],
-    'xtics'     => ['lt','l',undef,undef,
+    'xtics'     => ['lt','lt',undef,undef,
 		    'Control tick mark formatting (X axis; see docs)'
     ],
     'xyplane'   => ['l','l',undef,undef,
@@ -4865,7 +4891,7 @@ our $pOptionsTable =
     'y2range'   => ['lr','range',undef,undef,
 		    'set range of Y2 axis: y2range=>[<min>,<max>]'
     ],
-    'y2tics'    => ['lt','l',undef,undef,
+    'y2tics'    => ['lt','lt',undef,undef,
 		    'Control tick mark formatting (Y2 axis; see docs)'
     ],
     'y2zeroaxis'=> ['l','l',undef,undef,
@@ -4877,7 +4903,7 @@ our $pOptionsTable =
     'ydtics'    => ['b','b',undef,undef,
 		    'ydtics=>1 to use days-of-week tick labels on Y axis'
     ],
-    'ytics'     => ['lt','l',undef,undef,
+    'ytics'     => ['lt','lt',undef,undef,
 		    'Control tick mark formatting (Y axis; see docs)'
     ],
     'ylabel'    => ['l','ql',undef,undef,
@@ -4925,7 +4951,7 @@ our $pOptionsTable =
     'zero'      => ['s','s',undef,undef,
 		    'Sets the default threshold for values approaching 0.0'
     ],
-    'ztics'     => ['lt','l',undef,undef,
+    'ztics'     => ['lt','lt',undef,undef,
 		    'Control tick mark formatting (Z axis; see docs)'
     ]
 
@@ -5311,6 +5337,8 @@ sub _parseOptHash {
 # parsed new value.  Most of the parsers ignore fieldname, but it's passed in
 # so that, e.g., 'lt' can parse both major and minor tick values.
 
+our $footicsAbbrevs = _gen_abbrev_list(qw/axis border mirror in out scale rotate offset autofreq locations labels format font rangelimited textcolor/ );
+
 $_pOHInputs = {
     ## Simple cases - boolean, number, scalar
     'b' => sub { ( (defined $_[1]) ? ($_[1] ? 1 : 0) : undef ); },
@@ -5426,145 +5454,26 @@ $_pOHInputs = {
     },
     
     ## <foo>tics option list
-    ## 
+    ## (For valid hash keys, see footicsAbbrevs definition above)
     'lt' => sub { my($old, $new, $h, $fieldname) = @_;
 		  return undef unless(defined $new);
-		  my $ok = {};
-		  for( qw/axis border mirror in out scale rotate offset autofreq locations labels format font rangelimited textcolor/ ) {
-		      $ok->{$_} = 1;
+
+		  if (!(ref($new)) or ref($new) eq 'ARRAY') {
+		      print "$fieldname: returning $new\n";
+		      return $new;
+		  } elsif ( ref($new) eq 'HASH' ) {
+		      my %h = ();
+		      for my $k(keys %$new) {
+			  my $k2 = _expand_abbrev($k, $footicsAbbrevs, "<foo>tics option");
+			  if(exists($h{$k2})) {
+			      barf("Error: '$k' expanded to '$k2', which already exists in <foo>tics option");
+			  }
+			  $h{$k2} = $new->{$k};
+		      }
+		      return \%h;
+		  } else {
+		      barf("Error: <foo>tics options require a scalar or a hash ref");
 		  }
-
-		  my @list = ();
-
-		  if(ref($new) eq 'HASH') {
-		      ### Check for extraneous keys...
-		      my @notok = ();
-		      for(keys %$new) {
-			  push(@notok, $_) unless($ok->{$_});
-		      }
-		      if(@notok) {
-			  barf "<foo>tics option: unknown keyword(s): '".join("', '",@notok)."'";
-		      }
-
-		      ### All is OK -- proceed to parse...
-		      my @list = ();
-		      my $bs  = sub { map { push @list, $_ if($new->{$_}) } @_ };
-
-		      &$bs("axis", "border");
-		      push(@list, $new->{mirror} ? "mirror" : "nomirror") if( defined($new->{mirror}) );
-		      &$bs("in","out");
-		      unless($fieldname =~ m/^m/) {
-			  if(defined $new->{scale}) {
-			      if(ref $new->{scale} eq 'ARRAY') {
-				  push @list, "scale ".join(",",@{$new->{scale}});
-			      } else {
-				  push(@list, "scale $new->{scale}");
-			      }
-			  } else {
-			      push(@list, "scale default");
-			  }
-			  if(defined $new->{rotate}) {
-			      unless($new->{rotate}) {
-				  push(@list, "norotate");
-			      } else {
-				  push(@list, "rotate by ".$new->{rotate});
-			      }
-			  }
-		      }
-		      if(defined $new->{offset}) {
-			  unless($new->{offset}) {
-			      push(@list, "nooffset");
-			  } else {
-			      unless(ref($new->{offset}) eq 'ARRAY') {
-				  barf "<foo>tics option: 'offset' suboption must have a list ref value or be zero";
-			      } else {
-				  push(@list, "offset ".join(",",@{$new->{offset}}));
-			      }
-			  }
-		      }
-		      if(defined $new->{locations}) {
-			  unless(ref($new->{locations}) eq 'ARRAY') {
-			      barf "<foo>tics option: 'locations' suboption must contain a list ref";
-			  } else {
-			      push(@list, join(",",@{$new->{locations}}));
-			  }
-		      } 
-		      if(defined $new->{labels}) {
-			  unless(ref($new->{labels}) eq 'ARRAY') {
-			      barf "<foo>tics labels option: must contain a list ref";
-			  } else {
-			      push(@list, "(", join(", ",
-					       map {
-						   barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
-						   sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],""));
-					       
-					       } @{$new->{labels}}
-					       ),
-				   ")"
-				  );
-			  }
-		      }
-		      if(defined $new->{format}) {
-			  push(@list, 'format', "\"$new->{format}\"");
-		      }
-		      if(defined $new->{font}) {
-			  if(ref $new->{font} eq 'ARRAY') {
-			      push(@list, "font", '"'.join(',',@{$new->{font}}).'"');
-			  } else {
-			      push(@list, "font",'"'.$new->{font}.'"');
-			  }
-		      }
-		      &$bs('rangelimited');
-		      if(defined $new->{textcolor}) {
-			  # parse a colorspec -- probably needs to be broken out to a routine...
-			  my ($s, $ss);
-			  if(ref($new->{textcolor}) eq 'ARRAY') {
-			      $s = shift @{$new->{textcolor}};
-			      $ss = join(" ",@{$new->{textcolor}});
-			  } else {
-			      $s = $new->{textcolor};
-			      $s =~ s/^\s*//;
-			      $s =~ s/\s(.*)// && ($ss = $1);
-			  }
-			  if($s =~ m/^r(g(b(c(o(l(o(r)?)?)?)?)?)?)?\s*$/) { # rgbcolor case 
-			      if($ss =~ m/\s*variable\s*/) {
-				  push(@list, "rgbcolor variable");
-			      } else {
-				  push(@list, "rgbcolor \"$ss\"");
-			      }
-			  } elsif($s =~ m/^p(a(l(e(t(t(e)?)?)?)?)?)?\s*$/) { # palette case
-			      push(@list, "palette $ss");
-			  } else {
-			      barf("<foo>tics option: textcolor appears not to contain a colorspec");
-			  }
-		      }
-		      return \@list;
-		  } # end of hash ref case
-
-		  ####
-		  # A scalar got passed in.  If it's false, then return 0; else listify it.
-		  # That way false values cause tics to be unset.
-		  unless(ref($new) eq 'ARRAY') {
-		      unless($new) {
-			  return $new;
-		      }
-		      $new = [split /\s+/, $new];
-		  }
-
-		  if( grep( (ref $_), @$new) ) {
-		      barf("<foo>tics: if you specify an array it must contain only strings or numeric\n   values.  Consider using a hash ref instead, as hash values are parsed.\n");
-		  } 
-
-		  @list = @$new;
-
-		  if(!@list) {
-		      if($gp_version < 4.6) {
-			  @list = "autofreq";
-		      } else {
-			  @list = "autofreq autojustify"; 
-		      }
-		  }
-		  return \@list;
     }
 };
 
@@ -5658,6 +5567,53 @@ sub _emitOpts {
 # they may take a fourth parameter containing the complete object.
 # That's useful for things like "crange", which needs to know the global
 # options state to know how to emit itself.
+sub _parse_colorspec {
+    my $v = shift;
+    
+    my @words;
+    unless(ref($v)) {
+	$v =~ s/^\s+//;
+	$v =~ s/\s+$//;
+	@words = split /\s+/, $v;
+    } elsif(ref($v) eq 'ARRAY') {
+	if(@$v > 1) {
+	    @words = @$v;
+	} else {
+	    $v->[0] =~ s/^\s+//;
+	    $v->[0] =~ s/\s+$//;
+	    @words = split /\s+/, $v->[0];
+	}
+    } else {
+	die "colorspec: only scalar and ARRAY values are supported for colors";
+    }
+    
+    my $s = "";
+    $s .= shift @words if(lc($words[0]) eq 'rgb');
+    
+    if( $words[0] =~ s/\"?(\#[0-9a-fA-F]{6})\"?/\"$1\"/ ) {
+	$s .= " rgb " unless($s =~ m/rgb/);
+	$s .= " ".join(" ",@words);
+	print "returning '$s' from colorspec parser\n";
+	return $s;
+    }
+    elsif($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
+	$s .= " rgb " unless($s =~ m/rgb/);
+	$s .= " \"$words[0] \" ";
+	shift @words;
+	$s .= join(" ",@words)." ";
+	return $s;
+    } elsif($words[0] =~ m/(^[0-9]+$)|(variable)|(palette)/) {
+	return join(" ",($s,@words,"")); 
+    } else {
+	my $ww = join(" ",@words);
+	die <<"EOD";
+PDL::Graphics::Gnuplot: Unknown color spec '$ww'. 
+  Use an integer, an '#RRGGBB' spec, 'variable', 'palette', or a name from 
+  the list in \@PDL::Graphics::Gnuplot::colornames.
+EOD
+    }
+    die "Can't get here!  (colorspec parser)";
+}
 
 our $_OptionEmitters = {
     #### Default output -- a collection of terms with spaces between them as a plot option
@@ -5769,49 +5725,7 @@ our $_OptionEmitters = {
     ### A color specification as a curve option
     'ccolor' => sub { my($k,$v,$h) = @_;  
 		      return "" unless($v); 
-		      my @words;
-		      unless(ref($v)) {
-			  $v =~ s/^\s+//;
-			  $v =~ s/\s+$//;
-			  @words = split /\s+/, $v;
-		      } elsif(ref($v) eq 'ARRAY') {
-			  if(@$v > 1) {
-			      @words = @$v;
-			  } else {
-			      $v->[0] =~ s/^\s+//;
-			      $v->[0] =~ s/\s+$//;
-			      @words = split /\s+/, $v->[0];
-			  }
-		      } else {
-			  die "colorspec curve option: only scalar and ARRAY values are supported";
-		      }
-		      
-		      my $s = " $k ";
-		      $s .= shift @words if(lc($words[0]) eq 'rgb');
-		      
-		      if( $words[0] =~ s/\"?(\#[0-9a-fA-F]{6})\"?/\"$1\"/ ) {
-			  $s .= " rgb " unless($s =~ m/rgb/);
-			  $s .= " ".join(" ",@words);
-			  print "returning '$s' from colorspec parser\n";
-			  return $s;
-		      }
-		      elsif($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
-			  $s .= " rgb " unless($s =~ m/rgb/);
-			  $s .= " \"$words[0] \" ";
-			  shift @words;
-			  $s .= join(" ",@words)." ";
-			  return $s;
-		      } elsif($words[0] =~ m/(^[0-9]+$)|(variable)|(palette)/) {
-			  return join(" ",($s,@words,"")); 
-		      } else {
-			  my $ww = join(" ",@words);
-			  die <<"EOD";
-PDL::Graphics::Gnuplot: Unknown color spec '$ww'. 
-  Use an integer, an '#RRGGBB' spec, 'variable', 'palette', or a name from 
-  the list in \@PDL::Graphics::Gnuplot::colornames.
-EOD
-		      }
-		      die "Can't get here!  (colorspec parser)";
+		      return " $k "._parse_colorspec($v);
     },
     
     
@@ -5838,6 +5752,104 @@ EOD
 		     return $v ? "set $k\n" : "unset $k\n";
 		 }
                 },
+
+    #### Special emitter for ticks that can deal with hashes
+    'lt' => sub { my($k,$v,$h) = @_;
+		  return "" unless(defined($v));
+		  my @l = ();
+
+		  unless(ref($v)) {
+		      return $v ? "set $k $v\n" : "unset $k\n";
+		  } elsif(ref($v) eq 'ARRAY') {
+		      @l = @$v;
+		  } elsif(ref($v) eq 'HASH') {
+		      my %h = %$v;
+		      push(@l, 'axis')   if($h{axis});   delete $h{axis};
+		      push(@l, 'border') if($h{border}); delete $h{border};
+		      push(@l, $h{mirror}?'mirror':'nomirror') if(defined($h{mirror})); delete $h{mirror};
+		      push(@l, 'in')     if($h{in});     delete $h{in};
+		      push(@l, 'out')    if($h{out});    delete $h{out};
+		      unless($k =~ m/^m/) {
+			  push(@l, 'scale');
+			  if( defined( $h{scale} ) ) {
+			      if( ref($h{scale}) eq 'ARRAY' ) {
+				  push(@l, join(",",@{$h{scale}}));
+			      } else {
+				  push(@l, $h{scale});
+			      }
+			  } else {
+			      push(@l, 'default');
+			  }
+			  delete $h{scale};
+			  if(defined($h{rotate})) {
+			      unless($h{rotate}) {
+				  push(@l,'norotate');
+			      } else {
+				  push(@l, 'rotate by '.$h{rotate});
+			      }
+			  }
+			  delete $h{rotate};
+		      }
+		      if(defined $h{offset}) {
+			  unless($h{offset}){
+			      push(@l,'noofset');
+			  } else {
+			      if(ref($h{offset}) eq 'ARRAY') {
+				  push(@l, "offset", join(",",@{$h{offset}}));
+			      } else {
+				  barf "<foo>tics option: 'offset' suboption must be a list ref or zero";
+			      }
+			  }
+		      }
+		      delete $h{offset};
+
+		      if(defined($h{locations})) {
+			  if(ref($h{locations}) eq 'ARRAY'){
+			      push(@l, @{$h{locations}});
+			  } else {
+			      barf("<foo>tics option: 'locations' suboption must contain a list ref");
+			  }
+		      }
+		      delete $h{location};
+
+		      if(defined($h{labels})) {
+			  if( ref($h{labels}) ) {
+			      push(@l,"(",join(", ",
+					       map { 
+						   barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
+						   sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") );
+					       } @{$h{labels}}
+					       ),
+				   ")"
+				  );
+			  }
+		      }
+		      delete $h{labels};
+
+		      push(@l,'format',"\"$h{format}\"") if(defined($h{format})); delete $h{format};
+
+		      if(defined $h{font}) {
+			  if(ref($h{font}) eq 'ARRAY'){
+			      push(@l,"font",'"'.join(',',@{$h{font}}).'"');
+			  } else {
+			      push(@l,"font",'"'.$h{font}.'"');
+			  }
+		      }
+		      delete $h{font};
+		      
+		      push(@l,'rangelimited') if(defined($h{rangelimited})); delete $h{rangelimited};
+		      
+		      if(defined $h{textcolor}) {
+			  push(@l,"textcolor", _parse_colorspec($h{textcolor}));
+		      }
+		      delete $h{textcolor};
+		  } else {
+		      die "<foo>tics spec must be scalar or hash\n";
+		  }
+
+		  return "set $k ".join(" ",@l)."\n";
+		  
+                 },
 
     ## one-line list with leading quoted string (e.g. for titles)
     'ql' => 
