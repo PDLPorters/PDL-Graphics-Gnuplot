@@ -83,7 +83,7 @@ WriteMakefile(
     },		  
 
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean               => { FILES => 'PDL-Graphics-Gnuplot-* pdl_graphics_gnuplot_test_*' },
+    clean               => { FILES => 'PDL-Graphics-Gnuplot-* pdl_graphics_gnuplot_test_* *~' },
 	);
 	
 # reroute the main POD into a separate README.pod if requested. This is here
