@@ -215,17 +215,36 @@ In general, a color spec can be any one of the following:
 
 =over 3
 
-=item - an integer, specifying unique colors in the same order as used by the plotting engine.
+=item - an integer
 
-=item - a scalar string, containing the name of a color (e.g. 'blue').  Supported color names are listed in the variable C<@Alien::Gnuplot::colors>.
+This specifies a recognizable unique color in the same order as used by the plotting engine.
 
-=item - an RGB value string: C<#RRGGBB>, where the C<#> is literal and the RR, GG, and BB are hexadecimal bytes.
+=item - the name of a color
 
-=item - the word "palette", indicating that color is to be drawn from the scaled colorbar palette (which you can set with the "clut" plot option).  This option requires an additional column in the associated data tuple.
+(e.g. "blue").  Supported color names are listed in the variable C<@Alien::Gnuplot::colors>.
 
-=item - the word "variable", indicating that color is to be drawn from the integer plotting colors used by the plotting engine, indexed by an additional column in the associated data tuple.
+=item - an RGB value string
 
-=item - the phrase "rgb variable", indicating that RGB color is to be generated on-the-fly.  This requires an additional column in the associated data tuple.  The additional column is interpreted as a 24-bit integer specifying (from most significant byte to least significant byte) R, G, B value of the corresponding color, one per byte, as if it were specified with the '#RRGGBB" on a per-tuple-row basis.
+Strings have the form C<#RRGGBB>, where the C<#> is literal and the RR, GG, and BB are hexadecimal bytes.  
+
+=item - the word "palette"
+
+"palette" indicates that color is to be drawn from the scaled colorbar
+palette (which you can set with the "clut" plot option), by lookup 
+using an additional column in the associated data tuple.
+
+=item - the word "variable"
+
+"variable" indicates that color is to be drawn from the integer
+plotting colors used by the plotting engine, indexed by an additional
+column in the associated data tuple.
+
+=item - the phrase "rgb variable"
+
+"rgb variable" indicates that color is to be directly specified by a
+24 bit integer specifying 8-bit values for (from most significant byte
+to least significant byte) R, G, and B in the output color.  The 
+integer is drawn from an additional column in the associated data tuple.
 
 =back
 
