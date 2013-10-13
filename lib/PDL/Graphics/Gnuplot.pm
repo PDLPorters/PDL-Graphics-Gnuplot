@@ -2691,13 +2691,13 @@ sub plot
 		$this->{tmp_options}->{$ax2tics} = ' ';
 	    }
 	   
-	    # Turn off the opposite axis mirror marks
-	    unless( exists($this->{options}->{$axtics}) ) {
-		# No options for that axis - just make some
-		$this->{tmp_options}->{$axtics} = ['nomirror'];
-	    } else {
-		
-	    }
+	    # Turn off the axis1 mirror marks by default.
+	    # Do this with a 'topcmds' command since it will be overridden
+	    # by whatever comes below (and axis1 ticks are on by default anyway,
+	    # so if the user doesn't want them he will have turned them off).
+	    my $tc = _def($this->{options}->{topcmds},"");
+	    $tc .= "\nset $axtics nomirror\n";
+	    $this->{options}->{topcmds} = $tc;
 	}
     }
 	
@@ -5337,7 +5337,7 @@ sub _parseOptHash {
 # parsed new value.  Most of the parsers ignore fieldname, but it's passed in
 # so that, e.g., 'lt' can parse both major and minor tick values.
 
-our $footicsAbbrevs = _gen_abbrev_list(qw/axis border mirror in out scale rotate offset autofreq locations labels format font rangelimited textcolor/ );
+our $footicsAbbrevs = _gen_abbrev_list(qw/axis border mirror in out scale rotate offset left right center autofreq locations labels format font rangelimited textcolor/ );
 
 $_pOHInputs = {
     ## Simple cases - boolean, number, scalar
@@ -5458,9 +5458,38 @@ $_pOHInputs = {
     'lt' => sub { my($old, $new, $h, $fieldname) = @_;
 		  return undef unless(defined $new);
 
-		  if (!(ref($new)) or ref($new) eq 'ARRAY') {
-		      print "$fieldname: returning $new\n";
-		      return $new;
+		  if (!ref($new) or ref($new) eq 'ARRAY') {
+		      my @list;
+
+		      if(!ref($new)) {
+			  $new =~ s/^\s+//;
+			  $new =~ s/\s+$//;
+			  @list = split /\s*[\s\,]\s*/,$new;
+		      } else {
+			  @list = @$new;
+		      }
+
+		      # We don't fully parse gnuplot lines -- but we do 
+		      # check for the simple numeric case -- if it's correct, 
+		      # turn the list ref into a hash for future manipulability.
+		      if( @list == 0 ) {
+			  return {};
+		      } elsif(@list > 3) {
+			  print STDERR "Warning - explicit string or array refs are deprecated in tic specs\n";
+			  return [@list];
+		      }
+		      my $num_ok = 0;
+		      for my $i(0..$#list) {
+			  $num_ok++ if($list[$i] =~ s/^(\-?\d+(\.\d*)?([eE][\+\-]?\d+)?)(\s*\,\s*)?$/$1/);
+		      }
+		      if($num_ok == @list) {
+			  # Hashify the form if possible
+			  return {locations=>\@list};
+		      } else {
+			  print STDERR "Warning - explicit list or string gnuplot commands are deprecated in tic specs\n";
+			  return \@list;
+		      }
+		      barf "This can't happen!";
 		  } elsif ( ref($new) eq 'HASH' ) {
 		      my %h = ();
 		      for my $k(keys %$new) {
@@ -5757,6 +5786,7 @@ our $_OptionEmitters = {
     'lt' => sub { my($k,$v,$h) = @_;
 		  return "" unless(defined($v));
 		  my @l = ();
+		  my @l2= ();
 
 		  unless(ref($v)) {
 		      return $v ? "set $k $v\n" : "unset $k\n";
@@ -5767,8 +5797,14 @@ our $_OptionEmitters = {
 		      push(@l, 'axis')   if($h{axis});   delete $h{axis};
 		      push(@l, 'border') if($h{border}); delete $h{border};
 		      push(@l, $h{mirror}?'mirror':'nomirror') if(defined($h{mirror})); delete $h{mirror};
+		      if($h{in} && $h{out}) {
+			  barf("<foo>tics: you set both the 'in' and 'out' options. Oops.");
+		      }
 		      push(@l, 'in')     if($h{in});     delete $h{in};
 		      push(@l, 'out')    if($h{out});    delete $h{out};
+		      
+		      
+		      
 		      unless($k =~ m/^m/) {
 			  push(@l, 'scale');
 			  if( defined( $h{scale} ) ) {
@@ -5803,28 +5839,67 @@ our $_OptionEmitters = {
 		      }
 		      delete $h{offset};
 
+		      barf("<foo>tics: you set two or more of 'left','right', and 'center'. Oops.")
+			  if( defined($h{left}) + defined($h{right}) + defined($h{center}) > 1 );
+
+		      push(@l,'left')   if($h{left});   delete $h{left};
+		      push(@l,'right')  if($h{right});  delete $h{right};
+		      push(@l,'center') if($h{center}); delete $h{center};
+
+
+		      ##############################
+		      # Deal with complex add/labels/locations logic.  
+		      # If you specify locations *or* labels then that style gets 
+		      # emitted.  if you specify both, then the labels get appended
+		      # to the end of the plot command as a *separate* "set <foo>tics"
+		      # gnuplot command with "add" marked.
+
 		      if(defined($h{locations})) {
 			  if(ref($h{locations}) eq 'ARRAY'){
-			      push(@l, @{$h{locations}});
+			      if(@{$h{locations}}) {
+				  push(@l, join(',', @{$h{locations}}));
+			      } else {
+				  push(@l, "autofreq");
+			      }
+			  } elsif(!ref($h{locations})) {
+			      if($h{locations}) {
+				  push(@l, $h{locations});
+			      } else {
+				  push(@l, "autofreq");
+			      }
 			  } else {
-			      barf("<foo>tics option: 'locations' suboption must contain a list ref");
+			      barf("<foo>tics: 'locations' elements must be scalar or list ref");
 			  }
+			  # Workaround for bug in gnuplot parser (documented in xtics section of gnuplot manual):
+			  # if the first number in the start/incr/end sequence is negative, subtract it from 0 
+			  # to avoid problems with binary subtraction.
+			  $l[$#l] =~ s/^\s*\-/0\-/;
 		      }
-		      delete $h{location};
-
 		      if(defined($h{labels})) {
-			  if( ref($h{labels}) ) {
-			      push(@l,"(",join(", ",
-					       map { 
-						   barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
-						   sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") );
-					       } @{$h{labels}}
-					       ),
-				   ")"
-				  );
+			  my $line;
+			  if( ref($h{labels}) eq 'ARRAY' ) {
+			      $line =   "(".  
+					(join(", ",
+					      map { 
+						  barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
+						  sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") );
+					      } @{$h{labels}}
+					 )).
+					")"
+					;
+			  } else {
+			      barf("<foo>tics: 'labels' elements must be list refs containing [label, val, flag]");
+			  }
+
+			  if(defined($h{locations})) {
+			      push(@l2, "\nset $k add ",$line);
+			  } else {
+			      push(@l, $line);
 			  }
 		      }
+		      delete $h{locations};
 		      delete $h{labels};
+
 
 		      push(@l,'format',"\"$h{format}\"") if(defined($h{format})); delete $h{format};
 
@@ -5847,6 +5922,7 @@ our $_OptionEmitters = {
 		      die "<foo>tics spec must be scalar or hash\n";
 		  }
 
+		  push(@l, @l2);
 		  return "set $k ".join(" ",@l)."\n";
 		  
                  },
@@ -7487,12 +7563,6 @@ Further, deeply nested options (e.g. "at" for labels) need attention.
 The "boxplot" plot style (new to 4.6?) requires a different using
 syntax and will require some hacking to support.
 
-=item - Regularize colorspec parsing
-
-Currently colorspecs are parsed independently for axis/tics plot option specifications and 
-the colorspec-accepting curve options.  That needs to be broken out into a single 
-colorspec parser, for consistency.
-
 =back
 
 =head1 RELEASE NOTES
@@ -7502,9 +7572,11 @@ colorspec parser, for consistency.
  - Use Alien::Gnuplot extensively
  - Don't complain about 'with'-modifiers
  - Several edge-case bugs fixed (thanks, Dima)
- - Colorspec parsing is better
+ - Colorspec parsing is better (and regularized with a procedure call)
  - SIGPIPE crashes fixed (mixing gnuplot and forking used to be dangerous)
- - 
+ - internal representation of tics specifiers is better
+ - better handling of tics when x2 or y2 is specified
+ - better handling of images when x2 or y2 is specified
 
 =head3 V1.5 - several bug fixes
 
