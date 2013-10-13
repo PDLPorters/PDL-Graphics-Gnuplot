@@ -764,47 +764,46 @@ If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
 of a unit).
 
-Each tics option can accept a list or hash ref containing options to
-pass to Gnuplot.  If you want PDL::Graphics::Gnuplot to parse your options
-for you (inserting commas and quotes, for example, where the gnuplot backend 
-wants them), then you must pass in a hash ref.  
+Each tics option can accept a hash ref containing options to pass to
+Gnuplot.  You can also pass in a snippet of gnuplot command, as either 
+a string or an array ref -- but those techniques are deprecated and may
+disappear in a future version of C<PDL:Graphics::Gnuplot>.
 
-If you are comfortable with the Gnuplot backend's syntax, then you can 
-pass in a scalar string or a list ref that is interpolated into a single
-space-separated string to be passed to the gnuplot backend.  
-
-The keywords accepted by the hash are:
+The keywords are case-insensitive and may be abbreviated, just as with 
+other option types.  They are:
 
 =over 2
 
-=item * axis - set this to 1 to place tics on the axis (the default)
+=item * axis - set to 1 to place tics on the axis (the default)
 
-=item * border - set this to 1 to place tics on the border (not the default)
+=item * border - set to 1 to place tics on the border (not the default)
 
-=item * mirror - set this to 1 to place mirrored tics on the opposite axis/border?
+=item * mirror - set to 1 to place mirrored tics on the opposite axis/border (the default, unless an alternate axis interferes -- e.g. y2)
 
-=item * in - set this to 1 to draw tics inward from the axis/border
+=item * in - set to 1 to draw tics inward from the axis/border
 
-=item * out - set this to 1 to draw tics outward from the axis/border
+=item * out - set to 1 to draw tics outward from the axis/border
 
-=item * scale - multiplier on tic length.  
+=item * scale - multiplier on tic length compared to the default  
 
-If you pass in undef, tics get the default length.  If you pass in a scalar, major tics get scaled.  You can pass in a list ref to scale minor tics too.
+If you pass in undef, tics get the default length.  If you pass in a scalar, major tics get scaled.  You can pass in an array ref to scale minor tics too.
 
-=item * rotate - turn label text by the given angle (in degrees)
+=item * rotate - turn label text by the given angle (in degrees) on the drawing plane
 
-=item * offset - offset label text from default position, (units: characters; requires list ref containing x,y)
+=item * offset - offset label text from default position, (units: characters; requires array ref containing x,y)
 
-=item * locations - sets tic locations.  list ref: [incr], [start, incr], or [start, incr, stop].
+=item * locations - sets tic locations.  Gets an array ref: [incr], [start, incr], or [start, incr, stop].
 
-=item * labels - sets tic locations explicitly, with text labels for each. 
+=item * labels - sets tic locations explicitly, with text labels for each. If you specify both C<locations> and C<labels>, you get both sets of tics on the same axis.
 
 The labels should be a nested list ref that is a collection of duals
-or triplets.  Each dual or triplet should contain
-[label, position, minorflag], as in
-C<<labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]]>>.
+or triplets.  Each dual or triplet should contain [label, position, minorflag], 
+as in C<<labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]]>>.
 
-=item * format - printf-style formatting for tic labels
+=item * format - printf-style format string for tic labels.  There are
+some extensions to the gnuplot format tags -- see the gnuplot manual.
+Gnuplot 4.8 and higher have C<%h>, which works like C<%g> but uses
+extended text formatting if it is available.
 
 =item * font - set font name and size (system font name)
 
