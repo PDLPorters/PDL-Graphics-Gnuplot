@@ -775,7 +775,7 @@ SKIP:{
 # Check that 3D plotting of grids differs from threaded line plotting
 SKIP:{
     skip "Skipping 3-D plots since gnuplot is ancient",4
-	if($w->{gp_version} < $PDL::Graphics::Gnuplot::gnuplot_req_v);
+	if($w->{gp_version} < $PDL::Graphics::Gnuplot::gnuplot_dep_v);
 
     eval { $w->plot({trid=>1,title=>""},with=>'lines',sequence(3,3)); };
     ok(!$@, "3-d grid plot with single column succeeded");

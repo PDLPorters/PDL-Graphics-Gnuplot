@@ -35,7 +35,7 @@
 # routines that are pointed to from those three tables.  That is
 # handled with _parseOptHash(), which accepts an input parameter and a
 # particular option description table, and parses the input according
-# to the table.  The opposite (used for command generation) s
+# to the table.  The opposite (used for command generation) is
 # _emitOpts(), which takes a parsed hash and emits an appropriate
 # (sub)command into its returned string.
 #
@@ -134,7 +134,7 @@ such as surface plots.
 
 A call to C<gplot()> looks like:
 
- gplot({temp_plot_options}, # optional hash or array ref
+ gplot({temp_plot_options}, # optional hash ref
       curve_options, data, data, ... ,
       curve_options, data, data, ... );
 
@@ -560,16 +560,16 @@ positive integers.
 Several of the graphical backends of Gnuplot are interactive, allowing
 you to pan, zoom, rotate and measure the data interactively in the plot
 window. See the Gnuplot documentation for details about how to do
-this. Some terminals (such as wxt) are persistently interactive. Other
-terminals (such as x11) maintain their interactivity only while the
+this. Some terminals (such as C<wxt>) are persistently interactive. Other
+terminals (such as C<x11>) maintain their interactivity only while the
 underlying gnuplot process is active -- i.e. until another plot is
 created with the same PDL::Graphics::Gnuplot object, or until the perl
 process exits (whichever comes first).  Still others (the hardcopy 
 devices) aren't interactive at all.
 
-Some interactive devices (like x11) also support mouse input: you can
-write PDL scripts that accept and manipulate graphical input from the
-plotted window.
+Some interactive devices (notably C<wxt> and C<x11>) also support
+mouse input: you can write PDL scripts that accept and manipulate
+graphical input from the plotted window.
 
 =head1 PLOT OPTIONS
 
@@ -1740,6 +1740,10 @@ options for the second curve).
 
 =head1 FUNCTIONS
 
+=for ref
+
+
+
 =cut
 
 package PDL::Graphics::Gnuplot;
@@ -1769,7 +1773,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '1.990';                             # Migration to Alien::Gnuplot
+our $VERSION = '2.000';  
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -1808,6 +1812,8 @@ our $cmdFence = "cmdFENCEcmd";
 # _startGnuplot - helper for new
 
 
+=pod
+
 =head2 gpwin 
 
 =for usage
@@ -1830,6 +1836,8 @@ by output options (see "output").
 =cut
 
 sub gpwin { return new("PDL::Graphics::Gnuplot",@_); }
+
+=pod 
 
 =head2 new
 
@@ -1872,11 +1880,9 @@ up an interactive plot and then sending it to a hardcopy device. See
 C<output> for a description of terminal options and how to format
 them.
 
-Normally, the object connects to the command "gnuplot" in your path.  
-If you need to specify a binary other than this default, you can set
-the environment variable C<GNUPLOT_BINARY> or the Perl variable 
-C<$PDL::Graphics::Gnuplot::gnuplot_path> to contain the exact command
-to be executed.
+Normally, the object connects to the command "gnuplot" in your path,
+using the C<Alien::Gnuplot> module.  If you need to specify a binary 
+other than this default, check the C<Alien::Gnuplot> documentation.
 
 =for example
 
@@ -1915,6 +1921,8 @@ sub new
 
 ##############################
 # output - set output terminal and options.
+
+=pod
 
 =head2 output 
 
@@ -2101,6 +2109,8 @@ sub DESTROY
 }
 
 
+=pod
+
 =head2 close 
 
 =for usage
@@ -2128,6 +2138,8 @@ sub close
     my $this = shift;
     restart($this);
 }
+
+=pod
 
 =head2 restart 
 
@@ -2175,6 +2187,8 @@ sub restart {
 }
 
 
+=pod
+
 =head2 reset 
 
 =for usage
@@ -2220,6 +2234,8 @@ sub reset {
 # Options setting routines
 # 
 
+=pod
+
 =head2 options  
 
 =for usage
@@ -2255,6 +2271,8 @@ sub options {
 ######################################################################
 #
 # plot - the main API function to generate a plot. 
+
+=pod
 
 =head2 gplot 
 
@@ -3636,6 +3654,8 @@ FOO
 #
 ##############################
 
+=pod
+
 =head2 replot 
 
 =for ref
@@ -3667,9 +3687,13 @@ sub replot {
     }
 }
 
-=head2 markup - Add ephemeral markup to the last plot
+=pod
+
+=head2 markup 
 
 =for ref
+
+Add ephemeral markup to the last plot.
 
 C<markup> works exactly the same as C<replot>, except that any 
 new arguments are not added to the replot list - so you can 
@@ -3688,12 +3712,16 @@ sub markup {
 	die "PDL::Graphics::Gnuplot::markup: you must have already plotted something!\n";
     }
 }
+
+=pod
     
 =head2 plot3d
 
 =for ref
 
 Generate 3D plots. Synonym for C<plot(trid =E<gt> 1, ...)>
+
+=pod
 
 =head2 splot
 
@@ -3709,6 +3737,8 @@ sub plot3d {
     plot($this,@_);
 }
 
+=pod
+
 =head2 lines
 
 =for ref
@@ -3723,6 +3753,8 @@ sub lines {
     plot($this,@_);
 }
 
+=pod
+
 =head2 points
 
 =for ref
@@ -3736,6 +3768,8 @@ sub points {
     local($this->{options}->{'globalwith'}) = ['points'];
     plot($this,@_);
 }
+
+=pod
 
 =head2 image
 
@@ -3752,6 +3786,8 @@ sub image {
     plot($this, @_);
 }
 
+=pod
+
 =head2 imag
 
 =for ref
@@ -3761,6 +3797,8 @@ Synonym for "image", for people who grew up with PDL::Graphics::PGPLOT and can't
 =cut
 
 *imag = \&image;
+
+=pod
 
 =head2 fits
 
@@ -3778,6 +3816,8 @@ sub fits {
     
 ##############################
 # Multiplot support
+
+=pod
 
 =head2 multiplot
 
@@ -3836,6 +3876,8 @@ C<offset> takes a list ref containing two values, that control placement
 of each plot within the grid.
 
 =back
+
+=pod
 
 =head2 end_multi
 
@@ -3974,6 +4016,8 @@ sub end_multi {
 ## Input support
 ##
 
+=pod
+
 =head2 read_mouse 
 
 =for usage 
@@ -4090,6 +4134,8 @@ EOC
 	};
     }
 }
+
+=pod
 
 =head2 read_polygon
 
@@ -6582,6 +6628,8 @@ for my $k(keys %$termTabSource) {
 			   ]};
 }
 
+=pod
+
 =head2 terminfo 
 
 =for usage
@@ -7579,12 +7627,15 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =head1 STILL TO DO
 
-
 =over 3
 
 =item some plot and curve options need better parsing:
 
 =over 3 
+
+=item - Hash values should be accepted (and parsed properly) for all plot options.
+
+Currently many of the more complicated plot options accept array refs only.  Hash ref parsing is needed for regularity.
 
 =item - labels need attention (plot option labels)
 
@@ -7595,7 +7646,7 @@ Further, deeply nested options (e.g. "at" for labels) need attention.
 
 =item - new plot styles
 
-The "boxplot" plot style (new to 4.6?) requires a different using
+The "boxplot" plot style (new to gnuplot 4.6?) requires a different using
 syntax and will require some hacking to support.
 
 =back
@@ -7604,7 +7655,7 @@ syntax and will require some hacking to support.
 
 =head3 V2.0
 
- - Use Alien::Gnuplot extensively
+ - Use Alien::Gnuplot for initial contact and global configuration
  - Don't complain about 'with'-modifiers
  - Several edge-case bugs fixed (thanks, Dima)
  - Colorspec parsing is better (and regularized with a procedure call)
@@ -7613,7 +7664,11 @@ syntax and will require some hacking to support.
  - better handling of tics when x2 or y2 is specified
  - better handling of images when x2 or y2 is specified
 
-=head3 V1.5 - several bug fixes
+=head3 Earlier versions
+
+=over 3
+
+=item V1.5
 
  - complex 'with' specifiers are deprecated.
  - curve options exist for plot variants (line color etc.)
@@ -7623,7 +7678,7 @@ syntax and will require some hacking to support.
  - fixed a justify problem
  - several minor cross-platform issues
 
-=head3 V1.4 - released 26-Feb-2013
+=item V1.4
 
 Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
 we troubleshot bizarre IPC problems under Microsoft Windows with Strawberry Perl.
@@ -7646,28 +7701,30 @@ we troubleshot bizarre IPC problems under Microsoft Windows with Strawberry Perl
  - Detects available terminal types from Gnuplot on initial startup.
  - supports m?tics options with hash syntax
 
-=head3 v1.3 
+=item v1.3
 
  - Tests do not fail on v4.2 Gnuplot (still used on BSD)
  - Better error messages in common error cases
  - Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
 
-=head3 v1.2
+=item v1.2
 
  - Handles communication better on Microsoft Windows (MSW has brain damage).
  - Improvements in documentation
  - Handles PDF output in scripts
  - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
 
-=head3 v1.1
+=item v1.1
 
  - Handles communication with command echo on the pipe (for Microsoft Windows)
  - Better gnuplot error reporting
  - Fixed date range handling
 
+=back
+
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2011-2013 Dima Kogan and Craig DeForest
+Copyright 2011-2013 Craig DeForest and Dima Kogan
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
