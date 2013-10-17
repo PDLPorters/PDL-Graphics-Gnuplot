@@ -1773,7 +1773,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.000';  
+our $VERSION = '2.001';   # in development
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -7109,14 +7109,15 @@ sub _printGnuplotPipe
       my $s = $SIG{INT};
       local $SIG{INT} = sub { $int_flag = 1; };
 
-      # Write out the string in 640kiB chunks to enable interruption
-      my $chunksize = 655360;
-
+      # Write out the string in 640kiB chunks to enable interruption	  
       my $pipeerr = $this->{"err-$suffix"};
       my $pipeselector = $this->{"errSelector-$suffix"};
 
-      if(length($string)) { # Only write nonempty strings :-)
-	  do {
+      if($MS_io_braindamage) {
+	  my $chunksize= 655360;
+	  
+	  if(length($string)) { # Only write nonempty strings :-)
+	      do {
 	      # Send the next block out.
 	      $len = syswrite($pipein,substr($string,$of),$chunksize);
 	      if(!defined($len) or $len==0) {
@@ -7126,20 +7127,33 @@ sub _printGnuplotPipe
 		      " bytes to the gnuplot pipe.\nError was:\n\t$err";
 	      }
 	      $of += $len;
-	  } while($of < length($string) and !$int_flag); 
-
-	  if($int_flag) {
-	      # We were interrupted, which hoses up gnuplot.  Restart gnuplot.
-	      _killGnuplot($this,undef,1);
-	      _startGnuplot($this,'main');
-	      _startGnuplot($this,'syntax') if($check_syntax);
+	      } while($of < length($string) and !$int_flag); 
+	      
+	      if($int_flag) {
+		  # We were interrupted, which hoses up gnuplot.  Restart gnuplot.
+		  _killGnuplot($this,undef,1);
+		  _startGnuplot($this,'main');
+		  _startGnuplot($this,'syntax') if($check_syntax);
+		  my $str = "PDL::Graphics::Gnuplot:  interrupted while sending data; restarted gnuplot.\n";
+		  if(ref($s) eq 'CODE') {
+		      print STDERR $str;
+		      &$s;
+		  }
+		  die $str;
+	      }
+	  }
+      } else {
+	  $len = syswrite($pipein, $string);
+	  if( $int_flag ) {
+	      _killGnuplot($this, undef, 1);
+	      _startGnuplot($this, 'main');
+	      _startGnuplot($this, 'syntax') if($check_syntax);
 	      my $str = "PDL::Graphics::Gnuplot:  interrupted while sending data; restarted gnuplot.\n";
 	      if(ref($s) eq 'CODE') {
 		  print STDERR $str;
 		  &$s;
-	      } else {
-		  die $str;
-	      }
+	      } 
+	      die $str;
 	  }
       }
   }
