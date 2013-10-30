@@ -1766,6 +1766,7 @@ if($Alien::Gnuplot::VERSION < 1.001) {
 }
 
 our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
+our $gnuplot_req_v = 4.4; # Versions below this are not supported.
 
 # Compile time config flags...
 our $check_syntax = 0;
@@ -2439,7 +2440,8 @@ sub plot
     # If we're replotting, then any remaining arguments need to be put
     # *after* the arguments that we used for the last plot.  
     if($this->{replotting}) {
-	unless(UNIVERSAL::isa($_[0],'PDL')) {
+	unless(eval { $_[0]->isa('PDL') }) {
+	    undef $@;
 	    @_ = (@{$this->{last_plot}->{args}},@_);
 	} else {
 	    @_ = (@{$this->{last_plot}->{args}},{},@_);
@@ -5446,11 +5448,12 @@ $_pOHInputs = {
 		 # Not setting a boolean value - it's a list (or a trivial list).
 		 if(ref $_[1] eq 'ARRAY') {
 		     return $_[1];
-		 } elsif( UNIVERSAL::isa( $_[1], 'PDL' ) ) {
+		 } elsif( eval {$_[1]->isa('PDL')} ) {
 		     barf "PDL::Graphics::Gnuplot: range parser found a PDL, but it wasn't a 2-PDL (max,min)"
 			 unless( $_[1]->dims==1 and $_[1]->nelem==2 );
 		     return [$_[1]->list];
 		 } else {
+		     undef $@;
 #		     return [ split( /\s+/, $_[1] ) ];
 		     return [$_[1]];
 		 }
@@ -7448,10 +7451,12 @@ sub _logEvent
 sub _obj_or_global {
     my $arglist = shift;
     my $this;
-    if(UNIVERSAL::isa($arglist->[0],"PDL::Graphics::Gnuplot")) {
+    if( eval { $arglist->[0]->isa("PDL::Graphics::Gnuplot") } ) {
 	$this = shift @$arglist;
     } else {
-	unless(UNIVERSAL::isa($globalPlot,"PDL::Graphics::Gnuplot")) {
+	undef $@;
+	unless( eval { $globalPlot->isa("PDL::Graphics::Gnuplot") } ) {
+	    undef $@;
 	    $globalPlot = new("PDL::Graphics::Gnuplot") ;
 	}
 	$globalPlot->{options}->{globalPlot} = 1;
