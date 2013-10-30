@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 158;
+use Test::More tests => 159;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -897,6 +897,17 @@ ok($PDL::Graphics::Gnuplot::last_plotcmd =~ m/splot +\"-\" binary record\=\(5,5\
 eval { $w->plot(with=>'yerrorbars', (xvals(50)-25)**2, pdl(0.5),{binary=>0})  };
 ok(!$@, "yerrorbars plot succeeded in ASCII mode");
 
+
+# Test plotting of PDL subclasses
+@MyPackage::ISA = qw/PDL/;
+$a = { PDL => xvals(5)**2 };
+bless($a,'MyPackage');
+eval { $w->plot( $a ); };
+ok(!$@), "subclass of PDL plots OK";
+
+
+
 undef $w;
 unlink($testoutput) or warn "\$!: $!";
+
 

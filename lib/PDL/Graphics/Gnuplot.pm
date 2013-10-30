@@ -1774,7 +1774,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.001';   # in development
+our $VERSION = '2.001';   
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -3176,8 +3176,8 @@ sub plot
 	    # figuring out nextDataIdx.  But those forms are deprecated anyway - better to use 
 	    # a hash ref when possible.
 	    my $nextDataIdx = first { (ref $args[$_] ) and 
-					  (  (ref($args[$_]) =~ m/PDL/) or 
-					     (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1]))
+					  (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or 
+					     ( eval { $args[$_]->isa('PDL') } || undef $@ )
 					  )
 					  
 	    } $argIndex..$#args;
@@ -3205,10 +3205,12 @@ sub plot
 
 	    # Find the data for this chunk...
 	    $argIndex         = $nextDataIdx;
-	    my $nextOptionIdx = first { (!(ref $args[$_])) or 
-					(ref $args[$_]) !~ m/^(PDL|ARRAY)$/} $argIndex..$#args;
+	    my $nextOptionIdx = first { !(ref $args[$_]) or 
+					!( (ref $args[$_]) eq 'ARRAY' or
+					    eval { $args[$_]->isa('PDL') } || undef $@ )
+	                              } $argIndex..$#args;
 	    $nextOptionIdx = @args unless defined $nextOptionIdx;
-
+	    print "nextOptionIdx is $nextOptionIdx; args is ".(0+@args)."\n";
 	    # Make sure we know our "with" style...
 	    unless($chunk{options}{with}) {
 		$chunk{options}{with} = _def($this->{options}->{'globalwith'},["lines"]);
@@ -7672,6 +7674,10 @@ syntax and will require some hacking to support.
 =back
 
 =head1 RELEASE NOTES
+
+=head2 V2.001
+
+ - use object oriented checks for PDL type of arguments
 
 =head3 V2.0
 
