@@ -3021,7 +3021,7 @@ sub plot
 
 	    # Assemble and dump the ASCII through the just-defined emitter.
 
-	    if(ref $chunk->{data}->[0] eq 'PDL') {
+	    if( eval { $chunk->{data}->[0]->isa('PDL') } ) {
 
 		# It's a collection of PDL data only.
 
@@ -3038,6 +3038,7 @@ sub plot
 		&$emitter($outbuf);
 
 	    } else {
+		undef $@;
 
 		# It's a collection of list ref data only.  Assemble strings.
 
@@ -3464,7 +3465,7 @@ EOF
 		$chunk{imgFlag} = 1;
 		push @chunks, \%chunk;
 
-	    } elsif( (ref $dataPiddles[0]) eq 'PDL' ) {
+	    } elsif( eval { $dataPiddles[0]->isa('PDL') } || undef $@ ) {
 		# Non-image case: check that the legend count agrees with the
 		# number of curves we found, and break up compound chunks (with multiple 
 		# curves) into separate chunks of one curve each.
@@ -3551,7 +3552,7 @@ FOO
 	my @data = @_;
 
 	my $nonPDLCount = 0;
-	map { $nonPDLCount++ unless(ref $_ eq 'PDL') } @data;
+	map { $nonPDLCount++ unless( eval { $_->isa('PDL') } || undef $@ ) } @data;
 
 	# In the case where all data are PDLs, we match dimensions.
 	unless($nonPDLCount) {
@@ -3618,7 +3619,7 @@ FOO
 
 	    for(@data) {
 		barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
-		    if( (ref $_ eq 'PDL') and $_->ndims > 1 );
+		    if( (eval { $_->isa('PDL') } || undef $@ ) and $_->ndims > 1 );
 
 		if((ref $_) eq 'ARRAY') {
 		    barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
@@ -3632,7 +3633,7 @@ FOO
 
 		    push(@out, $_);
 
-		} elsif((ref $_) eq 'PDL') {
+		} elsif(  eval { $_->isa('PDL') } || undef $@ ) {
 		    barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
 			if( (defined $nelem) and ($_->nelem != $nelem) );
 		    $nelem = $_->nelem;
@@ -4342,7 +4343,7 @@ EOMSG
 
 use PDL::NiceSlice;
     sub __del { my($w, $c, $p) = @_;
-	   return unless( (ref($$p) eq 'PDL')  and  ($$p->dim(1)>0) );
+	   return unless( (eval { ($$p)->isa('PDL') } || undef $@ )  and  ($$p->dim(1)>0) );
 	   $$p = $$p->(:,xvals($$p->dim(1)-1))->sever;
 	   return;
     }
