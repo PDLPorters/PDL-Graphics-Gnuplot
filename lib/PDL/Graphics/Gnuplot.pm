@@ -1758,6 +1758,7 @@ use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
 use Time::HiRes qw(gettimeofday tv_interval);
+use Safe::Isa;
 
 use Alien::Gnuplot 4.4;  # Ensure gnuplot exists and is recent, and get ancillary info about it.
 if($Alien::Gnuplot::VERSION < 1.001) {
@@ -2440,8 +2441,7 @@ sub plot
     # If we're replotting, then any remaining arguments need to be put
     # *after* the arguments that we used for the last plot.  
     if($this->{replotting}) {
-	unless(eval { $_[0]->isa('PDL') }) {
-	    undef $@;
+	unless( $_[0]->$_isa('PDL') ) {
 	    @_ = (@{$this->{last_plot}->{args}},@_);
 	} else {
 	    @_ = (@{$this->{last_plot}->{args}},{},@_);
@@ -3021,7 +3021,7 @@ sub plot
 
 	    # Assemble and dump the ASCII through the just-defined emitter.
 
-	    if( eval { $chunk->{data}->[0]->isa('PDL') } ) {
+	    if( $chunk->{data}->[0]->$_isa('PDL') ) {
 
 		# It's a collection of PDL data only.
 
@@ -3038,8 +3038,6 @@ sub plot
 		&$emitter($outbuf);
 
 	    } else {
-		undef $@;
-
 		# It's a collection of list ref data only.  Assemble strings.
 
 		my $data = $chunk->{data};
@@ -3177,9 +3175,8 @@ sub plot
 	    # a hash ref when possible.
 	    my $nextDataIdx = first { (ref $args[$_] ) and 
 					  (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or 
-					     ( eval { $args[$_]->isa('PDL') } || undef $@ )
-					  )
-					  
+					     $args[$_]->$_isa('PDL') 
+					     )
 	    } $argIndex..$#args;
 
 	    last if !defined $nextDataIdx; # no more data. done.
@@ -3207,7 +3204,8 @@ sub plot
 	    $argIndex         = $nextDataIdx;
 	    my $nextOptionIdx = first { !(ref $args[$_]) or 
 					!( (ref $args[$_]) eq 'ARRAY' or
-					    eval { $args[$_]->isa('PDL') } || undef $@ )
+					    $args[$_]->$_isa('PDL')
+					 )
 	                              } $argIndex..$#args;
 	    $nextOptionIdx = @args unless defined $nextOptionIdx;
 	    print "nextOptionIdx is $nextOptionIdx; args is ".(0+@args)."\n";
@@ -3467,7 +3465,7 @@ EOF
 		$chunk{imgFlag} = 1;
 		push @chunks, \%chunk;
 
-	    } elsif( eval { $dataPiddles[0]->isa('PDL') } || undef $@ ) {
+	    } elsif( $dataPiddles[0]->$_isa('PDL') ) {
 		# Non-image case: check that the legend count agrees with the
 		# number of curves we found, and break up compound chunks (with multiple 
 		# curves) into separate chunks of one curve each.
@@ -3554,7 +3552,7 @@ FOO
 	my @data = @_;
 
 	my $nonPDLCount = 0;
-	map { $nonPDLCount++ unless( eval { $_->isa('PDL') } || undef $@ ) } @data;
+	map { $nonPDLCount++ unless( $_->$_isa('PDL') ) } @data;
 
 	# In the case where all data are PDLs, we match dimensions.
 	unless($nonPDLCount) {
@@ -3621,7 +3619,7 @@ FOO
 
 	    for(@data) {
 		barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
-		    if( (eval { $_->isa('PDL') } || undef $@ ) and $_->ndims > 1 );
+		    if( $_->$_isa('PDL')   and   $_->ndims > 1 );
 
 		if((ref $_) eq 'ARRAY') {
 		    barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
@@ -3635,7 +3633,7 @@ FOO
 
 		    push(@out, $_);
 
-		} elsif(  eval { $_->isa('PDL') } || undef $@ ) {
+		} elsif(  $_->$_isa('PDL')  ) {
 		    barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
 			if( (defined $nelem) and ($_->nelem != $nelem) );
 		    $nelem = $_->nelem;
@@ -4345,7 +4343,7 @@ EOMSG
 
 use PDL::NiceSlice;
     sub __del { my($w, $c, $p) = @_;
-	   return unless( (eval { ($$p)->isa('PDL') } || undef $@ )  and  ($$p->dim(1)>0) );
+	   return unless( ($$p)->$_isa('PDL')  and  (($$p)->dim(1)>0) );
 	   $$p = $$p->(:,xvals($$p->dim(1)-1))->sever;
 	   return;
     }
@@ -5451,12 +5449,11 @@ $_pOHInputs = {
 		 # Not setting a boolean value - it's a list (or a trivial list).
 		 if(ref $_[1] eq 'ARRAY') {
 		     return $_[1];
-		 } elsif( eval {$_[1]->isa('PDL')} ) {
+		 } elsif( $_[1]->$_isa('PDL') ) {
 		     barf "PDL::Graphics::Gnuplot: range parser found a PDL, but it wasn't a 2-PDL (max,min)"
 			 unless( $_[1]->dims==1 and $_[1]->nelem==2 );
 		     return [$_[1]->list];
 		 } else {
-		     undef $@;
 #		     return [ split( /\s+/, $_[1] ) ];
 		     return [$_[1]];
 		 }
@@ -7454,11 +7451,11 @@ sub _logEvent
 sub _obj_or_global {
     my $arglist = shift;
     my $this;
-    if( eval { $arglist->[0]->isa("PDL::Graphics::Gnuplot") } ) {
+    if( $arglist->[0]->$_isa("PDL::Graphics::Gnuplot") ) {
 	$this = shift @$arglist;
     } else {
 	undef $@;
-	unless( eval { $globalPlot->isa("PDL::Graphics::Gnuplot") } ) {
+	unless( $globalPlot->$_isa("PDL::Graphics::Gnuplot") ) {
 	    undef $@;
 	    $globalPlot = new("PDL::Graphics::Gnuplot") ;
 	}

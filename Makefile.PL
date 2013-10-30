@@ -72,7 +72,8 @@ WriteMakefile(
 		   'Storable'    => 0,
 		   'IPC::Open3'  => 0,
 		   'IO::Select'  => 0,
-		   'Time::HiRes' => 0
+		   'Time::HiRes' => 0,
+		   'Safe::Isa'   => 0
     },
     META_ADD => {
 	resources => {
