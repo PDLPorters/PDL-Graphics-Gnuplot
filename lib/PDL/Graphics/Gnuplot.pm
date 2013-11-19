@@ -85,7 +85,7 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
        with => 'xyerrorbars', legend => 'Parabola',
        $x**2 * 10, abs($x)/10, abs($x)*5 );
 
- pdl> $xy = zeros(21,21)->ndcoords - pdl(10,10);
+ pdl> $xy = zeroes(21,21)->ndcoords - pdl(10,10);
  pdl> $z = inner($xy, $xy);
  pdl> gplot({title  => 'Heat map', 
              trid   => 1, 
@@ -96,8 +96,8 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
 
  pdl> $w = gpwin();                             # constructor
  pdl> $pi    = 3.14159;
- pdl> $theta = zeros(200)->xlinvals(0, 6*$pi);
- pdl> $z     = zeros(200)->xlinvals(0, 5);
+ pdl> $theta = zeroes(200)->xlinvals(0, 6*$pi);
+ pdl> $z     = zeroes(200)->xlinvals(0, 5);
  pdl> $w->plot3d(cos($theta), sin($theta), $z);
  pdl> $w->terminfo();                           # get information
 
@@ -108,9 +108,9 @@ This module allows PDL data to be plotted using Gnuplot as a backend
 for 2D and 3D plotting and image display.  Gnuplot (not affiliated
 with the Gnu project) is a venerable, open-source program that
 produces both interactive and publication-quality plots on many
-different output devices.  You must obtain it separately from this
-interface module.  It is available through most Linux repositories, on
-MacOS via fink and MacPorts, and from its website L<http://www.gnuplot.info>.
+different output devices.  It is available through most Linux
+repositories, on MacOS, and from its website
+L<http://www.gnuplot.info>.
 
 It is not necessary to understand the gnuplot syntax to generate
 basic, or even complex, plots - though the full syntax is available
