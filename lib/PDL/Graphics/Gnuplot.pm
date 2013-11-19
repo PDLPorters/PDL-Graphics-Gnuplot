@@ -1740,10 +1740,6 @@ options for the second curve).
 
 =head1 FUNCTIONS
 
-=for ref
-
-
-
 =cut
 
 package PDL::Graphics::Gnuplot;
@@ -3208,7 +3204,6 @@ sub plot
 					 )
 	                              } $argIndex..$#args;
 	    $nextOptionIdx = @args unless defined $nextOptionIdx;
-	    print "nextOptionIdx is $nextOptionIdx; args is ".(0+@args)."\n";
 	    # Make sure we know our "with" style...
 	    unless($chunk{options}{with}) {
 		$chunk{options}{with} = _def($this->{options}->{'globalwith'},["lines"]);
