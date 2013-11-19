@@ -1740,10 +1740,6 @@ options for the second curve).
 
 =head1 FUNCTIONS
 
-=for ref
-
-
-
 =cut
 
 package PDL::Graphics::Gnuplot;
