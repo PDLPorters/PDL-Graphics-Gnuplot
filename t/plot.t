@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 159;
+use Test::More tests => 160;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -905,7 +905,10 @@ bless($a,'MyPackage');
 eval { $w->plot( $a ); };
 ok(!$@), "subclass of PDL plots OK";
 
-
+# Test terminal defaulting 
+eval { $w=PDL::Graphics::Gnuplot::new(size=>[9,9]); undef($w);};
+print "\$\@ is '$@'\n";
+ok(!$@, "default terminal is selected OK");
 
 undef $w;
 unlink($testoutput) or warn "\$!: $!";

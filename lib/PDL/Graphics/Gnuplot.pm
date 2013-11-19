@@ -1827,8 +1827,8 @@ gpwin is the PDL::Graphics::Gnuplot exported constructor.  It is
 exported by default and is a synonym for "new
 PDL::Graphics::Gnuplot(...)".  If given no arguments, it creates a
 plot object with the default terminal settings for your gnuplot.  You
-also give it the name of a Gnuplot terminal type (e.g. 'x11') followed
-by output options (see "output").
+can also give it the name of a Gnuplot terminal type (e.g. 'x11') and
+some terminal and output options (see "output").
 
 
 =cut
@@ -1894,8 +1894,13 @@ our $termTab;
 
 sub new
 {
-  my $classname = shift;
-
+  my $classname;
+  if(UNIVERSAL::isa('PDL::Graphics::Gnuplot',$_[0])) {
+      $classname = shift;
+  } else {
+      $classname = "PDL::Graphics::Gnuplot";
+  }
+  
   # Declare & bless minimal object to hold everything.
   my $this = { t0          => [gettimeofday],   # last access
 	       options     => {multiplot=>0},   # multiplot option actually holds multiplotting state flag
@@ -1926,11 +1931,17 @@ sub new
 
 =for usage
 
-    $window->output( device, %device_options, {plot_options} );
+    $window->output( $device );
+    $window->output( $device, %device_options );
+    $window->output( $device, %device_options, {plot_options} );
+    $window->output( %device_options, {plot_options} );
+    $window->output( %device_options );
 
 =for ref
 
-Sets the output device and options for a Gnuplot object.
+Sets the output device and options for a Gnuplot object. If you omit
+the C<$device> name, then you get the gnuplot default device (generally
+C<x11>, C<wxt>, or C<aqua>, depending on platform).
 
 You can control the output device of a PDL::Graphics::Gnuplot object on
 the fly.  That is useful, for example, to replot several versions of the 
@@ -2014,6 +2025,19 @@ sub output {
     }
 
     if(@_) {
+	# There is at least one more argument.  The arglist should be a collection of key/value pairs,
+	# or a terminal name followed by a collection of key/value pairs.  If the number of elements
+	# is even, then the terminal was most likely omitted -- so get the default terminal from 
+	# gnuplot.
+	if( (@_ % 2) == 0 ) {
+	    my $string;
+	    _printGnuplotPipe($this,"main","show terminal\n");
+	    $string = _checkpoint($this,"main");
+	    $string =~ m/terminal type is (\w+)/ || barf("PDL::Graphics::Gnuplot - you seem to be asking for the default terminal, but gnuplot didn't report one!\n  Please specify the output terminal type you want to use.\n\n");
+	    unshift(@_, $1);
+	    print STDERR "PDL::Graphics::Gnuplot - defaulted to '$_[0]' terminal\n";
+	}
+
 	# Check that, if there is at least one more argument, it is recognizable as a terminal
 	my $terminal;
 	$terminal = lc(shift);
