@@ -1,0 +1,132 @@
+
+2.002 (in progress) Codename: Refinements
+
+ - removed (x|y|x2|y2|z|t)range curve options -- only plot options are supported for range spec.
+   (This removes some weird corner cases in argument parsing, and doesn't affect normal plotting).
+
+ - more permissive terminal option parsing -- omit terminal name to get the default terminal.
+
+ - Moved changes from POD to CHANGES file
+
+
+2.001 Unknown Release Date Codename: Minor Fixes
+
+ - use object oriented checks for PDL type of arguments
+
+
+
+
+2.0 Unknown Release Date Codename: Alien-Gnuplot
+
+ - Use Alien::Gnuplot for initial contact and global configuration
+
+ - Don't complain about 'with'-modifiers
+
+ - Several edge-case bugs fixed (thanks, Dima)
+
+ - Colorspec parsing is better (and regularized with a procedure call)
+
+ - SIGPIPE crashes fixed (mixing gnuplot and forking used to be dangerous)
+
+ - internal representation of tics specifiers is better
+
+ - better handling of tics when x2 or y2 is specified
+
+ - better handling of images when x2 or y2 is specified
+
+
+
+
+1.5 Unknown Release Date Codename: Curve Option Cornucopia
+
+ - complex 'with' specifiers are deprecated.
+
+ - curve options exist for plot variants (line color etc.)
+
+ - lines are dashed, by default
+
+ - windows don't persist, by default
+
+ - bad value support
+
+ - fixed a justify problem
+
+ - several minor cross-platform issues
+
+
+
+
+1.4 Unknown Release Date Codename: Works on Windows (ick)
+
+ - Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
+   we troubleshot bizarre IPC problems under Microsoft Windows with Strawberry Perl.
+
+ - default to ascii data transfer under Microsoft Windows (Juergen's hang issue)
+
+ - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)
+
+ - clean up test reporting
+
+ - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
+
+ - autoranging fix
+
+ - read_polygon fix
+
+ - Many small tweaks to make Microsoft Windows support better
+
+ - Updates to POD documentation
+
+ - Improved terminfo reporting
+
+ - mouse-enabled default terminals are detected properly (e.g. 'x11').
+
+ - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
+
+ - more careful I/O handling in the pipe
+
+ - Improved interrupt handling
+
+ - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
+
+ - Allows specifying different commands than just "gnuplot" via environment variable GNUPLOT_BINARY.
+
+ - Detects available terminal types from Gnuplot on initial startup.
+
+ - supports m?tics options with hash syntax
+
+
+
+
+1.3 Unknown Release Date Codename: Compatibility
+
+ - Tests do not fail on v4.2 Gnuplot (still used on BSD)
+
+ - Better error messages in common error cases
+
+ - Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
+
+
+
+
+1.2 Unknown Release Date Codename: first working release
+
+ - Handles communication better on Microsoft Windows (MSW has brain damage).
+
+ - Improvements in documentation
+
+ - Handles PDF output in scripts
+
+ - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
+
+
+
+
+0.01 Unknown Release Date Codename: first release
+
+ - Handles communication with command echo on the pipe (for Microsoft Windows)
+
+ - Better gnuplot error reporting
+
+ - Fixed date range handling
+
