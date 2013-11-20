@@ -1783,21 +1783,19 @@ our @EXPORT = qw(gpwin gplot greplot greset grestart);
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
 
-# if I call plot() as a global function I create a new PDL::Graphics::Gnuplot
-# object. I would like the gnuplot process to persist to keep the plot
-# interactive at least while the perl program is running. This global variable
-# keeps the new object referenced so that it does not get deleted. Once can
-# create their own PDL::Graphics::Gnuplot objects, but there's one free global
-# one available
+# globalPlot holds state when methods are called with non-object
+# syntax.  (If you want more than one plot at once, you have to use
+# the object syntax).
 my $globalPlot;
 
 # get a list of all the -- options that this gnuplot supports
 my %gnuplotFeatures = _getGnuplotFeatures();
 
-# Separate parse tables are maintained for plot and curve options, as package globals. 
-# These are they.  (Set below).
+# Declare the parse tables for plot and curve options.  (They're populated below).
 our($pOpt, $cOpt);
 
+# This is a magic string that's used to separate curve blocks when assembling the 
+# plot command.
 our $cmdFence = "cmdFENCEcmd";
 
 ##############################
@@ -1808,7 +1806,6 @@ our $cmdFence = "cmdFENCEcmd";
 # DESTROY - destructor kills gnuplot task
 #
 # _startGnuplot - helper for new
-
 
 =pod
 
@@ -1895,6 +1892,8 @@ our $termTab;
 sub new
 {
   my $classname;
+  
+  # DWIM if we call this like gpwin(). That usage is deprecated but tolerated.
   if(UNIVERSAL::isa('PDL::Graphics::Gnuplot',$_[0])) {
       $classname = shift;
   } else {
@@ -1909,12 +1908,11 @@ sub new
               };
   bless($this,$classname);
 
-
-  # now that options are parsed, start up a gnuplot
-  # (also fill the available-terminals database)
+  # start up a gnuplot
   _startGnuplot($this,'main');
   _startGnuplot($this,'syntax') if($check_syntax);
 
+  # Parse and process all remaining parameters using output(), below.
   output($this, @_);
   
   _logEvent($this, "startGnuplot() finished") if ($this->{options}{tee});
@@ -2698,25 +2696,6 @@ sub plot
     } 
     
     ##############################
-    # Since we accept axis ranges as curve options, but they are only
-    # allowed in the first curve of a single multi-curve plot, we
-    # don't allow ranges in later curves to be emitted.  
-    { 
-	my $rangeflag = 0;
-	for my $i(1..$#$chunks) {
-	    my $h = $chunks->[$i]->{options};
-	    for my $k( qw/xrange yrange zrange trange x2range y2range/ ) {
-		if(defined $h->{$k}) {
-		    delete $h->{$k};
-		    $rangeflag++;
-		}
-	    }
-	}
-	print STDERR "plot: WARNING: range specifiers aren't allowed as curve options after the first\ncurve.  I ignored $rangeflag of them. (You can also use plot options for ranges)\n"
-	    if($rangeflag);
-    }
-
-    ##############################
     # Now reconcile all of the <axis>range stuff for the plot itself,
     # and set it as a temporary plot option.
     #
@@ -2985,7 +2964,6 @@ sub plot
 	
 	if($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
-#	    $p = $chunk->{data}->[0]->float->sever;
 	    $p = $chunk->{data}->[0]->double->sever;
 	    {
 		my $s = " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
@@ -3189,10 +3167,6 @@ sub plot
 	    # First, I find and parse the options in this chunk
 	    # Array refs are allowed in some curve options, but only as values of key/value
 	    # pairs -- so any list refs glommed in with a bunch of other refs are data.
-	    # This is cheesy because (e.g.) "xrange=>[5],[0,1,2]" works but "xrange=>5,[0,1,2]" does not.
-	    # The only way to get every single case like this is to actually parse a chunk at a time before
-	    # figuring out nextDataIdx.  But those forms are deprecated anyway - better to use 
-	    # a hash ref when possible.
 	    my $nextDataIdx = first { (ref $args[$_] ) and 
 					  (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or 
 					     $args[$_]->$_isa('PDL') 
@@ -3202,8 +3176,8 @@ sub plot
 	    last if !defined $nextDataIdx; # no more data. done.
 	    
 	    # I do not reuse the curve legend, since this would result in multiple
-	    # curves with the same name.
-	    map { delete $lastOptions->{$_} } qw/legend xrange yrange zrange x2range y2range/;
+	    # curves with the same name.  
+	    delete $lastOptions->{"legend"};
 
 	    my %chunk;
 	    eval {
@@ -5074,10 +5048,6 @@ $pOpt = [$pOptionsTable, $pOptionsAbbrevs, "plot option"];
 # 
 
 our $cOptionsTable = {
-    'trange'   => ['l','crange',undef,1],   # parametric range modifier
-    'xrange'   => ['l','crange',undef,2],   # x range modifier
-    'yrange'   => ['l','crange',undef,3],   # y range modifier
-    'zrange'   => ['l','crange',undef,4],   # z range modifier
          # data is here so that it gets sorted properly into each chunk -- but it doesn't get specified this way.
          # the output string just specifies STDIN.   The magic output string gets replaced post facto with the test and
          # real output format specifiers.
@@ -7461,7 +7431,6 @@ sub _logEvent
   printf STDERR "==== PDL::Graphics::Gnuplot t=%.4f: %s\n", $t1, $event;
 }
 
-1;
 
 ##############################
 # Helper routine detects method call vs. function call
@@ -7689,81 +7658,6 @@ syntax and will require some hacking to support.
 
 =back
 
-=head1 RELEASE NOTES
-
-=head2 V2.001
-
- - use object oriented checks for PDL type of arguments
-
-=head3 V2.0
-
- - Use Alien::Gnuplot for initial contact and global configuration
- - Don't complain about 'with'-modifiers
- - Several edge-case bugs fixed (thanks, Dima)
- - Colorspec parsing is better (and regularized with a procedure call)
- - SIGPIPE crashes fixed (mixing gnuplot and forking used to be dangerous)
- - internal representation of tics specifiers is better
- - better handling of tics when x2 or y2 is specified
- - better handling of images when x2 or y2 is specified
-
-=head3 Earlier versions
-
-=over 3
-
-=item V1.5
-
- - complex 'with' specifiers are deprecated.
- - curve options exist for plot variants (line color etc.)
- - lines are dashed, by default
- - windows don't persist, by default
- - bad value support
- - fixed a justify problem
- - several minor cross-platform issues
-
-=item V1.4
-
-Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
-we troubleshot bizarre IPC problems under Microsoft Windows with Strawberry Perl.
-
- - default to ascii data transfer under Microsoft Windows (Juergen's hang issue)
- - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)
- - clean up test reporting
- - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
- - autoranging fix
- - read_polygon fix
- - Many small tweaks to make Microsoft Windows support better
- - Updates to POD documentation
- - Improved terminfo reporting
- - mouse-enabled default terminals are detected properly (e.g. 'x11').
- - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
- - more careful I/O handling in the pipe
- - Improved interrupt handling
- - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
- - Allows specifying different commands than just "gnuplot" via environment variable GNUPLOT_BINARY.
- - Detects available terminal types from Gnuplot on initial startup.
- - supports m?tics options with hash syntax
-
-=item v1.3
-
- - Tests do not fail on v4.2 Gnuplot (still used on BSD)
- - Better error messages in common error cases
- - Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
-
-=item v1.2
-
- - Handles communication better on Microsoft Windows (MSW has brain damage).
- - Improvements in documentation
- - Handles PDF output in scripts
- - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
-
-=item v1.1
-
- - Handles communication with command echo on the pipe (for Microsoft Windows)
- - Better gnuplot error reporting
- - Fixed date range handling
-
-=back
-
 =head1 LICENSE AND COPYRIGHT
 
 Copyright 2011-2013 Craig DeForest and Dima Kogan
@@ -7777,3 +7671,4 @@ See http://dev.perl.org/licenses/ for more information.
 
 =cut
 
+1;

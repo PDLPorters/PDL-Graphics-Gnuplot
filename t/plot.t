@@ -262,7 +262,7 @@ $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
 eval { $w->plot(xmin=>3, xvals(10),xvals(10)); };
 ok(!$@, "plot() worked for x,y plot with unescaped plot option");
 
-eval { $w->plot(xrange=>[3,5],xmin=>3,xvals(10),xvals(10)) };
+eval { $w->plot(ls=>4,xmin=>3,xvals(10),xvals(10)) };
 ok($@=~m/No curve option found that matches \'xmin\'/, "xmin after a curve option fails (can't mix curve and plot options)");
 
 eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),xvals(10)) };
@@ -395,7 +395,7 @@ ok( !defined($w->{options}->{xrange}), "plotting an image did not set xrange opt
 # Test esoteric argument parsing
 
 eval { $w->plot(with=>'lines',y2=>3,xvals(5)); };
-ok($@ =~ m/known keyword/ ,"y2 gets rejected");
+ok($@ =~ m/No curve option found that matches \'y2\'/,"y2 gets rejected");
 
 eval { $w->plot(with=>'lines',xvals(5),{lab2=>['foo',at=>[2,3]]}); };
 ok(!$@, "label is accepted ($@)");
