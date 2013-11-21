@@ -22,7 +22,7 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
        with => 'xyerrorbars', legend => 'Parabola',
        $x**2 * 10, abs($x)/10, abs($x)*5 );
 
- pdl> $xy = zeros(21,21)->ndcoords - pdl(10,10);
+ pdl> $xy = zeroes(21,21)->ndcoords - pdl(10,10);
  pdl> $z = inner($xy, $xy);
  pdl> gplot({title  => 'Heat map', 
              trid   => 1, 
@@ -33,8 +33,8 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
 
  pdl> $w = gpwin();                             # constructor
  pdl> $pi    = 3.14159;
- pdl> $theta = zeros(200)->xlinvals(0, 6*$pi);
- pdl> $z     = zeros(200)->xlinvals(0, 5);
+ pdl> $theta = zeroes(200)->xlinvals(0, 6*$pi);
+ pdl> $z     = zeroes(200)->xlinvals(0, 5);
  pdl> $w->plot3d(cos($theta), sin($theta), $z);
  pdl> $w->terminfo();                           # get information
 
@@ -45,9 +45,9 @@ This module allows PDL data to be plotted using Gnuplot as a backend
 for 2D and 3D plotting and image display.  Gnuplot (not affiliated
 with the Gnu project) is a venerable, open-source program that
 produces both interactive and publication-quality plots on many
-different output devices.  You must obtain it separately from this
-interface module.  It is available through most Linux repositories, on
-MacOS via fink and MacPorts, and from its website L<http://www.gnuplot.info>.
+different output devices.  It is available through most Linux
+repositories, on MacOS, and from its website
+L<http://www.gnuplot.info>.
 
 It is not necessary to understand the gnuplot syntax to generate
 basic, or even complex, plots - though the full syntax is available
@@ -556,7 +556,29 @@ availale terminals or, if you pass in a terminal name, options accepted
 by that terminal.
 
 
-=head2 POs for Titles: title, (x|x2|y|y2|z|cb)label, key
+=head2 POs for Titles
+
+The options described here are
+
+=over
+
+=item title
+
+=item xlabel
+
+=item x2label
+
+=item ylabel
+
+=item y2label
+
+=item zlabel
+
+=item cblabel
+
+=item key
+
+=back
 
 Gnuplot supports "enhanced" text escapes on most terminals; see "text",
 below.
@@ -616,7 +638,27 @@ containing (x,y): C<key=E<gt>[at=E<gt>[0.5,0.5]]>) is an exact location to place
 
 =back
 
-=head2 POs for axes, grids, & borders: grid, (x|x2|y|y2|z)zeroaxis, border
+=head2 POs for axes, grids, & borders
+
+The options described here are
+
+=over
+
+=item grid
+
+=item xzeroaxis
+
+=item x2zeroaxis
+
+=item yzeroaxis
+
+=item y2zeroaxis
+
+=item zzeroaxis
+
+=item border
+
+=back
 
 Normally, tick marks and their labels are applied to the border of a plot,
 and no extra axes (e.g. the y=0 line) nor coordinate grids are shown.  You can
@@ -673,7 +715,37 @@ scalar; if you want to set its parameters, you can feed in a list ref
 containing linewidth, linestyle, and linetype (with appropriate
 parameters for each), e.g.  C<< xzeroaxis=>[linewidth=>2] >>.
 
-=head2 POs for axis range and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
+=head2 POs for axis range and mode
+
+The options described here are
+
+=over
+
+=item xrange
+
+=item x2range
+
+=item yrange
+
+=item y2range
+
+=item zrange
+
+=item rrange
+
+=item cbrange
+
+=item trange
+
+=item urange
+
+=item vrange
+
+=item autoscale
+
+=item logscale
+
+=back
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
 accepts a list ref with (min, max).  If either min or max is missing, then
@@ -716,7 +788,37 @@ the axes to scale logarithmically, and the second of which is the base
 of the logarithm: C<< logscale=>[xy=>10] >>.  You can also leave off the
 base if you want base-10 logs: C<< logscale=>['xy'] >>.
 
-=head2 POs for Axis tick marks - [m](x|x2|y|y2|z|cb)tics
+=head2 POs for Axis tick marks
+
+The options described here are
+
+=over
+
+=item xtics
+
+=item x2tics
+
+=item ytics
+
+=item y2tics
+
+=item ztics
+
+=item cbtics
+
+=item mxtics
+
+=item mx2tics
+
+=item mytics
+
+=item my2tics
+
+=item mztics
+
+=item mcbtics
+
+=back
 
 Axis tick marks are called "tics" within Gnuplot, and they are extensively
 controllable via the "{axis}tics" options.  In particular, major and minor
@@ -794,7 +896,49 @@ or
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
-=head2 POs for time data values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
+=head2 POs for time data values
+
+The options described here are
+
+=over
+
+=item xmtics
+
+=item x2mtics
+
+=item ymtics
+
+=item y2mtics
+
+=item zmtics
+
+=item cbmtics
+
+=item xdtics
+
+=item x2dtics
+
+=item ydtics
+
+=item y2dtics
+
+=item zdtics
+
+=item cbdtics
+
+=item xdata
+
+=item x2data
+
+=item ydata
+
+=item y2data
+
+=item zdata
+
+=item cbdata
+
+=back
 
 Gnuplot contains support for plotting absolute time and date on any of its axes,
 with conventional formatting. There are three main methods, which are mutually exclusive
@@ -875,7 +1019,31 @@ can treat the numeric range in terms of months rather than seconds.
 
 =back
 
-=head2 POs for location/size - (t|b|l|r)margin, offsets, origin, size, justify, clip
+=head2 POs for location/size
+
+The options described here are
+
+=over
+
+=item tmargin
+
+=item bmargin
+
+=item lmargin
+
+=item rmargin
+
+=item offsets
+
+=item origin
+
+=item size
+
+=item justify
+
+=item clip
+
+=back
 
 Adjusting the size, location, and margins of the plot on the plotting
 surface is something of a null operation for most single plots -- but
@@ -1677,10 +1845,6 @@ options for the second curve).
 
 =head1 FUNCTIONS
 
-=for ref
-
-
-
 =cut
 =pod
 
@@ -1699,8 +1863,8 @@ gpwin is the PDL::Graphics::Gnuplot exported constructor.  It is
 exported by default and is a synonym for "new
 PDL::Graphics::Gnuplot(...)".  If given no arguments, it creates a
 plot object with the default terminal settings for your gnuplot.  You
-also give it the name of a Gnuplot terminal type (e.g. 'x11') followed
-by output options (see "output").
+can also give it the name of a Gnuplot terminal type (e.g. 'x11') and
+some terminal and output options (see "output").
 
 
 =cut
@@ -1764,11 +1928,17 @@ other than this default, check the C<Alien::Gnuplot> documentation.
 
 =for usage
 
-    $window->output( device, %device_options, {plot_options} );
+    $window->output( $device );
+    $window->output( $device, %device_options );
+    $window->output( $device, %device_options, {plot_options} );
+    $window->output( %device_options, {plot_options} );
+    $window->output( %device_options );
 
 =for ref
 
-Sets the output device and options for a Gnuplot object.
+Sets the output device and options for a Gnuplot object. If you omit
+the C<$device> name, then you get the gnuplot default device (generally
+C<x11>, C<wxt>, or C<aqua>, depending on platform).
 
 You can control the output device of a PDL::Graphics::Gnuplot object on
 the fly.  That is useful, for example, to replot several versions of the 
@@ -2283,6 +2453,10 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =over 3 
 
+=item - Hash values should be accepted (and parsed properly) for all plot options.
+
+Currently many of the more complicated plot options accept array refs only.  Hash ref parsing is needed for regularity.
+
 =item - labels need attention (plot option labels)
 
 They need to be handled as hashes, not just as array refs.  Also, they don't seem to be working with timestamps.
@@ -2294,77 +2468,6 @@ Further, deeply nested options (e.g. "at" for labels) need attention.
 
 The "boxplot" plot style (new to gnuplot 4.6?) requires a different using
 syntax and will require some hacking to support.
-
-=back
-
-=head1 RELEASE NOTES
-
-=head3 V2.0
-
- - Use Alien::Gnuplot for initial contact and global configuration
- - Don't complain about 'with'-modifiers
- - Several edge-case bugs fixed (thanks, Dima)
- - Colorspec parsing is better (and regularized with a procedure call)
- - SIGPIPE crashes fixed (mixing gnuplot and forking used to be dangerous)
- - internal representation of tics specifiers is better
- - better handling of tics when x2 or y2 is specified
- - better handling of images when x2 or y2 is specified
-
-=head3 Earlier versions
-
-=over 3
-
-=item V1.5
-
- - complex 'with' specifiers are deprecated.
- - curve options exist for plot variants (line color etc.)
- - lines are dashed, by default
- - windows don't persist, by default
- - bad value support
- - fixed a justify problem
- - several minor cross-platform issues
-
-=item V1.4
-
-Many thanks to Chris Marshall and Juergen Mueck, who both tested endless variants as
-we troubleshot bizarre IPC problems under Microsoft Windows with Strawberry Perl.
-
- - default to ascii data transfer under Microsoft Windows (Juergen's hang issue)
- - do better at ignoring chatter on Microsoft Windows (intercept ascii data prompts with a regexp)
- - clean up test reporting
- - deprecate gnuplot <4.6 and issue warning (and accommodate some missing keywords)
- - autoranging fix
- - read_polygon fix
- - Many small tweaks to make Microsoft Windows support better
- - Updates to POD documentation
- - Improved terminfo reporting
- - mouse-enabled default terminals are detected properly (e.g. 'x11').
- - includes "imag" and "points" for people who are used to PDL::Graphics::PGPLOT.
- - more careful I/O handling in the pipe
- - Improved interrupt handling
- - Sends output to gnuplot in chunks if necessary (gets around choking limitations on some platforms)
- - Allows specifying different commands than just "gnuplot" via environment variable GNUPLOT_BINARY.
- - Detects available terminal types from Gnuplot on initial startup.
- - supports m?tics options with hash syntax
-
-=item v1.3
-
- - Tests do not fail on v4.2 Gnuplot (still used on BSD)
- - Better error messages in common error cases
- - Several Microsoft Windows compatibility fixes (thanks, Sisyphus!)
-
-=item v1.2
-
- - Handles communication better on Microsoft Windows (MSW has brain damage).
- - Improvements in documentation
- - Handles PDF output in scripts
- - Handles 2-D and 1-D columns in 3-D plots (grid vs. threaded lines)
-
-=item v1.1
-
- - Handles communication with command echo on the pipe (for Microsoft Windows)
- - Better gnuplot error reporting
- - Fixed date range handling
 
 =back
 
