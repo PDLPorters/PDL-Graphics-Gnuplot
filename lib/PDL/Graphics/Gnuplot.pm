@@ -1707,11 +1707,13 @@ If we also have a corresponding $x domain, we can plot $y vs. $x with
 
 To change line thickness:
 
-  gplot(with => 'lines linewidth 4', $x, $y);
+  gplot(with => 'lines',linewidth=>4, $x, $y);
+  gplot(with => 'lines', lw=>4, $x, $y);
 
 To change point size and point type:
 
-  gplot(with => 'points pointtype 4 pointsize 8', $x, $y);
+  gplot(with => 'points',pointtype=>8, $x, $y);
+  gplot(with => 'points',pt=>8, $x, $y);
 
 =head3 Errorbars
 
@@ -1742,19 +1744,19 @@ Plotting with variable-size circles (size given in plot units, requires Gnuplot 
 Plotting with an variably-sized arbitrary point type (size given in multiples of
 the "default" point size)
 
-  gplot(with => 'points pointtype 7 pointsize variable', 
+  gplot(with => 'points', pointtype=>7, pointsize=>'variable',
         $x, $y, $sizes);
 
 Color-coded points
 
-  gplot(with => 'points palette', 
+  gplot(with => 'points', palette=>1,
         $x, $y, $colors);
 
 Variable-size AND color-coded circles. A Gnuplot (4.4.0) bug make it necessary to
 specify the color range here
 
   gplot(cbmin => $mincolor, cbmax => $maxcolor,
-        with => 'circles palette', 
+        with => 'circles', palette=>1, 
         $x, $y, $radii, $colors);
 
 =head2 3D plotting
@@ -1778,7 +1780,10 @@ Complicated 3D plot with fancy styling:
 
   splot(title => 'double helix',
 
-        { with => 'linespoints pointsize variable pointtype 7 palette',
+        { with => 'linespoints',
+          pointsize=>'variable', 
+          pointtype=>7,
+          palette=>1,
           legend => 'spiral 1' },
         { legend => 'spiral 2' },
 
@@ -1866,16 +1871,23 @@ a 3-tuple: X, Y, and R.
    $theta = xvals(201) * 6 * $pi / 200;
    $z     = xvals(201) * 5 / 200;
 
-   gplot( {trid => 1, title => 'double helix'},
-         {with => 'linespoints pointsize variable pointtype 2 palette',
-         legend => ['spiral 1','spiral 2']} ,
-         cdim=>1,
+   gplot( {trid => 1, title => 'double helix',cbr=>[0,1]},
+         {with => 'linespoints',
+          pointsize=>'variable',
+          pointtype=>2,
+          palette=>1,
+          legend => ['spiral 1','spiral 2'],
+          cdim=>1},
          pdl( cos($theta), -cos($theta) ),       # x
          pdl( sin($theta), -sin($theta) ),       # y
          $z,                                     # z
          (0.5 + abs(cos($theta))),               # pointsize
          sin($theta/3),                          # color
-         {with=>'points pointsize variable pointtype 5'},
+         { with=>'points',
+           pointsize=>'variable',
+           pointtype=>5, 
+           palette=>0
+         },
          zeroes(6),                         # x
          zeroes(6),                         # y
          xvals(6),                          # z
