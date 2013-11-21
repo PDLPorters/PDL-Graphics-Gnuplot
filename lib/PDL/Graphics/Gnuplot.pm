@@ -619,7 +619,29 @@ availale terminals or, if you pass in a terminal name, options accepted
 by that terminal.
 
 
-=head2 POs for Titles: title, (x|x2|y|y2|z|cb)label, key
+=head2 POs for Titles
+
+The options described here are
+
+=over
+
+=item title
+
+=item xlabel
+
+=item x2label
+
+=item ylabel
+
+=item y2label
+
+=item zlabel
+
+=item cblabel
+
+=item key
+
+=back
 
 Gnuplot supports "enhanced" text escapes on most terminals; see "text",
 below.
@@ -679,7 +701,27 @@ containing (x,y): C<key=E<gt>[at=E<gt>[0.5,0.5]]>) is an exact location to place
 
 =back
 
-=head2 POs for axes, grids, & borders: grid, (x|x2|y|y2|z)zeroaxis, border
+=head2 POs for axes, grids, & borders
+
+The options described here are
+
+=over
+
+=item grid
+
+=item xzeroaxis
+
+=item x2zeroaxis
+
+=item yzeroaxis
+
+=item y2zeroaxis
+
+=item zzeroaxis
+
+=item border
+
+=back
 
 Normally, tick marks and their labels are applied to the border of a plot,
 and no extra axes (e.g. the y=0 line) nor coordinate grids are shown.  You can
@@ -736,7 +778,37 @@ scalar; if you want to set its parameters, you can feed in a list ref
 containing linewidth, linestyle, and linetype (with appropriate
 parameters for each), e.g.  C<< xzeroaxis=>[linewidth=>2] >>.
 
-=head2 POs for axis range and mode: (x|x2|y|y2|z|r|cb|t|u|v)range, autoscale, logscale
+=head2 POs for axis range and mode
+
+The options described here are
+
+=over
+
+=item xrange
+
+=item x2range
+
+=item yrange
+
+=item y2range
+
+=item zrange
+
+=item rrange
+
+=item cbrange
+
+=item trange
+
+=item urange
+
+=item vrange
+
+=item autoscale
+
+=item logscale
+
+=back
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
 accepts a list ref with (min, max).  If either min or max is missing, then
@@ -779,7 +851,37 @@ the axes to scale logarithmically, and the second of which is the base
 of the logarithm: C<< logscale=>[xy=>10] >>.  You can also leave off the
 base if you want base-10 logs: C<< logscale=>['xy'] >>.
 
-=head2 POs for Axis tick marks - [m](x|x2|y|y2|z|cb)tics
+=head2 POs for Axis tick marks
+
+The options described here are
+
+=over
+
+=item xtics
+
+=item x2tics
+
+=item ytics
+
+=item y2tics
+
+=item ztics
+
+=item cbtics
+
+=item mxtics
+
+=item mx2tics
+
+=item mytics
+
+=item my2tics
+
+=item mztics
+
+=item mcbtics
+
+=back
 
 Axis tick marks are called "tics" within Gnuplot, and they are extensively
 controllable via the "{axis}tics" options.  In particular, major and minor
@@ -857,7 +959,49 @@ or
 
  xtics => ['axis','mirror','in','rotate by 45','font "Arial,9"']
 
-=head2 POs for time data values - (x|x2|y|y2|z|cb)(m|d)tics, (x|x2|y|y2|z|cb)data
+=head2 POs for time data values
+
+The options described here are
+
+=over
+
+=item xmtics
+
+=item x2mtics
+
+=item ymtics
+
+=item y2mtics
+
+=item zmtics
+
+=item cbmtics
+
+=item xdtics
+
+=item x2dtics
+
+=item ydtics
+
+=item y2dtics
+
+=item zdtics
+
+=item cbdtics
+
+=item xdata
+
+=item x2data
+
+=item ydata
+
+=item y2data
+
+=item zdata
+
+=item cbdata
+
+=back
 
 Gnuplot contains support for plotting absolute time and date on any of its axes,
 with conventional formatting. There are three main methods, which are mutually exclusive
@@ -938,7 +1082,31 @@ can treat the numeric range in terms of months rather than seconds.
 
 =back
 
-=head2 POs for location/size - (t|b|l|r)margin, offsets, origin, size, justify, clip
+=head2 POs for location/size
+
+The options described here are
+
+=over
+
+=item tmargin
+
+=item bmargin
+
+=item lmargin
+
+=item rmargin
+
+=item offsets
+
+=item origin
+
+=item size
+
+=item justify
+
+=item clip
+
+=back
 
 Adjusting the size, location, and margins of the plot on the plotting
 surface is something of a null operation for most single plots -- but
