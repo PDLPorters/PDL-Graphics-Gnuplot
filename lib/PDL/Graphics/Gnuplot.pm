@@ -2757,7 +2757,8 @@ sub plot
 	next unless($chunks->[$i]->{imgFlag});
 
 	# Fix up gnuplot color scaling bug/misfeature for RGB images
-	# Here, we accumulate min/max color ranges across *all* imagelike chunks.
+	# Here, we accumulate min/max color ranges across *all* imagelike chunks,
+	# so mixing rgb and palette images will scale right.
 	if(!defined( $this->{options}->{cbrange} )) {
 	    my $with = $chunks->[$i]->{options}->{with}->[0];
 
@@ -2767,9 +2768,15 @@ sub plot
 
 	    my $bolus = $chunks->[$i]->{data}->[0]->slice($slice);
 
-	    my ($cmin, $cmax) = $bolus->minmax;
-	    $cbmin = $cmin if( !defined($cbmin)   or    $cbmin > $cmin );
-	    $cbmax = $cmax if( !defined($cbmax)   or    $cbmax < $cmax );
+	    # Convert NaNs to bad if possible.  This is slow -- 
+	    # need to fix the minmax &c. operators in PDL to ignore NaNs on command;
+	    # currently the default behavior is that NaN poisons the whole min/max
+	    # operation.  
+	    my ($cmin, $cmax);
+	    ($cmin,$cmax) = $bolus->where(isfinite($bolus))->minmax;
+
+	    $cbmin = $cmin if( !defined($cbmin)   or    $cmin < $cbmin );
+	    $cbmax = $cmax if( !defined($cbmax)   or    $cmax < $cbmax );
 	}
 
 	# Do image ranging.
@@ -2872,6 +2879,14 @@ sub plot
     ##############################
     # Fix up cbrange if necessary. 
     if( defined($cbmin)   or   defined($cbmax) ) {
+	$cbmin = undef if(defined($cbmin) and "$cbmin" =~ m/nan/i);
+	$cbmax = undef if(defined($cbmax) and "$cbmax" =~ m/nan/i);
+	    
+	if($cbmin==$cbmax) {
+	    $cbmin -= 0.1;
+	    $cbmax += 0.1;
+	}
+
 	$this->{tmp_options}->{cbrange} = [$cbmin, $cbmax];
     } 
     
