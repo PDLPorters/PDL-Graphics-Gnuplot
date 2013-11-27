@@ -834,11 +834,11 @@ range on that axis.  C<autoscale> allows more explicit control of how
 autoscaling is performed, on an axis-by-axis basis.  It accepts a list
 ref, each element of which specifies how a single axis should be
 autoscaled.  Each element contains an axis name followed by one of
-"fix,"min","max","fixmin", or "fixmax", e.g. 
+"fix,"min","max","fixmin", or "fixmax", e.g.
 
  autoscale=>['xmax','yfix']
 
-To not autoscale an axis at all, specify a range for it. The fix style of 
+To not autoscale an axis at all, specify a range for it. The fix style of
 autoscaling forces the autoscaler to use the actual min/max of the data as
 the limit for the corresponding axis -- by default the axis gets extended
 to the next minor tic (as set by the autoticker or by a tic specification, see
@@ -1366,7 +1366,7 @@ relative to the C<from> position, use "rto".
 
 =item (arrowstyle | as) <arrow_style>
 
-This specifies that the arrow be drawn in a particualr predeclared numerical
+This specifies that the arrow be drawn in a particular predeclared numerical
 style.  If you give this parameter, you shoudl omit all the following ones.
 
 =item ( nohead | head | backhead | heads ) - specify arrowhead placement
