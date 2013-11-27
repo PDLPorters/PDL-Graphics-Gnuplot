@@ -2125,7 +2125,7 @@ You can control the output device of a PDL::Graphics::Gnuplot object on
 the fly.  That is useful, for example, to replot several versions of the 
 same plot to different output devices (interactive and hardcopy).
 
-Gnuplot interprets plot options differently per device.
+Gnuplot interprets terminal options differently per device.
 PDL::Graphics::Gnuplot attempts to interpret some of the more common
 ones in a common way.  In particular:
 
@@ -2163,7 +2163,7 @@ LaTeX-like markup for super/sub scripts and fonts).
 
 =back
 
-For a brief description of the plot options that any one device supports, 
+For a brief description of the terminal options that any one device supports, 
 you can run PDL::Graphics::Gnuplot::terminfo().
 
 As with plot options, terminal options can be abbreviated to the shortest
@@ -2189,33 +2189,18 @@ sub output {
     # ask gnuplot what it thinks the terminal is.  Then we run it through the usual
     # setting logic, to make sure we've got our terminal options parsing and 
     # other switches set right (e.g. does the default terminal support mouse input?)
-    my $default_term_str = "";
-    unless(@_) {
+    my $terminal = "";
+    unless(@_ && (@_ % 2)) {
 	_printGnuplotPipe($this, "main","show terminal\n");
 	my $show = _checkpoint($this, "main");
 	unless($show =~ s/^\s*terminal type is ((\w+)(.*[^\s])?)\s*$/$1/) {
-	    print STDERR "Warning: you are using the default terminal, but gnuplot didn't report it properly.\n\tThis is probably a bug.  Plot at your own risk.\n";
-	    $default_term_str="        (Using an unknown default terminal type)\n";
+	    barf "You seem to be using the default terminal, but gnuplot was unwilling to report it!"
 	} else {
 	    unshift(@_, $2);
-	    $default_term_str = "        (using gnuplot's default terminal of $show)\n";
 	}
     }
-
+    
     if(@_) {
-	# There is at least one more argument.  The arglist should be a collection of key/value pairs,
-	# or a terminal name followed by a collection of key/value pairs.  If the number of elements
-	# is even, then the terminal was most likely omitted -- so get the default terminal from 
-	# gnuplot.
-	if( (@_ % 2) == 0 ) {
-	    my $string;
-	    _printGnuplotPipe($this,"main","show terminal\n");
-	    $string = _checkpoint($this,"main");
-	    $string =~ m/terminal type is (\w+)/ || barf("PDL::Graphics::Gnuplot - you seem to be asking for the default terminal, but gnuplot didn't report one!\n  Please specify the output terminal type you want to use.\n\n");
-	    unshift(@_, $1);
-	    print STDERR "PDL::Graphics::Gnuplot - defaulted to '$_[0]' terminal\n";
-	}
-
 	# Check that, if there is at least one more argument, it is recognizable as a terminal
 	my $terminal;
 	$terminal = lc(shift);
@@ -2227,14 +2212,14 @@ sub output {
 	    our $termTabSource;
 
 	    if(exists($this->{unknown_terms}->{$terminal})) {
-		$s = <<"FOO" . $default_term_str;
+		$s = <<"FOO";
 PDL::Graphics::Gnuplot: Your gnuplot has terminal '$terminal' but it is not supported.
         $terminal: $this->{unknown_terms}->{$terminal}
 FOO
 
 	    } 
 	    elsif(exists($termTab->{$terminal})) {
-		$s = <<"FOO" . $default_term_str;
+		$s = <<"FOO";
 PDL::Graphics::Gnuplot: your gnuplot appears not to support the terminal '$terminal'.
         $terminal: $termTabSource->{$terminal}->{desc} [not in reported list from gnuplot]
 FOO
@@ -2242,9 +2227,9 @@ FOO
 	    else {
 		$s = "PDL::Graphics::Gnuplot: neither this module nor your gnuplot support '$terminal'.\n";
 		if(exists($termTabSource->{$terminal})) {
-		    $s .= "        $terminal: $termTabSource->{$terminal}\n".$default_term_str;
+		    $s .= "        $terminal: $termTabSource->{$terminal}\n";
 		} else {
-		    $s .= "        $terminal: doesn't appear to be a gnuplot terminal name\n".$default_term_str;
+		    $s .= "        $terminal: doesn't appear to be a gnuplot terminal name\n";
 		}
 	    }
 
