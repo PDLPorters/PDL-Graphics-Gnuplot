@@ -4660,19 +4660,15 @@ our $pOptionsTable =
 {
     # Start with pseudo-options we use internally.
     '3d'        => ['s', sub { "" }, undef, undef, 
-		    '[pseudo] Make the current plot 3d (gnuplot "splot" command).'
-    ],
+		    '[pseudo] Make the current plot 3d (gnuplot "splot" command).'  ],
     'trid'      => [sub { my($o,$n,$h)=@_; $h->{'3d'}=$n; return undef}, sub { "" }, undef, undef,
-		    '[pseudo] Make the current plot 3d (synonym for "3d").'
-		    ],
+		    '[pseudo] Make the current plot 3d (synonym for "3d").'   ],
     'binary'    => ['b', sub {""}, undef, undef, 
-                    '[pseudo] Communicate with gnuplot in binary mode (default on non-Microsoft platforms).'
-    ],
+                    '[pseudo] Communicate with gnuplot in binary mode (default on non-Microsoft platforms).'    ],
     'ascii'     => [sub { my($old, $new, $hash) = @_;
 			  $hash->{binary} = !$new;
 		    }, sub {""}, undef, undef,
-                    '[pseudo] Antonym for "binary" (default is 0 for non-Microsoft platforms).'
-    ],
+                    '[pseudo] Antonym for "binary" (default is 0 for non-Microsoft platforms).'    ],
     'device'     => [ sub { my ($old, $new, $hash) = @_; 
 			    barf "Can't set device while in multiplot mode!\n" if($hash->{multiplot});
 			    if( $new =~ m/^(.*)\/([^\/]*)$/ ) {
@@ -4684,8 +4680,7 @@ our $pOptionsTable =
 			    return undef;
 		      }, 
 		      sub { "" }, undef, undef,
-		      '[pseudo] Shorthand for device spec.: "dev=>\'<output/<terminal>\'".'
-    ],
+		      '[pseudo] Shorthand for device spec.: "dev=>\'<output/<terminal>\'".'    ],
     
     'hardcopy'  => [ sub { my ($old, $new, $hash) = @_;
 			   barf "Can't set hardcopy while in multiplot mode!\n" if($hash->{multiplot});
@@ -4702,8 +4697,7 @@ our $pOptionsTable =
 			       die "hardcopy: need a file suffix to infer file type\n";
 			   }
 		     }, sub {""},undef,undef,
-		     '[pseudo] Shorthand for device spec.: standard image formats inferred by suffix'
-    ],
+		     '[pseudo] Shorthand for device spec.: standard image formats inferred by suffix'    ],
 
     'dump'      => [
 	sub { my $newval = $_[1];
@@ -4719,12 +4713,10 @@ our $pOptionsTable =
     ],
 
     'tee'       => [ sub { $_[1]; }, sub { "" }, undef, undef,
-		    '[pseudo] Tee gnuplot commands to stdout (set to "nobinary" for viewing)'
-    ],
+		    '[pseudo] Tee gnuplot commands to stdout (set to "nobinary" for viewing)'    ],
 
     'silent'      => ['b', sub { "" }, undef, undef, 
-		    '[pseudo] Be silent about gnuplot errors'
-    ],
+		    '[pseudo] Be silent about gnuplot errors'    ],
 
       # topcmds/extracmds/bottomcmds: contain explicit strings for gnuplot.
       # topcmds go just below the "set term", "set termoption", and "set output" commands;
@@ -4734,25 +4726,21 @@ our $pOptionsTable =
     'topcmds'   => ['l', sub { my($k,$v,$h) = @_;
 			       return (ref $v eq 'ARRAY') ? join("\n",(@$v,"")) : $v."\n"; },
 		    undef, 10,
-		    '[pseudo] extra gnuplot commands at the top of the command block'
-    ],
+		    '[pseudo] extra gnuplot commands at the top of the command block'    ],
 
     'extracmds' => ['l', sub { my($k,$v,$h) = @_;
 			       return (ref $v eq 'ARRAY') ? join("\n",(@$v,"")) : $v."\n"; },
 		       ,undef, 1001,
-		    '[pseudo] extra gnuplot commands between plot options and the plots'
-    ],
+		    '[pseudo] extra gnuplot commands between plot options and the plots'    ],
 			# bottomcmds is implemented by special hook in plot().
     'bottomcmds' => ['l', sub {""}, undef, undef,
-		     '[pseudo] extra gnuplot commands after all plot commands'
-    ],
+		     '[pseudo] extra gnuplot commands after all plot commands'    ],
 
     'globalwith'=> ['l', sub { "" }, undef, undef,
-		    '[pseudo] default plot style (overridden by "with" in curve options)'
-    ],
+		    '[pseudo] default plot style (overridden by "with" in curve options)'    ],
 
  
-   'clut'      => [sub { my($old, $new, $this) = @_;
+    'clut'      => [sub { my($old, $new, $this) = @_;
 			  $new = ($new ? lc $new : "default");
 			  if($palettesTab->{$new}) {
 			      return $new;
@@ -4777,16 +4765,13 @@ our $pOptionsTable =
 			  $s;
 		    },
 		    ['palette'],undef,
-		    '[pseudo] Use named color look-up table for palette: "clut=>\'heat2\'"'
-    ],
+		    '[pseudo] Use named color look-up table for palette: "clut=>\'heat2\'"'    ],
 
-    'globalwith'=> ['l',sub { return '' },undef,undef,
-		    '[pseudo] Set default "with" plot style for the object'
-    ], # pseudo-option to add 'with' parameters
+    'globalwith'=> ['l',sub { return '' },undef,undef,  # pseudo-option to add 'with' parameters
+		    '[pseudo] Set default "with" plot style for the object'  ], 
 
     'globalPlot'=> ['l',sub { return '' },undef,undef,
-		    '[pseudo] marker for the global plot object'
-    ], 
+		    '[pseudo] marker for the global plot object'    ], 
 
     'justify'   => [sub { my($old,$new,$opt) = @_;
 			  if(!defined($new)){
@@ -4805,8 +4790,7 @@ our $pOptionsTable =
 			  }
 		    }, 
 		    sub { '' }, undef, undef,
-		    '[pseudo] Set aspect ratio (equivalent to: size=>["ratio",<r>])'
-    ],
+		    '[pseudo] Set aspect ratio (equivalent to: size=>["ratio",<r>])'    ],
     'square'    => [sub { my($old, $new, $opt) = @_;
 			  if($new) {
 			      $opt->{'size'} = ["ratio -1"];
@@ -4819,231 +4803,161 @@ our $pOptionsTable =
 			  }
 		    },
                     sub { return '' }, undef, undef,
-		    '[pseudo] Set aspect ratio to square (equivalent to: size=["ratio",1])'
-    ],
+		    '[pseudo] Set aspect ratio to square (equivalent to: size=["ratio",1])'    ],
     ##############################		    
     # These are all the "plot" (top-level) options recognized by gnuplot 4.4.
     'angles'    => [['degrees','radians'],'s',undef,undef,
-		    '(radians or degrees): sets unit in which angles will be specified'
-    ],
+		    '(radians or degrees): sets unit in which angles will be specified'    ],
     'arrow'     => ['N','N',undef,undef,
-		    'allows specification of arrows to be drawn on subsequent plots'
-    ],
+		    'allows specification of arrows to be drawn on subsequent plots'    ],
     'autoscale' => ['l','1',undef,undef,
-		    'autoscaling style: autoscale=>"(x|y|z|cb|x2|y2|xy) (fix)?(min|max)?".'
-    ],
+		    'autoscaling style: autoscale=>"(x|y|z|cb|x2|y2|xy) (fix)?(min|max)?".'    ],
     'bars'      => ['l','l',undef,undef,
-		    'errorbar ticsize: bars=>"(small|large|fullwidth|<size>) (front|back)?"'
-    ],
+		    'errorbar ticsize: bars=>"(small|large|fullwidth|<size>) (front|back)?"'    ],
     'bmargin'   => ['s','s',undef,undef,
-		    'bottom margin (chars); bmargin=>"at screen <frac>" for pane-rel. size'
-    ],
+		    'bottom margin (chars); bmargin=>"at screen <frac>" for pane-rel. size'    ],
     'border'    => ['l','l',undef,undef,
-		    'specify border around the plot (see gnuplot manual)'
-    ],
+		    'specify border around the plot (see gnuplot manual)'    ],
     'boxwidth'  => ['l','l',undef,undef,
-		    'default width of boxes in those plot styles that have them'
-    ],
+		    'default width of boxes in those plot styles that have them'    ],
     'cbdata'    => ['s','bt',    ['colorbox'], undef,
-		    'cbdata=>"time" to use time stamps on color box data axis (see timefmt)'
-    ],
+		    'cbdata=>"time" to use time stamps on color box data axis (see timefmt)'    ],
     'cbdtics'   => ['b','b',    ['colorbox'], undef,
-		    'cbdtics=>1 to use days-of-week tick labels on the color box axis'
-    ],
+		    'cbdtics=>1 to use days-of-week tick labels on the color box axis'    ],
     'cblabel'   => ['l','ql',  ['colorbox'], undef,
-		    'sets the label on the color box axis'
-    ],
+		    'sets the label on the color box axis'    ],
     'cbmtics'   => ['b','b',    ['colorbox'], undef,
-		    'cbmtics=>1 to use months-of-year tick labels on the color box axis'
-    ],
+		    'cbmtics=>1 to use months-of-year tick labels on the color box axis'    ],
     'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of cbrange'
-    ],
+		    'sets minimum end of cbrange'    ],
     'cbmax'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of cbrange'
-    ],
+		    'sets maximum end of cbrange'    ],
 
     'cbrange'   => ['lr','range',['colorbox'], undef,
-		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'
-    ],
+		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'    ],
     'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of cbrange'
-    ],
+		    'sets minimum end of cbrange'    ],
     'cbmax'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of cbrange'
-    ],
+		    'sets maximum end of cbrange'    ],
     'cbtics'    => ['lt','lt',  ['colorbox'], undef,
-		    'controls major (labelled) ticks on the color box axis (see docs)'
-    ],
+		    'controls major (labelled) ticks on the color box axis (see docs)'    ],
     'clabel'    => ['s','q',undef,undef,
-		    'Contour level legend format for contour plots (default "%8.3g")'
-    ],
+		    'Contour level legend format for contour plots (default "%8.3g")'    ],
     'clip'      => ['H','H',undef,undef,
-		    'control filtering near boundary: clip=>{points=>1,one=>0,two=>1}'
-    ],
+		    'control filtering near boundary: clip=>{points=>1,one=>0,two=>1}'    ],
     'cntrparam' => ['l','1',undef,undef,
-		    'control contour plotting parameters (see docs)'
-    ],
+		    'control contour plotting parameters (see docs)'    ],
     'colorbox'  => ['l','l',undef,undef,
-		    'set color box options for pm3d and image; set to undef to remove box'
-    ],
+		    'set color box options for pm3d and image; set to undef to remove box'    ],
     'contour'   => ['s','s',undef,undef,
-		    'control 3d contour plots: contour=>("base"|"surface"|"both"|undef)'
-    ],
+		    'control 3d contour plots: contour=>("base"|"surface"|"both"|undef)'    ],
     'datafile'  => ['H','H',undef,undef,
-		    'control how gnuplot interprets data files (not recommended)'
-    ],
+		    'control how gnuplot interprets data files (not recommended)'    ],
     'decimalsign'=>['s','q',undef,undef,
-		    'control character used for decimal point in labels'
-    ],
+		    'control character used for decimal point in labels'    ],
     'dgrid3d'   => ['l','l',undef, undef,
-		    'set up interpolation of scattered datapoints onto a regular grid'
-    ],
+		    'set up interpolation of scattered datapoints onto a regular grid'    ],
     'dummy'     => ['l',',', undef, undef,
-		    'change name of dummy variable for parametric plots (not recommended)'
-    ],
+		    'change name of dummy variable for parametric plots (not recommended)'    ],
     'encoding'  => ['s','s', undef, undef,
-		    'change locale of character encoding (not recommended)'
-    ],
+		    'change locale of character encoding (not recommended)'    ],
     'fit'       => [sub { die "set fit: not (yet) implemented in PDL Gnuplot interface\n";}],
     'fontpath'  => ['l','l',undef,undef,
-		    'set directories to search when looking for fonts (PostScript only)'
-    ],
+		    'set directories to search when looking for fonts (PostScript only)'    ],
     'format'    => ['H','H',undef,undef,
-		    'Fine-grained control over formatting of axis labels'
-    ],
-    'function'  => [sub { die "'set function' is deprecated by gnuplot and not allowed here\n"; }
-    ],
+		    'Fine-grained control over formatting of axis labels'    ],
+    'function'  => [sub { die "'set function' is deprecated by gnuplot and not allowed here\n"; }    ],
     'grid'      => ['l','l',undef,undef,
-		    'draw grid lines on the plot (see docs)'
-    ],
+		    'draw grid lines on the plot (see docs)'    ],
     'hidden3d'  => ['l','l',undef,undef,
-		    'control whether and how hidden lines are removed in 3d (see docs)'
-    ],
+		    'control whether and how hidden lines are removed in 3d (see docs)'    ],
     'isosamples'=> ['l','l',undef,undef,
-		    'control isoline density for plotting functions as surfaces'
-    ],
+		    'control isoline density for plotting functions as surfaces'    ],
     'key'       => ['l','l',undef,undef,
-		    'enable key/legend and control its position and appearance (see docs)'
-    ],
+		    'enable key/legend and control its position and appearance (see docs)'    ],
     'label'     => ['N','NL',undef,undef,
-		    'Define text labels to be rendered in plot (numeric index; see docs)'
-    ],
+		    'Define text labels to be rendered in plot (numeric index; see docs)'    ],
     'lmargin'   => ['s','s',undef,undef,
-		    'left margin (chars); lmargin=>"at screen <frac>" for pane-rel. size'
-    ],
+		    'left margin (chars); lmargin=>"at screen <frac>" for pane-rel. size'    ],
     'loadpath'  => [sub { die "loadpath not supported\n"; }],
     'locale'    => ['s','q',undef,undef,
-		    'set named locale for date/month formatting'
-    ],
+		    'set named locale for date/month formatting'    ],
     'logscale'  => ['l','l',undef,undef,
-		    'set log scaling and base: e.g. logscale=>["xyx2cb",10]'
-    ],
+		    'set log scaling and base: e.g. logscale=>["xyx2cb",10]'    ],
     'macros'    => [sub { die "macros: not supported\n"; } ],
     'mapping'   => [['cartesian','cylindrical','spherical'],'s',undef,undef,
-		    'set coordinates for 3d plots: "cartesian","spherical", or "cylindrical"'
-    ],
+		    'set coordinates for 3d plots: "cartesian","spherical", or "cylindrical"'    ],
     # multiplot: this is not emitted as part of any plot command, only by the special multiplot method.
-    'multiplot' => [sub { die "multiplot: use the 'multiplot' method, don't set this directly\n" },sub { ""},undef,undef,undef]
-    ,
+    'multiplot' => [sub { die "multiplot: use the 'multiplot' method, don't set this directly\n" },sub { ""},undef,undef,undef]  ,
     'mxtics'    => ['lt','lt',undef,undef,
-		    'set and control minor ticks on the X axis: mxtics=><freq>'
-    ],
+		    'set and control minor ticks on the X axis: mxtics=><freq>'    ],
     'mx2tics'   => ['lt','lt',undef,undef,
-		    'set and control minor ticks on the X2 axis: mx2tics=><freq>'
-    ],
+		    'set and control minor ticks on the X2 axis: mx2tics=><freq>'    ],
     'mytics'    => ['lt','lt',undef,undef,
-		    'set and control minor ticks on the Y axis: mytics=><freq>'
-    ],
+		    'set and control minor ticks on the Y axis: mytics=><freq>'    ],
     'my2tics'   => ['lt','lt',undef,undef,
-		    'set and control minor ticks on the Y2 axis: my2tics=><freq>'
-    ],
+		    'set and control minor ticks on the Y2 axis: my2tics=><freq>'    ],
     'mztics'    => ['lt','lt',undef,undef,
-		    'set and control minor ticks on the Z axis: mztics=><freq>'
-    ],
+		    'set and control minor ticks on the Z axis: mztics=><freq>'    ],
     'object'    => ['N','NO',undef,undef,
-		    'define objects to be overlain on plot (numeric index; see docs)'
-    ],
+		    'define objects to be overlain on plot (numeric index; see docs)'    ],
     'offsets'   => ['l','l',undef,undef,
-		    'define inside-axis blank margin (science units): [<l>,<r>,<t>,<b>]'
-    ],
+		    'define inside-axis blank margin (science units): [<l>,<r>,<t>,<b>]'    ],
     'origin'    => ['l',',',undef,undef,
-		    'set 2-D origin of the plotting surface in relative screen coordinates'
-    ],
+		    'set 2-D origin of the plotting surface in relative screen coordinates'    ],
     'output'    => [sub { my($k,$v,$h) = @_;
 			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set output as a plot option; use the constructor\n");}
 			  return $v;
 		    },
 		    'qnm',undef,3,
-		    'set output file or label for plot (see "terminal", "device")'
-    ],
+		    'set output file or label for plot (see "terminal", "device")'    ],
     'parametric'=> ['b','b',undef,undef,
-		    'sets parametric mode for plotting parametric curves (boolean)'
-    ],
+		    'sets parametric mode for plotting parametric curves (boolean)'    ],
     'pm3d'      => ['l','l',undef,undef,
-		    'sets up color palette-mapped 3d surface plots (see docs)'
-    ],
+		    'sets up color palette-mapped 3d surface plots (see docs)'    ],
     'palette'   => ['l','l',undef,undef,
-		    'sets up color palette for color mapped plots (see docs and "clut")'
-    ],
+		    'sets up color palette for color mapped plots (see docs and "clut")'    ],
     'pointsize' => ['s','s',undef,undef,
-		    'sets the size of plotted point symbols (multiplier on base size)'
-    ],
+		    'sets the size of plotted point symbols (multiplier on base size)'    ],
     'polar'     => ['b','b',['angles'],undef,
-		    'sets 2-D plots into polar coordinates.  (see also "angles")'
-    ],
+		    'sets 2-D plots into polar coordinates.  (see also "angles")'    ],
     'rmargin'   => ['s','s',undef,undef,
-		    'right margin (chars); rmargin=>"at screen <frac>" for pane-rel. size'
-    ],
+		    'right margin (chars); rmargin=>"at screen <frac>" for pane-rel. size'    ],
     'rrange'    => ['lr','range',undef,undef,
-		    'radial coordinate range in polar mode: rrange=>[<lo>,<hi>]'
-    ],
+		    'radial coordinate range in polar mode: rrange=>[<lo>,<hi>]'    ],
     'size'      => ['l','l',['view'],undef,
-		    'sets the size of the plot pane relative to the main window (see also "justify")'
-    ],
+		    'sets the size of the plot pane relative to the main window (see also "justify")'    ],
     'style'     => ['H','H',undef,undef,
-		    'Set various aspects of plot style by keyword (see docs)'
-    ],
+		    'Set various aspects of plot style by keyword (see docs)'    ],
     'surface'   => ['b','b',undef,undef,
-		    'Turn on/off surface drawing in 3-d plots (boolean)'
-    ],
-    'table'     => [sub { die "table not supported - use Perl's 'print' instead\n" }
-    ],
+		    'Turn on/off surface drawing in 3-d plots (boolean)'    ],
+    'table'     => [sub { die "table not supported - use Perl's 'print' instead\n" }    ],
     'terminal'  => [sub { my($k,$v,$h)=@_;
 			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set terminal as a plot option; use the constructor\n")}
 			  return $v;
 		    },
 		    'nomulti',
 		    undef,1,
-		    'Set the output device type and device dependent options (see docs)\n'
-    ],
+		    'Set the output device type and device dependent options (see docs)\n'    ],
     'termoption'=> ['H','HNM',undef,2,
-		    'Set certain options for the terminal driver, by keyword'
-    ],
+		    'Set certain options for the terminal driver, by keyword'    ],
     'tics'      => ['l','l',undef,undef,
-		    'Control tick mark formatting (<axis>tics recommended instead)'
-    ],
+		    'Control tick mark formatting (deprecated; <axis>tics recommended instead)'    ],
     'timestamp' => ['l','l',undef,undef,
-		    'creates a timestamp in the left margin of hte plot (see docs)'
-    ],
+		    'creates a timestamp in the left margin of the plot (see docs)'    ],
     'timefmt'   => [sub { print STDERR "Warning: timefmt doesn't work well in formats other than '%s'.  Proceed with caution!\n"
 			      if(  defined($_[1])   and    $_[1] ne '%s');
 			  return ( (defined $_[1]) ? "$_[1]" : undef );
 		    },'q',undef,undef,
-		    'Sets format for interpreting time data (leave as "%s"; see docs)'
-    ],
+		    'Sets format for interpreting time data (leave as "%s"; see docs)'    ],
     'title'     => ['l','ql',undef,undef,
-		    'Set title for the plot.  See docs for size/color/font options'
-    ],
+		    'Set title for the plot.  See docs for size/color/font options'    ],
     'tmargin'   => ['s','s',undef,undef,
-		    'top margin (chars); tmargin=>"at screen <frac>" for pane-rel. size' 
-    ],
+		    'top margin (chars); tmargin=>"at screen <frac>" for pane-rel. size'     ],
     'trange'    => ['lr','range',undef,undef,
-		    'range for indep. variable in parametric plots: trange=>[<min>,<max>]'
-    ],
+		    'range for indep. variable in parametric plots: trange=>[<min>,<max>]'    ],
     'urange'    => ['lr','range',undef,undef,
-		    'range for indep. variable "u" in 3-d parametric plots: [<min>,<max>]'
-    ],
+		    'range for indep. variable "u" in 3-d parametric plots: [<min>,<max>]'    ],
     'view'      => ['l', sub { my($k,$v,$h)=@_;
 			       return "" unless defined($v);
 			       return "set view 60,30,1.0,1.0\nset view noequal\n" unless( ref $v eq 'ARRAY' ); # default value from manual
@@ -5065,153 +4979,103 @@ our $pOptionsTable =
 			       return $s;
 		    },
 		    undef,undef,
-		    '3-d view: [r_x, r_z, scale, sc_z,"map","noequal","equal (xy|xyz)"]'
-    ],
+		    '3-d view: [r_x, r_z, scale, sc_z,"map","noequal","equal (xy|xyz)"]'    ],
     'vrange'    => ['lr','range',undef,undef,
-		    'range for indep. variable "v" in 3-d parametric plots: [<min>,<max>]'
-    ],
+		    'range for indep. variable "v" in 3-d parametric plots: [<min>,<max>]'    ],
     'x2data'    => ['s','bt',undef,undef,
-		    'x2data=>"time" to use time stamps on X2 axis (see timefmt)'
-    ],
+		    'x2data=>"time" to use time stamps on X2 axis (see timefmt)'    ],
     'x2dtics'   => ['b','b',undef,undef,
-		    'x2dtics=>1 to use days-of-week tick labels on X2 axis'
-    ],
+		    'x2dtics=>1 to use days-of-week tick labels on X2 axis'    ],
     'x2label'   => ['l','ql',undef,undef,
-		    'sets label for the X2 axis.  See docs for size/color/font options'
-    ],
+		    'sets label for the X2 axis.  See docs for size/color/font options'    ],
     'x2mtics'   => ['b','b',undef,undef,
-		    'x2mtics=>1 to use months-of-year tick labels on the X2 axis'
-    ],
+		    'x2mtics=>1 to use months-of-year tick labels on the X2 axis'    ],
     'x2min'      => [sub { my($o,$n,$h)=@_; $h->{x2range}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of x2range'
-    ],
+		    'sets minimum end of x2range'    ],
     'x2max'      => [sub { my($o,$n,$h)=@_; $h->{x2range}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of x2range'
-    ],
+		    'sets maximum end of x2range'    ],
     'x2range'   => ['lr','range',undef,undef,
-		    'set range of X2 axis: x2range=>[<min>,<max>]'
-    ],
+		    'set range of X2 axis: x2range=>[<min>,<max>]'    ],
     'x2tics'    => ['lt','lt',undef,undef,
-		    'Control tick mark formatting (X2 axis; see docs)'
-    ],
+		    'Control tick mark formatting (X2 axis; see docs)'    ],
     'x2zeroaxis'=> ['l','l',undef,undef,
-		    'If set, draw a vertical line at X2=0; see docs for formatting'
-    ],
+		    'If set, draw a vertical line at X2=0; see docs for formatting'    ],
     'xdata'     => ['s','bt',undef,undef,
-		    'xdata=>"time" to use time stamps on X axis (see timefmt)'
-    ],
+		    'xdata=>"time" to use time stamps on X axis (see timefmt)'    ],
     'xdtics'    => ['b','b',undef,undef,
-		    'xdtics=>1 to use days-of-week tick labels on X axis'
-    ],
+		    'xdtics=>1 to use days-of-week tick labels on X axis'    ],
     'xlabel'    => ['l','ql',undef,undef,
-		    'sets label for the X axis.  See docs for size/color/font options'
-    ],
+		    'sets label for the X axis.  See docs for size/color/font options'    ],
     'xmtics'    => ['b','b',undef,undef,
-		    'xmtics=>1 to use months-of-year tick labels on the X axis'
-    ],
+		    'xmtics=>1 to use months-of-year tick labels on the X axis'    ],
     'xmin'      => [sub { my($o,$n,$h)=@_; $h->{xrange}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of xrange'
-    ],
+		    'sets minimum end of xrange'    ],
     'xmax'      => [sub { my($o,$n,$h)=@_; $h->{xrange}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of xrange'
-    ],
+		    'sets maximum end of xrange'    ],
     'xrange'    => ['lr','range',undef,undef,
-		    'set range of X axis: xrange=>[<min>,<max>]'
-    ],
+		    'set range of X axis: xrange=>[<min>,<max>]'    ],
     'xtics'     => ['lt','lt',undef,undef,
-		    'Control tick mark formatting (X axis; see docs)'
-    ],
+		    'Control tick mark formatting (X axis; see docs)'    ],
     'xyplane'   => ['l','l',undef,undef,
-		    'Sets location of the XY plane in 3-D plots; see docs'
-    ],
+		    'Sets location of the XY plane in 3-D plots; see docs'    ],
     'xzeroaxis' => ['l','l',undef,undef,
-		    'if set, draw a vertical line at X=0; see docs for formatting'
-    ],
+		    'if set, draw a vertical line at X=0; see docs for formatting'    ],
     'y2data'    => ['s','bt',undef,undef,
-		    'y2data=>"time" to use time stamps on Y2 axis (see timefmt)'
-    ],
+		    'y2data=>"time" to use time stamps on Y2 axis (see timefmt)'    ],
     'y2dtics'   => ['b','b',undef,undef,
-		    'y2dtics=>1 to use days-of-week tick labels on Y2 axis'
-    ],
+		    'y2dtics=>1 to use days-of-week tick labels on Y2 axis'    ],
     'y2label'   => ['l','ql',undef,undef,
-		   'sets label for the Y2 axis.  See docs for size/color/font options'
-    ],
+		   'sets label for the Y2 axis.  See docs for size/color/font options'    ],
     'y2mtics'   => ['b','b',undef,undef,
-		    'y2mtics=>1 to use months-of-year tick labels on Y2 axis'
-    ],
+		    'y2mtics=>1 to use months-of-year tick labels on Y2 axis'    ],
     'y2min'      => [sub { my($o,$n,$h)=@_; $h->{y2range}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of y2range'
-    ],
+		    'sets minimum end of y2range'    ],
     'y2max'      => [sub { my($o,$n,$h)=@_; $h->{y2range}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of y2range'
-    ],
+		    'sets maximum end of y2range'    ],
     'y2range'   => ['lr','range',undef,undef,
-		    'set range of Y2 axis: y2range=>[<min>,<max>]'
-    ],
+		    'set range of Y2 axis: y2range=>[<min>,<max>]'    ],
     'y2tics'    => ['lt','lt',undef,undef,
-		    'Control tick mark formatting (Y2 axis; see docs)'
-    ],
+		    'Control tick mark formatting (Y2 axis; see docs)'    ],
     'y2zeroaxis'=> ['l','l',undef,undef,
-		    'if set, draw a horizontal line at Y2=0; see docs for formatting'
-    ],
+		    'if set, draw a horizontal line at Y2=0; see docs for formatting'    ],
     'ydata'     => ['s','bt',undef,undef,
-		    'ydata=>"time" to use time stamps on Y axis (see timefmt)'
-    ],
+		    'ydata=>"time" to use time stamps on Y axis (see timefmt)'    ],
     'ydtics'    => ['b','b',undef,undef,
-		    'ydtics=>1 to use days-of-week tick labels on Y axis'
-    ],
+		    'ydtics=>1 to use days-of-week tick labels on Y axis'    ],
     'ytics'     => ['lt','lt',undef,undef,
-		    'Control tick mark formatting (Y axis; see docs)'
-    ],
+		    'Control tick mark formatting (Y axis; see docs)'    ],
     'ylabel'    => ['l','ql',undef,undef,
-		    'sets label for the Y axis.  See docs for size/color/font options'
-    ],
+		    'sets label for the Y axis.  See docs for size/color/font options'    ],
     'ymtics'    => ['b','b',undef,undef,
-		    'ymticks=>1 to use months-of-year tick labels on Y axis'
-    ],
+		    'ymticks=>1 to use months-of-year tick labels on Y axis'    ],
     'ymin'      => [sub { my($o,$n,$h)=@_; $h->{yrange}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of yrange'
-    ],
+		    'sets minimum end of yrange'    ],
     'ymax'      => [sub { my($o,$n,$h)=@_; $h->{yrange}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of yrange'
-    ],
+		    'sets maximum end of yrange'    ],
     'yrange'    => ['lr','range',undef,undef,
-		    'set range of Y axis: yrange=>[<min>,<max>]'
-    ],
+		    'set range of Y axis: yrange=>[<min>,<max>]'    ],
     'yzeroaxis' => ['l','l',undef,undef,
-		    'if set, draw a horizontal line at Y=0; see docs for formatting'
-    ],
+		    'if set, draw a horizontal line at Y=0; see docs for formatting'    ],
     'zdata'     => ['s','bt',undef,undef,
-		    'zdata=>"time" to use time stamps on Z axis (see timefmt)'
-    ],
+		    'zdata=>"time" to use time stamps on Z axis (see timefmt)'    ],
     'zdtics'    => ['b','b',undef,undef,
-		    'zdtics=>1 to use days-of-week tick labels on Z axis'
-    ],
+		    'zdtics=>1 to use days-of-week tick labels on Z axis'    ],
     'zlabel'    => ['l','ql',undef,undef,
-		    'sets label for the Z axis.  See docs for size/color/font options'
-    ],
+		    'sets label for the Z axis.  See docs for size/color/font options'    ],
     'zmtics'    => ['b','b',undef,undef,
-		    'zmtics=>1 to use months-of-year tick labels on Z axis'
-    ],
+		    'zmtics=>1 to use months-of-year tick labels on Z axis'    ],
     'zmin'      => [sub { my($o,$n,$h)=@_; $h->{zrange}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of zrange'
-    ],
+		    'sets minimum end of zrange'    ],
     'zmax'      => [sub { my($o,$n,$h)=@_; $h->{zrange}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of zrange'
-    ],
+		    'sets maximum end of zrange'    ],
     'zrange'    => ['lr','range',undef,undef,
-		    'set range of Z axis: zrange=>[<min>,<max>]'
-    ],
+		    'set range of Z axis: zrange=>[<min>,<max>]'    ],
     'zzeroaxis' => ['l','l',undef,undef,
-		    'if set, draw a line through (X=0,Y=0) on a 3-D plot.  See docs'
-    ],
+		    'if set, draw a line through (X=0,Y=0) on a 3-D plot.  See docs'    ],
     'zero'      => ['s','s',undef,undef,
-		    'Sets the default threshold for values approaching 0.0'
-    ],
+		    'Sets the default threshold for values approaching 0.0'    ],
     'ztics'     => ['lt','lt',undef,undef,
-		    'Control tick mark formatting (Z axis; see docs)'
-    ]
-
+		    'Control tick mark formatting (Z axis; see docs)'    ]
 };
 our $pOptionsAbbrevs = _gen_abbrev_list(keys %$pOptionsTable);
 $pOptionsAbbrevs->{'term'} = ['terminal'];         # frequently-used case
@@ -5833,23 +5697,13 @@ sub _emitOpts {
     return $s;
 }
 
+
 ##############################
+# Emitter table folows.  Colorspecs are so 
+# complicated that they get their own helper routine,
+# _emit_colorspec.  
 # 
-# Emission table
-#
-# $_OptionEmitters describes how to emit stored parameters.  Each
-# key is a code for a particular type of output; the value is a subroutine
-# that returns the outputted parameter as a string.
-#
-# Different codes emit whole lines (e.g. for setting plot options) or
-# space-delimited words (e.g. for setting curve options).  Curve
-# option emitters have codes that start with 'c'.
-#
-# Although most of the emitters take just (keyword, value, options-hash), 
-# they may take a fourth parameter containing the complete object.
-# That's useful for things like "crange", which needs to know the global
-# options state to know how to emit itself.
-sub _parse_colorspec {
+sub _emit_colorspec {
     my $v = shift;
     
     my @words;
@@ -5896,6 +5750,23 @@ EOD
     }
     die "Can't get here!  (colorspec parser)";
 }
+
+##############################
+# 
+# Emission table
+#
+# $_OptionEmitters describes how to emit stored parameters.  Each
+# key is a code for a particular type of output; the value is a subroutine
+# that returns the outputted parameter as a string.
+#
+# Different codes emit whole lines (e.g. for setting plot options) or
+# space-delimited words (e.g. for setting curve options).  Curve
+# option emitters have codes that start with 'c'.
+#
+# Although most of the emitters take just (keyword, value, options-hash), 
+# they may take a fourth parameter containing the complete object.
+# That's useful for things like "crange", which needs to know the global
+# options state to know how to emit itself.
 
 our $_OptionEmitters = {
     #### Default output -- a collection of terms with spaces between them as a plot option
@@ -6007,7 +5878,7 @@ our $_OptionEmitters = {
     ### A color specification as a curve option
     'ccolor' => sub { my($k,$v,$h) = @_;  
 		      return "" unless($v); 
-		      return " $k "._parse_colorspec($v);
+		      return " $k "._emit_colorspec($v);
     },
     
     
@@ -6168,7 +6039,7 @@ our $_OptionEmitters = {
 		      push(@l,'rangelimited') if(defined($h{rangelimited})); delete $h{rangelimited};
 		      
 		      if(defined $h{textcolor}) {
-			  push(@l,"textcolor", _parse_colorspec($h{textcolor}));
+			  push(@l,"textcolor", _emit_colorspec($h{textcolor}));
 		      }
 		      delete $h{textcolor};
 		  } else {
@@ -6259,6 +6130,7 @@ our $_OptionEmitters = {
 		 }
                 },
 
+    #### Terminal options hash
     "HNM" => sub { my($k,$v,$h) = @_;
 		   return "" unless((defined $v) and !($h->{multiplot}));
 		   if(ref $v eq 'ARRAY') {
@@ -6344,6 +6216,7 @@ our $_OptionEmitters = {
 		  }
 		  return join("\n",@s,"");
                  },
+
     #### A collection of numbered specifiers, the first word of which is quoted (for labels).
     "NL" => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined $v);
@@ -6386,7 +6259,6 @@ our $_OptionEmitters = {
     #### decide which parse fixing-up style is needed to send
     #### something reasonable to gnuplot in the correct case.  Gnuplot
     #### is expected to throw an error if something is broken.
-
 
     "range" => sub { my($k,$v,$h) = @_;    
 		     return "" unless(defined $v);
@@ -6996,12 +6868,6 @@ sub _load_alien_gnuplot {
 ##############################
 ## _startGnuplot - fire off a gnuplot process, and pull in some information from it about what it can do.
 ##
-## Although Alien::Gnuplot already parsed a bunch of terminal types, we do it again 
-## mostly for legacy reasons (TODO: clean up).  The parsing here compares the 
-## reported terminals to our own list of terminals we know about.  It could/should be done
-## with the @Alien::Gnuplot::terms list. Similarly, the colors parsing should probably
-## be moved out to Alien::Gnuplot.
-##
 sub _startGnuplot
 {
     ## Object code handles gnuplot in-place.
@@ -7027,7 +6893,7 @@ sub _startGnuplot
     # (I'm looking at you, Microsoft Windows...)
     # Instead, we default the "persist" plot option to be 0, if unspecified.
     my @gnuplot_options = $gnuplotFeatures{persist} ? qw(--persist) : ();
-    
+
     my $in  = gensym();
     my $err = gensym();
 
@@ -7054,11 +6920,17 @@ sub _startGnuplot
 
     if(!$this->{dumping}) {
 	print $in "show version\n\nprint \"FfFinished\"\n\n";
+	my $byte;
+	my $zcount = 0;
 	do {
 	    if($errSelector->can_read(1) or $MS_io_braindamage) {
-		my $byte;
 		sysread $err, $byte, 1;
 		$s .= $byte;
+		if(length($byte)==0) {
+		    $zcount++;
+		} else {
+		    $zcount = 0;
+		}
 	    } else {
 		print STDERR <<"EOM";
 WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read 
@@ -7072,7 +6944,7 @@ EOM
 ;
 		return $this;
 	    }
-	} until($s =~ m/^FfFinished$/m);
+	} until($s =~ m/^FfFinished$/m || $zcount > 100);
 
 ##############################
 # Parse version number.  If the version or pl changed, try reloading Alien::Gnuplot
@@ -7083,11 +6955,27 @@ EOM
 	    $this->{gp_version} = $1;
 	    $this->{gp_pl} = $3;
 	} else {
+	    
+	    # Something went wrong with i/o.  See if the process still exists.
+	    unless($MS_io_braindamage) {
+		use POSIX ":sys_wait_h";
+		my $wp = waitpid($pid, WNOHANG);
+		if($wp == $pid) {
+		    if((($?+0) & 255)==11) {
+			die "ERROR: the gnuplot subprocess died with a segmentation fault!\n  (Could happen before exec'ing '$Alien::Gnuplot::executable'...)\n";
+		    } elsif((($?+0) & 255)==7) {
+			die "ERROR: the gnuplot subprocess died with a bus error!\n   (Could happen before exec'ing '$Alien::Gnuplot::executable'...)\n";
+		    }
+		    die "ERROR: The gnuplot subprocess died!  Its exit code was $?.\n   I hope that helps.\n";
+		} elsif($wp < 0) {
+		    die "ERROR: The gnuplot process mysteriously vanished and was also reaped.\nBizarre.\n";
+		}
+	    }
+
 	    print STDERR <<"EOM"
-WARNING: gnuplot seems to be emitting prompts correctly but I couldn\'t parse a
-  version number from its output.  I\'m returning the object anyway - but don\'t 
-  be surprised if it doesn\'t work.  I\'m marking it with an internal "obsolete" 
-  flag, which may help.
+WARNING: I couldn\'t parse a version number from gnuplot\'s output.  I\'m 
+   returning the object anyway - but don\'t be surprised if it  doesn\'t work.  
+   I\'m marking it with an internal \"obsolete\" flag, which may help.
 EOM
 ;
 	    $this->{early_gnuplot} = 1;
@@ -7274,7 +7162,7 @@ sub _printGnuplotPipe
   my $pipein = $this->{"in-$suffix"};
 
   unless($this->{dumping}) {
-      # Feed the pipe robustly.  Some platforms can only ship 64kB at a time, so keep sending chunks.
+      # Feed the pipe robustly.  Some platforms can only ship 640kB at a time, so keep sending chunks.
       my $int_flag = 0;
       my $of = 0;
       my $len;
@@ -7787,6 +7675,8 @@ sub _with_fits_prefrobnicator {
 
 }
 
+##########
+# Helper routine mocks up the // operator (so we can support earlier perls that don't have it).
 sub _def {
     my $val = shift;
     my $or = shift;
