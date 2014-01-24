@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 160;
+use Test::More tests => 162;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -167,6 +167,29 @@ do {
 };
 
 unlink($testoutput) or warn "\$!: $!";
+
+##############################
+# Test manual reset in multiplots
+#
+# Normally we issue a "reset" before sending options for each plot, to ensure that
+# gnuplot is in a known state -- but in multiplots we can't do that or we'd break the
+# multiplot.  We attempt to eradicate leftover state in gnuplot, so we have to test 
+# that.  The main thing is that labels should be cleared.
+{
+    $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+    
+    $w->multiplot(layout=>[1,2]);
+    $w->line(xvals(5)**2,{xlabel=>"FOO BAR BAZ"});
+    $w->line(xvals(5)**2); # no xlabel -- should not print one 
+    $w->end_multi;
+    undef $w;
+    open FOO,"<$testoutput";
+    @lines = grep m/FOO BAR BAZ/,(<FOO>);
+    ok(@lines==1, "xlabel gets reset on multiplots");
+}
+    
+    
+
 
 ##############################
 # Test ascii data transfer (binary is tested by default on platforms where it works)
@@ -441,6 +464,9 @@ ok( $nums->nelem==11 && all( $nums == pdl(0,5,10,15,20,25,30,35,40,45,50) ), "au
 eval { $w->plot(xvals(50)->sqrt,{xtics=>0}) };
 ok(!$@, "xvals plot (no xtics) succeeded");
 print "($@)\n" if($@);
+
+ok($w->{last_plotcmd} =~ m/unset xtics/o, "xtics=>0 generated an 'unset xtics' command");
+
 
 $line_nums = (get_axis_testoutput($testoutput,1));
 ok($line_nums =~ m/\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-\-/, "No labels with xtics=>0");

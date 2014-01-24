@@ -2954,7 +2954,14 @@ sub plot
     if($this->{options}->{multiplot}) {
 	# In multiplot we can't issue a "reset", because that would end the multiplot.
 	# This should take care of the major view stuff, but state might leak in here!
-	$plotOptionsString .= "set size noratio\nset view noequal\nset view 60,30,1.0,1.0\n";
+	$plotOptionsString .= <<'POS';
+set size noratio
+set view noequal
+set view 60,30,1.0,1.0
+unset xlabel
+unset ylabel
+unset cblabel
+POS
     } else {
 	# In single-plot mode, just issue a reset.
 	$plotOptionsString .= "reset\n";
@@ -5573,8 +5580,8 @@ $_pOHInputs = {
     ## <foo>tics option list
     ## (For valid hash keys, see footicsAbbrevs definition above)
     'lt' => sub { my($old, $new, $h, $fieldname) = @_;
-		  return undef unless(defined $new);
-
+		  return undef unless(defined($new));
+		  return 0 unless($new);
 		  if (!ref($new) or ref($new) eq 'ARRAY') {
 		      my @list;
 
@@ -7345,7 +7352,7 @@ sub _checkpoint {
 		)
 	    {
 		my $byte;
-		sysread $pipeerr, $byte, 1;
+		sysread $pipeerr, $byte, ($MS_io_braindamage ? 1 : 100);
 		$fromerr .= $byte;
 		if($byte eq \004 or $byte eq \000 or !length($byte)) {
 		    $subproc_gone = 1;
