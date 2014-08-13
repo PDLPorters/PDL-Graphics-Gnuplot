@@ -1,5 +1,11 @@
 
-2.002 (in progress) Codename: Refinements
+2.003 Unknown Release Date (in progress) Codename: Bug fixes
+
+ - Added support for 'qt' terminal (thanks to Luis Mochan!)
+
+ - wxt is marked as an interactive terminal ("int=>1").
+
+2.002 Codename: Refinements
 
  - removed (x|y|x2|y2|z|t)range curve options -- only plot options are supported for range spec.
    (This removes some weird corner cases in argument parsing, and doesn't affect normal plotting).
