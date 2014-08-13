@@ -1951,7 +1951,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.002';   
+our $VERSION = '2.003';   
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -6597,6 +6597,12 @@ our $termTabSource = {
 			 qw/solid dashed dashlength linewidth rounded butt clip size fontsize output/]},
     'pstricks'=>"Output for pstricks.sty LaTeX macros   [NS: obsolete]",
     'qms'     =>"QMS/QUIC laser printer native format   [NS: ancient]",
+    'qt'      =>{unit=>'px',desc=>'QT X windows display',mouse=>1,ok=>1,disp=>2,
+		 opt=>['output_',
+		       ['title','s','cq','Window title (in title bar)'],
+		       qw/enhanced font linewidth solid dashed persist raise/,
+		       ['ctrlq', 'b', 'cf', 'enable (or disable) control-Q to quit window'],
+		       'size']},
     'regis'   =>"REGIS graphics language output         [NS: obsolete]",
     'rgip'    =>"RGIP metafiles                         [NS: obsolete]",
     'sun'     =>"SUNView window system window           [NS: ancient]",
