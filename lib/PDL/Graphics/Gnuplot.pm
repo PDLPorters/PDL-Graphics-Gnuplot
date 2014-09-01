@@ -3218,7 +3218,9 @@ POS
 		    $last_plotcmd .= $s;
 		    $this->{last_plotcmd} .= $s;
 		}
-		my $outbuf = join("\n", map { join(" ", $_->list) } $p->dog) . "\n";
+		
+		# Create a set of ASCII lines.  If any of the elements of a given row are NaN or BAD, blank that line.
+		my $outbuf = join("\n", map { ($_->isfinite->all) ? join(" ", $_->list) : "" } $p->dog) . "\n";
 
 		&$emitter($outbuf);
 

@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 162;
+use Test::More tests => 166;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -924,6 +924,40 @@ eval { $w->plot(with=>'yerrorbars', (xvals(50)-25)**2, pdl(0.5),{binary=>0})  };
 ok(!$@, "yerrorbars plot succeeded in ASCII mode");
 
 
+##############################
+# Test NaN plotting in binary and ASCII
+$w->restart;
+$a = pdl(1,4,-1,16,25)->sqrt; # 1,2,NaN,4,5
+$b = pdl(1,4,9,16,25)->sqrt;  # 1,2,3,4,5
+
+$w->plot(with=>'lines',$a,{binary=>1});
+$w->close;
+
+open FOO, "<$testoutput";
+@lines = <FOO>;
+ok( (  (length($lines[12]) != 0)  and  (substr($lines[12],20,40) =~ m/^\s+$/) ), "NaN makes a blank in a plot");
+
+$w->restart;
+$w->plot(with=>'lines',$b,{binary=>1});
+$w->close;
+open FOO, "<$testoutput";
+@lines = <FOO>;
+ok( (  (length($lines[12]) != 0)  and  !(substr($lines[12],20,40) =~ m/^\s+$/) ), "No NaN makes a nonblank in a plot");
+
+$w->restart;
+$w->plot(with=>'lines',$b,{binary=>0});
+$w->close;
+open FOO, "<$testoutput";
+@lines = <FOO>;
+ok( (  (length($lines[12]) != 0)  and  !(substr($lines[12],20,40) =~ m/^\s+$/) ), "No NaN makes a nonblank in a plot even with ASCII");
+
+$w->restart;
+$w->plot(with=>'lines',$a,{binary=>0});
+$w->close;
+open FOO, "<$testoutput";
+@lines = <FOO>;
+ok( (  (length($lines[12]) != 0)  and  (substr($lines[12],20,40) =~ m/^\s+$/) ), "NaN makes a blank in a plot even with ASCII");
+
 # Test plotting of PDL subclasses
 @MyPackage::ISA = qw/PDL/;
 $a = { PDL => xvals(5)**2 };
@@ -938,5 +972,3 @@ ok(!$@, "default terminal is selected OK");
 
 undef $w;
 unlink($testoutput) or warn "\$!: $!";
-
-

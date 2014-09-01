@@ -5,6 +5,8 @@
 
  - wxt is marked as an interactive terminal ("int=>1").
 
+ - ASCII handles NaN/binary correctly (works around gnuplot's inability to parse "NaN")
+
 2.002 Codename: Refinements
 
  - removed (x|y|x2|y2|z|t)range curve options -- only plot options are supported for range spec.
