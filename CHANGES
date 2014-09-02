@@ -7,6 +7,8 @@
 
  - ASCII handles NaN/binary correctly (works around gnuplot's inability to parse "NaN")
 
+ - Curve options are not cumulative (except for "with") within a plot.
+
 2.002 Codename: Refinements
 
  - removed (x|y|x2|y2|z|t)range curve options -- only plot options are supported for range spec.

@@ -409,11 +409,9 @@ C<image>, etc.).
 
 The curve options are parameters that affect only one curve in particular. Each
 call to C<plot()> can contain many curves, and options for a particular curve
-I<precede> the data for that curve in the argument list. Furthermore, I<curve
-options are all cumulative>. So if you set a particular style for a curve, this
-style will persist for all the following curves, until this style is turned
-off. The only exception to this is the C<legend> option, since it's very rarely
-a good idea to have multiple curves with the same label. An example:
+I<precede> the data for that curve in the argument list. The actual type of curve
+(the "with" option) is persistent, but all other curve options and modifiers 
+are not.  An example:
 
  gplot( with => 'points',  $x, $a,
         {axes=> x1y2},     $x, $b,
@@ -421,14 +419,14 @@ a good idea to have multiple curves with the same label. An example:
 
 This plots 3 curves: $a vs. $x plotted with points on the main y-axis (this is
 the default), $b vs. $x plotted with points on the secondary y axis, and $c
-vs. $x plotted with lines also on the secondary y axis. Note that the curve
+vs. $x plotted with lines on the main y-axis (the default). Note that the curve
 options can be supplied as either an inline hash or a hash ref.
 
 All the curve options are described below in L</"Curve options">.
 
-If you want to plot multiple curves of the same type without changing any options
-between them, you must include an empty hash ref between the tuples for subsequent 
-lines, as in:
+If you want to plot multiple curves of the same type without setting
+any curve options explicitly, you must include an empty hash ref
+between the tuples for subsequent lines, as in:
 
  gplot( $x, $a, {}, $x, $b, {}, $x, $c );
 
@@ -3343,8 +3341,10 @@ POS
 	my $ND = (('2D','3D')[!!$is3d]);  # mainly for error messages
 	my $spec_legends = 0;
 	
-	# options are cumulative except the legend (don't want multiple curves named
-	# the same). This is a hashref that contains the accumulator.
+	# options were once cumulative.  The 'with' specifier is still kept, but most
+	# of that functionality is not present as of 2.003.
+	# We keep the lastOptions accumulator around just in case it comes in handy for
+	# a little more context.
 	my $lastOptions = {};
 	
 	my @chunks;
@@ -3363,15 +3363,14 @@ POS
 	    } $argIndex..$#args;
 
 	    last if !defined $nextDataIdx; # no more data. done.
-	    
-	    # I do not reuse the curve legend, since this would result in multiple
-	    # curves with the same name.  
-	    delete $lastOptions->{"legend"};
+
+	    my $lastWith = {};
+	    $lastWith->{with} = $lastOptions->{with} if($lastOptions->{with});
 
 	    my %chunk;
 	    eval {
 		$chunk{options} = dclone( 
-		    _parseOptHash( $lastOptions, $cOpt, @args[$argIndex..$nextDataIdx-1] )
+		    _parseOptHash( $lastWith, $cOpt, @args[$argIndex..$nextDataIdx-1] )
 		    );
 	    };
 	    if($@){

@@ -346,11 +346,9 @@ C<image>, etc.).
 
 The curve options are parameters that affect only one curve in particular. Each
 call to C<plot()> can contain many curves, and options for a particular curve
-I<precede> the data for that curve in the argument list. Furthermore, I<curve
-options are all cumulative>. So if you set a particular style for a curve, this
-style will persist for all the following curves, until this style is turned
-off. The only exception to this is the C<legend> option, since it's very rarely
-a good idea to have multiple curves with the same label. An example:
+I<precede> the data for that curve in the argument list. The actual type of curve
+(the "with" option) is persistent, but all other curve options and modifiers 
+are not.  An example:
 
  gplot( with => 'points',  $x, $a,
         {axes=> x1y2},     $x, $b,
@@ -358,14 +356,14 @@ a good idea to have multiple curves with the same label. An example:
 
 This plots 3 curves: $a vs. $x plotted with points on the main y-axis (this is
 the default), $b vs. $x plotted with points on the secondary y axis, and $c
-vs. $x plotted with lines also on the secondary y axis. Note that the curve
+vs. $x plotted with lines on the main y-axis (the default). Note that the curve
 options can be supplied as either an inline hash or a hash ref.
 
 All the curve options are described below in L</"Curve options">.
 
-If you want to plot multiple curves of the same type without changing any options
-between them, you must include an empty hash ref between the tuples for subsequent 
-lines, as in:
+If you want to plot multiple curves of the same type without setting
+any curve options explicitly, you must include an empty hash ref
+between the tuples for subsequent lines, as in:
 
  gplot( $x, $a, {}, $x, $b, {}, $x, $c );
 
