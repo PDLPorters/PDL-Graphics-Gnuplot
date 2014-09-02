@@ -7018,8 +7018,8 @@ EOM
 	    print STDERR <<"EOM";
 
 ***************************************************************************
-WARNING: Your gnuplot version ($gp_version) is now deprecated and will not 
-be supported for long.  The earliest recommended version is $gnuplot_dep_v.
+WARNING: Your gnuplot version ($gp_version) is deprecated and may cause 
+plotting errors or random behavior.  It is suggested you upgrade to v$gnuplot_dep_v. 
 To silence this warning, set the GNUPLOT_DEPRECATED environment variable.
 ***************************************************************************
 

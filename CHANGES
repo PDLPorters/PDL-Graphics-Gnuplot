@@ -9,6 +9,8 @@
 
  - Curve options are not cumulative (except for "with") within a plot.
 
+ - Deprecation of gnuplot 4.4-4.5 is now more strident
+
 2.002 Codename: Refinements
 
  - removed (x|y|x2|y2|z|t)range curve options -- only plot options are supported for range spec.
