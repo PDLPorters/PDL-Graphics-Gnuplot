@@ -5327,6 +5327,10 @@ $palettesTab = {
     heat1    => [ 'RGB', 'color rgbformulae 21,22,23',   "heat-map: black-red-yellow-white" ],
     heat2    => [ 'RGB', 'color rgbformulae 34, 35, 36', "heat-map (AFM): black-red-yellow-white" ],
     wheel    => [ 'HSV', 'color rgbformulae 3,2,2',      "hue map: color wheel" ],
+    rgb      => [ 'RGB', 'color rgbformulae 10,13,9',    "red-green-blue fade" ],
+    dop      => [ 'RGB', "defined (0 '#ff0000', 0.5 '#ffffff', 1.0 '#0000ff')", "red-white-blue fade" ],
+    dop2     => [ 'RGB', "defined (0 '#ff0000', 0.5 '#000000', 1.0 '#0000ff')", "red-black-blue fade" ],
+    dop3     => [ 'RGB', "defined (0 '#ff9090', 0.4 '#503030', 0.5 '#000000', 0.6 '#303050', 1.0 '#9090ff')", "red-black-blue fade (gentler)" ],
 };
 
 
