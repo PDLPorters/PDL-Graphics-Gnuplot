@@ -58,7 +58,7 @@ FOO
 
 WriteMakefile(
     NAME                => 'PDL::Graphics::Gnuplot',
-    AUTHOR              => 'Craig DeForest <craig@deforest.org>, Dima Kogan <dkogan@secretsauce.net>',
+    AUTHOR              => 'Craig DeForest <craig@deforest.org>, Dima Kogan <dima@secretsauce.net>',
     VERSION             => parseversion(),
     ABSTRACT_FROM       => 'lib/PDL/Graphics/Gnuplot.pm',
     ($ExtUtils::MakeMaker::VERSION >= 6.3002
