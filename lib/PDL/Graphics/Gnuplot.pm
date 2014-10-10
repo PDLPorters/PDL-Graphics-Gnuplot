@@ -6967,7 +6967,7 @@ EOM
 ##############################
 # Parse version number.  If the version or pl changed, try reloading Alien::Gnuplot
 # to get them in sync.
-	if( $s =~ m/Version (\d+\.\d+) (patchlevel (\d+))?/i ) {
+	if( $s =~ m/Version (\d+\.\d+) (patchlevel (\w+))?/i ) {
 	    $gp_version = $1;
 	    $gp_pl = $3;
 	    $this->{gp_version} = $1;
@@ -7000,7 +7000,9 @@ EOM
 	    return $this;
 	}
 
-	if( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
+	if($gp_pl =~ m/[a-z]+/) {
+	    print STDERR "WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution...\n";
+	}elsif( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
 	    print STDERR <<"EOM";
 WARNING: we found gnuplot version '$gp_version' pl '$gp_pl' but Alien::Gnuplot reported 
 a different version ('$Alien::Gnuplot::version' pl '$Alien::Gnuplot::pl').  Reloading Alien::Gnuplot...

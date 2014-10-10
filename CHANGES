@@ -1,5 +1,9 @@
 
-2.003 Unknown Release Date (in progress) Codename: Bug fixes
+2.004 Codename: Dima released 19-Sep-2014
+
+ - fixed a bug that caused version sensing to fail for alpha-builds of gnuplot.
+
+2.003 Codename: Bug fixes released 17-Sep-2014
 
  - Added support for 'qt' terminal (thanks to Luis Mochan!)
 
