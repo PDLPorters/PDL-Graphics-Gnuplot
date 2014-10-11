@@ -1954,6 +1954,8 @@ $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
+my $did_warn_non_numeric_patchlevel; # whether we already warned about this
+
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
 our @EXPORT = qw(gpwin gplot greplot greset grestart);
@@ -7001,7 +7003,10 @@ EOM
 	}
 
 	if($gp_pl =~ m/[a-z]+/) {
-	    print STDERR "WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution...\n";
+	    unless( $did_warn_non_numeric_patchlevel ) {
+                print STDERR "WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution...\n";
+                $did_warn_non_numeric_patchlevel = 1;
+            }
 	}elsif( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
 	    print STDERR <<"EOM";
 WARNING: we found gnuplot version '$gp_version' pl '$gp_pl' but Alien::Gnuplot reported 
