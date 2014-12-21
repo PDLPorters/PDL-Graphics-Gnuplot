@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 166;
+use Test::More tests => 171;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -258,7 +258,14 @@ $w->restart;
 unlink($testoutput) or warn "\$!: $!";
 ok(@l3==24,"test replot again made 24 lines");
 
-ok($l3[12]=~ m/\#\s+\*/, "test plot has two curves and curve 2 is above curve 1");
+if($w->{gp_version} >= 5.0) {
+    # gnuplot 5.0 uses plusses and hyphens to draw curves in ASCII
+    # match whitespace / curve / whitespace / curve / whitespace  on line 12
+    ok($l3[12] =~ m/\s+[\-\+]+\s+[\-\+]+\s+/, "test plot has two curves");
+} else {
+    # gnuplot < 5.0 uses #'s and *'s for the first two ASCII curves
+    ok($l3[12]=~ m/\#\s+\*/, "test plot has two curves and curve 2 is above curve 1");
+}
 
 # test that options updating modifies the replot
 eval { $w->options(yrange=>[200,400]);  $w->replot(); };
@@ -494,8 +501,30 @@ ok( $nums->nelem==11 && all( $nums == pdl(0,5,10,15,20,25,30,35,40,45,50) ), "au
 undef $w;
 unlink($testoutput) or warn "\$!: $!";
 
+##############################
+# Test some random plot options parsing cases
 
+eval { $w=gpwin('dumb',output=>$testoutput) };
+ok(!$@, "constructor still works");
 
+eval { $w->plot(xvals(500)-10, xvals(500)+40, { autoscale=>{} }) };
+ok(!$@, "autoscale accepts an empty hash ref");
+
+$ticks = (get_axis_testoutput($testoutput,1));
+$ticks =~ s/^\s*//;
+$ticks = pdl(split /\s+/,$ticks);
+ok($ticks->nelem==12 && all($ticks == pdl(-50,0,50,100,150,200,250,300,350,400,450,500)),"autoscale=>{} gives correct scaling");
+
+eval { $w->plot(xvals(500)-10,xvals(500)+40,{ autoscale=>{x=>fix}}); };
+ok(!$@, "autoscale accepts a non-empty hash ref");
+
+$ticks = (get_axis_testoutput($testoutput,1));
+$ticks=~ s/^\s*//;
+$ticks = pdl(split /\s+/,$ticks);
+ok($ticks->nelem==10 && all($ticks == pdl(0,50,100,150,200,250,300,350,400,450)),"autoscale=>{x=>fix} fixes the X axis scaling");
+
+undef $w;
+unlink($testoutput) or warn "\$!: $!";
 
 ##############################
 # Interactive tests
@@ -816,7 +845,14 @@ SKIP:{
     close FOO;
     
     ok( $lines2 ne $lines, "the two 3-D plots differ");
-    ok( ($lines2 =~ m/\#/) && ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
+
+    if( $w->{gp_version} < 5.0 ) {
+	ok( ($lines2 =~ m/\#/) && ($lines !~ m/\#/) , "the threaded plot has traces the grid lacks");
+    } else {
+	# 5.0 no longer uses hashes and asterisks to distinguish the lines, so just check that the plot
+	# changed.
+	skip "Skipping hash/asterisk test since gnuplot is 5.0 or newer",1;
+    }
 }
 
 ##############################
