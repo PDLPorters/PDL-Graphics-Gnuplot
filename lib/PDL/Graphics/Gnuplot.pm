@@ -1954,6 +1954,8 @@ $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
 
+my $did_warn_non_numeric_patchlevel; # whether we already warned about this
+
 use base 'Exporter';
 our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
 our @EXPORT = qw(gpwin gplot greplot greset grestart);
