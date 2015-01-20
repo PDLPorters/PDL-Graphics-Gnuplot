@@ -1007,4 +1007,5 @@ print "\$\@ is '$@'\n";
 ok(!$@, "default terminal is selected OK");
 
 undef $w;
+
 unlink($testoutput) or warn "\$!: $!";

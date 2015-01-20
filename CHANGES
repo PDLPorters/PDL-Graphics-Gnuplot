@@ -1,7 +1,11 @@
 
-2.004 Codename: Dima released 19-Sep-2014
+2.004 Codename: Dima released 20-Dec-2014
 
  - fixed a bug that caused version sensing to fail for alpha-builds of gnuplot.
+
+ - Minor updates to plot option parsing (switching more options to accept hashes).
+
+ - Several minor bug fixes.
 
 2.003 Codename: Bug fixes released 17-Sep-2014
 

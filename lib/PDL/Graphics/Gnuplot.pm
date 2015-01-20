@@ -829,12 +829,15 @@ if you are plotting a parametric curve.
 By default all axes are autoscaled unless you specify a range on that
 axis, and partially (min or max) autoscaled if you specify a partial
 range on that axis.  C<autoscale> allows more explicit control of how
-autoscaling is performed, on an axis-by-axis basis.  It accepts a list
+autoscaling is performed, on an axis-by-axis basis.  It accepts a hash 
 ref, each element of which specifies how a single axis should be
-autoscaled.  Each element contains an axis name followed by one of
-"fix,"min","max","fixmin", or "fixmax", e.g.
+autoscaled.  Each keyword contains an axis name followed by one of 
+"fix", "min", "max", "fixmin", or "fixmax".  You can set all the axes at
+once by setting the keyword name to ' '.  Examples:
 
- autoscale=>['xmax','yfix']
+ autoscale=>{x=>'max',y=>'fix'};
+
+There is an older list ref syntax which is deprecated but still accepted.
 
 To not autoscale an axis at all, specify a range for it. The fix style of
 autoscaling forces the autoscaler to use the actual min/max of the data as
@@ -1949,7 +1952,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.003';   
+our $VERSION = '2.004';   
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -5753,7 +5756,6 @@ sub _emit_colorspec {
     if( $words[0] =~ s/\"?(\#[0-9a-fA-F]{6})\"?/\"$1\"/ ) {
 	$s .= " rgb " unless($s =~ m/rgb/);
 	$s .= " ".join(" ",@words);
-	print "returning '$s' from colorspec parser\n";
 	return $s;
     }
     elsif($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
@@ -7786,7 +7788,7 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =over 3 
 
-=item - Hash values should be accepted (and parsed properly) for all plot options.
+=item - Hash values should be accepted (and parsed properly) for all plot options for which they work.
 
 Currently many of the more complicated plot options accept array refs only.  Hash ref parsing is needed for regularity.
 

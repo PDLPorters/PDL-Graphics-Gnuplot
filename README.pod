@@ -766,12 +766,15 @@ if you are plotting a parametric curve.
 By default all axes are autoscaled unless you specify a range on that
 axis, and partially (min or max) autoscaled if you specify a partial
 range on that axis.  C<autoscale> allows more explicit control of how
-autoscaling is performed, on an axis-by-axis basis.  It accepts a list
+autoscaling is performed, on an axis-by-axis basis.  It accepts a hash 
 ref, each element of which specifies how a single axis should be
-autoscaled.  Each element contains an axis name followed by one of
-"fix,"min","max","fixmin", or "fixmax", e.g.
+autoscaled.  Each keyword contains an axis name followed by one of 
+"fix", "min", "max", "fixmin", or "fixmax".  You can set all the axes at
+once by setting the keyword name to ' '.  Examples:
 
- autoscale=>['xmax','yfix']
+ autoscale=>{x=>'max',y=>'fix'};
+
+There is an older list ref syntax which is deprecated but still accepted.
 
 To not autoscale an axis at all, specify a range for it. The fix style of
 autoscaling forces the autoscaler to use the actual min/max of the data as
@@ -2463,7 +2466,7 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =over 3 
 
-=item - Hash values should be accepted (and parsed properly) for all plot options.
+=item - Hash values should be accepted (and parsed properly) for all plot options for which they work.
 
 Currently many of the more complicated plot options accept array refs only.  Hash ref parsing is needed for regularity.
 
