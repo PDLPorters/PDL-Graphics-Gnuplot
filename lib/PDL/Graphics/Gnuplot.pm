@@ -7393,7 +7393,7 @@ sub _checkpoint {
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
 
 	my $terminal =$this->{options}->{terminal};
-	my $delay = (_def($this->{'wait'}, 0) + 0) || 5;
+	my $delay = (_def($this->{'wait'}, 0) + 0) || 10;
 
 	if($this->{"echobuffer-$suffix"}) {
 	    $fromerr = $this->{"echobuffer-$suffix"};
