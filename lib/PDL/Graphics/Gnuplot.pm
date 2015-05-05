@@ -613,7 +613,7 @@ use the constructor C<new> (also exported as C<gpwin>), which parses
 terminal options as an argument list. 
 
 The routine C<PDL::Graphics::Gnuplot::terminfo> prints a list of all
-availale terminals or, if you pass in a terminal name, options accepted
+available terminals or, if you pass in a terminal name, options accepted
 by that terminal.
 
 
