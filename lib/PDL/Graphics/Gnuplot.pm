@@ -7474,6 +7474,7 @@ EOM
 
 	# Find, report, and strip warnings. This is complicated by the fact
 	# that some warnings come with a line specifier and others don't.
+
 	WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m ) {
 	  if($2){
 	      # it's a warning with a line specifier. Break off two more lines before it.
@@ -7486,12 +7487,17 @@ EOM
 	      print STDERR "Gnuplot w$3\n" if($printwarnings);
 	  }
 
-      }
+	}
 
 	# Anything else is an error -- except on Microsoft Windows where we 
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
+	} else {
+	    # Hack to avoid spurious the pdfcairo errors in MacOS 10.5 - strip out obsolete-function errors.
+	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//o ) {
+		# do nothing
+	    } 
 	}
 
 	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
@@ -7510,7 +7516,6 @@ EOM
 	# strip whitespace
 	$fromerr =~ s/^\s*//s;
 	$fromerr =~ s/\s*$//s;
-	
 	return $fromerr;
     } else {
 	# dumping - never generate an error.
