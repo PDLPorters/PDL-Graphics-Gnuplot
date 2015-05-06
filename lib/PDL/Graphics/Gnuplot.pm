@@ -6828,6 +6828,7 @@ sub terminfo {
 	
 	$s .= "\n\n  FILE TERMINALS\n";
 	for my $k(sort keys %$termTab) {
+	    next unless($this->{valid_terms}->{$k});
 	    next if($termTab->{$k}->{int} || $termTab->{$k}->{mouse});
 	    $s .= sprintf("  %10.10s: %s %s\n",$k,"   ", $termTab->{$k}->{desc});
 	}
