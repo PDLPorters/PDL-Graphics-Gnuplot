@@ -6748,9 +6748,9 @@ for my $k(keys %$termTabSource) {
 
 =for usage
 
-    use PDL::Graphics::Gnuplot qw/terminfo/
-    terminfo()
-    terminfo 'aqua'
+    use PDL::Graphics::Gnuplot qw/terminfo/;
+    terminfo();        # print info about all known terminals
+    terminfo 'aqua';   # print info about the aqua terminal
 
     $w = gpwin();
     $w->terminfo();
