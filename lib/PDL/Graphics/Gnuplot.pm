@@ -165,10 +165,14 @@ to scaled labels.  Individual plots can be 2-D or 3-D, and different sets
 of plot styles are supported in each mode.  Plots can be sent to a variety
 of devices; see the description of plot options, below.
 
+You can specify what type of graphics output you want, but in most cases
+doing nothing will cause a plot to be rendered on your screen: with 
+X windows on UNIX or Linux systems, with an XQuartz windows on MacOS, 
+or with a native window on Microsoft Windows.
+
 You select a plot style with the "with" curve option, and feed in columns
 of data (usually ordinate followed by abscissa).  The collection of columns
 is called a "tuple".  These plots have two columns in their tuples:
-
 
  $x = xvals(51)-25; $y = $x**2;
  gplot(with=>'points', $x, $y);  # Draw points on a parabola
@@ -211,6 +215,14 @@ this will plot X vs. sqrt(X):
  $w->plot($x,$y);
  $y->inplace->sqrt;
  $w->replot();
+
+=head3 Plotting to an image file or device
+
+PDL:Graphics::Gnuplot can plot to most of the devices supported by
+gnuplot itself.  You can specify the file type with the "output"
+method or the object constructor "gplot".  Either one will allow you
+to name a type of file to produce, and a collection of options speciic to
+that type of output file.  
 
 =head3 Image plotting
 
@@ -2250,6 +2262,10 @@ FOO
 	
 	# parse "terminal" options
 	if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
+
+	    # Stuff the default output filename into the options hash (will be overwritten if
+	    # the user specified an "output" option)
+	    $termOptions->{'output'} = $termTab->{$terminal}->{default_output};
 	    
 	    # Stuff the default size unit into the options hash, so that the parser has access to it.
 	    $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
@@ -2268,7 +2284,9 @@ FOO
 	       !defined($termOptions->{dashed}) ) {
 		$termOptions->{dashed} = 1;
 	    }
-	    
+
+	    # Although 'output' is strictly speaking a terminal option, gnuplot treats it as a plot option -- so
+	    # we copy it into the main plot options hash to be emitted as part of the plot operation.
 	    $this->{options}->{output} = $termOptions->{output};
 	    $this->{wait} = $termOptions->{wait};  
 	    delete $termOptions->{output};
@@ -4919,7 +4937,27 @@ our $pOptionsTable =
 			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set output as a plot option; use the constructor\n");}
 			  return $v;
 		    },
-		    'qnm',undef,3,
+		    sub { my($k,$v,$h) = @_;
+			  return "" unless((defined($v) and !($h->{multiplot})));
+			  return "unset $k\n" unless(length($v));
+			  my $vv = $v;
+			  $vv =~ s/(^|[^\%])\%s/${1}Plot-/;
+			  if($vv =~ m/(^|[^\%])\%d/) {
+			      my $fnum = 0;
+			      my $vvn;
+			      do {
+				  $fnum++;
+				  $vvn = $vv;
+				  $vvn =~ s/(^|[^\%])\%d/${1}${fnum}/;
+			      } while( -e $vvn);
+			      $vv = $vvn;
+			  }
+			  if($vv ne $v) {
+			      print STDERR "Plotting to '$vv'\n";
+			  }
+			  return "set $k \"$vv\"\n";
+		    },
+		    undef,3,
 		    'set output file or label for plot (see "terminal", "device")'    ],
     'parametric'=> ['b','b',undef,undef,
 		    'sets parametric mode for plotting parametric curves (boolean)'    ],
@@ -4943,7 +4981,7 @@ our $pOptionsTable =
 		    'Turn on/off surface drawing in 3-d plots (boolean)'    ],
     'table'     => [sub { die "table not supported - use Perl's 'print' instead\n" }    ],
     'terminal'  => [sub { my($k,$v,$h)=@_;
-			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set terminal as a plot option; use the constructor\n")}
+			  unless(defined($h) and $h->{globalPlot}) {barf("Don't set terminal as a plot option; use the constructor or output().\n")}
 			  return $v;
 		    },
 		    'nomulti',
@@ -6390,6 +6428,7 @@ our $_OptionEmitters = {
 #   opt - specification hash for the options for this terminal
 #   unit - native unit in which size is specified for this terminal
 #   desc - a one-line description of the terminal
+#   default_output - an optional format string with the name of the default output plot for that device.
 #
 # Since there are so many terminal types, with so many slightly 
 # different syntaxes, we store them in shorthand here.  The
@@ -6397,6 +6436,11 @@ our $_OptionEmitters = {
 # together with partial hash parser table entries.  The
 # actual terminal descriptions then refer to those keywords
 # wherever possible rather than repeating the whole definition.
+#
+# The default_output is there because some gnuplot devices have sensible default outputs, while others
+# do not.  For example, "wxt"'s default is to put stuff in a window, but "png"'s default is to
+# send the png file to stdout, which makes no sense.  In cases where there is no sensible default built in to gnuplot,
+# we provide one.
 #
 
 my $emit_enh = sub { my ($k,$v,$h) = @_; return " ".($v?"":"no")."enhanced "; };
@@ -6476,6 +6520,7 @@ our $termTab_types = {
 #   - unit (default size unit for the terminal)
 #   - desc (description string)
 #   - opt  (array ref containing option descriptors in order).
+#   - default_output (optional -- if present, contains a printf format string containing the default output name)
 # Each option descriptor is one of:
 #       * a string indexing the descriptor in $termTab_types, above, or
 #       * an array ref containing:
@@ -6502,7 +6547,8 @@ our $termTabSource = {
 			   ['mousing',    'b','cff',  "Make a mouse-tracking box underneath the plot"],
 			   ['name',       's','cq',   "Generate a javascript subroutine named 'name'"],
 			   ['jsdir',      's','cq',   "URL of directory where javascripts are found"],
-			   'title']},
+			   'title'],
+		    default_output=>'%s%d.js'},
 
     'cgi'      => "SCO CGI drivers.                       [NS: ancient/evil]",
     'cgm'      => { unit=>'pt', desc=> "Computer Graphic Metafile format (ANSI X3.122-1986)",
@@ -6525,33 +6571,44 @@ our $termTabSource = {
 			                   ],
 			   'linewidth',
 			   ['font',   's','cq','Font ("<fontname>,<size>") - NOT system fonts - see manual for list'],
-			   'output']},
+			   'output'],
+                      default_output=>'%s%d.cgm'
+    },
     'corel'  => "Corel Draw                             [NS: ancient]",
     'debug'  => "Gnuplot internal debugging mode        [NS: not useful]",
     'dospc'  => "Generic PC VESA/VGA/XGA direct display [NS: obsolete]",
     'dumb'   => {
 	unit=>'char',desc=>"dumb terminal (ASCII output)",ok=>1,
 	opt=>[ ['feed','b','cf',"Issue (or not) a formfeed at the end of each plot"],
-			qw/ size enhanced output /]},
+			qw/ size enhanced output /],
+                default_output=>'%s%d.txt'
+        },
     'dxf'    => {unit=>'pt', desc=>"AutoCad 10.x interchange files",
 		 opt=>[ 'output' ]},
     'dxy800a'=> "Roland DXY800A Plotter                 [NS: obsolete]",
     'eepic'  => {unit=>'in',desc=>"LaTeX picture (alternative w/ epic.sty & eepic.sty)",
 		 opt=>[ qw/ color dashed rotate small tiny /, 
 			['fontsize','s','cv','Font size (points)'], # special entry 'coz eepic wants no "fontsize" keyword
-			'output']},
+			'output'],
+		 default_output=>'%s-epic-%d.tex'
+                },
     'emf'    => {unit=>'pt',desc=>"Microsoft Windows Enhanced Metafile Format",
 		 opt=>[ qw/ color monochrome solid dashed enhanced /,
 			['noproportional','b','cff',"(only with 'enhanced') - disable proportional font spacing"],
-			qw/ linewidth dashlength size output /]},
+			qw/ linewidth dashlength size output /],
+		 default_output=>'%s%d.emf'
+                },
     'epscairo'=>{unit=>'in',desc=>"Encapsulated Postscript output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b', sub{return $_[1]?" mono ":""},
 			                         "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed font linewidth rounded butt dashlength size output/ ]},
+			qw/color solid dashed font linewidth rounded butt dashlength size output/ ],
+		 default_output=>'%s%d.eps'
+                },
     'epslatex'=>{unit=>'in',desc=>"Encapsulated PostScript with LaTeX text segments",
 		 opt=>[ qw/standalone input oldstyle newstyle level1 leveldefault color monochrome/,
-			qw/solid dashed dashlength linewidth rounded butt clip size font output/]
+			qw/solid dashed dashlength linewidth rounded butt clip size font output/],
+		 default_output=>'%s%d-latex.eps'
     },
     'excl'   => "Talaris printer support                [NS: ancient]",
     'fig'    => {unit=>'in',desc=>"Fig graphics language output",
@@ -6573,18 +6630,24 @@ our $termTabSource = {
 			'linewidth',
 			['depth',      's','cs', 'set PostScript rendering depth'],
 			['version',    's','cs', '(not documented in gnuplot manual)'],
-			'output']},
+			'output'],
+		  default_output=>'%s%d.fig'
+                },
     'ggi'    => "X or SVGAlib output via GGIlib         [NS: obsolete]",
     'gif'    => {unit=>'px',desc=>"Graphics Interchange Format (venerable but supported)",ok=>1,
 		 opt=>[ qw/ transparent rounded butt linewidth dashlength font enhanced size crop /,
 			['animate','l','cl',"syntax: animate=>[delay=>\$d, loop=>\$n, (no)?optimize]"],
-			qw/ background output / ] },
+			qw/ background output / ],
+		 default_output=>'%s%d.gif'
+                },
     'excl'   => "Talaris printer support                [NS: ancient]",
     'gnugraph'=>"Gnu plotutils metalanguage output      [NS: obsolete]",
     'gpic'   => "UNIX groff(1) output                   [NS: prehistoric]",
     'gpr'    => "Apollo Graphics Primitive Resource     [NS: ancient]",
     'grass'  => {unit=>'px',desc=>"GRASS GIS file output",
-		 opt=>['output']},
+		 opt=>['output'],
+		 default_output=>'%s%d.grass'
+                },
     'hercules'=>"PC graphics card with autodetection    [NS: obsolete]",
     'hp2623a'=> "HP 2623A terminal                      [NS: ancient]",
     'hp2648' => "HP2647 and HP2648 terminals            [NS: ancient]",
@@ -6594,14 +6657,18 @@ our $termTabSource = {
     'hppj'   => "HP PaintJet and HP3630 printers        [NS: obsolete]",
     'imagen' => "Imagen laser printers                  [NS: obsolete]",
     'jpeg'   => {unit=>"px",desc=>"JPEG image file output",ok=>1,
-		 opt=>[ qw/ interlace linewidth dashlength rounded butt font enhanced size crop background output /]},
+		 opt=>[ qw/ interlace linewidth dashlength rounded butt font enhanced size crop background output /],
+		 default_output=>'%s%d.jpg'
+                },
     'kyo'    => "Kyocera laserprinter native format     [NS: obsolete]",
     'latex'  => {unit=>'in',desc=>"EPS output tailored for LaTeX (see also 'epslatex')",
 		 opt=>[ ['default', 'b','cff','accept whatever font is in the embedding document'],
 			['courier', 'b','cff','force font to Courier'],
 			['roman',   'b','cff','force font to Roman style (e.g. Times)'],
 			['fontsize','s','cv', 'set font size (in points)'],  # special entry 'coz latex wants no "fontsize" keyword.
-			qw/size rotate output/]},
+			qw/size rotate output/],
+		 default_output=>'%s%d.tex'
+                 },
     'linux'  =>  "Render to a Linux display dev (non-X)  [NS: obsolete]",
     'lua'    =>  "Lua script output                      [NS: obsolete]",
     'macintosh'=>"Direct rendered MacOS < 10 window      [NS: ancient]",
@@ -6613,24 +6680,33 @@ our $termTabSource = {
     'openstep'=> "Openstep (NeXTStep followon)           [NS: obsolete]",
     'pbm' => {unit=>"px",desc=>"Portable BitMap format output",
 	      opt=>[ ['fontsize','s','cv','font size (in pixels/points)'],
-		     qw/monochrome color size output/]},
+		     qw/monochrome color size output/],
+              default_output=>'%s%d.pbm'},
     'pdf'    => {unit=>'in',desc=>"Portable Document Format output",ok=>1,
-		 opt=>[ qw/monochrome color enhanced font linewidth rounded butt solid dashed dashlength size output/ ]},
+		 opt=>[ qw/monochrome color enhanced font linewidth rounded butt solid dashed dashlength size output/ ],
+		 default_output=>'%s%d.pdf'
+                },
     'pdfcairo'=>{unit=>'in',desc=>"PDF output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b', sub{return $_[1]?" mono ":""},
 			                         "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed font linewidth rounded butt dashlength size output/ ]},
+			qw/color solid dashed font linewidth rounded butt dashlength size output/ ],
+		 default_output=>'%s%d.c.pdf'
+                },
     'pm'     => "OS/2 presentation manager              [NS: ancient]",
     'png'    => {unit=>"px",desc=>"PNG image output",ok=>1,
 		 opt=>[ qw/transparent interlace/,
 			['truecolor','b','cf','Enable or disable true color (RGB) output'],
-			qw/rounded butt linewidth dashlength tiny small medium large giant font enhanced size crop background output/]},
+			qw/rounded butt linewidth dashlength tiny small medium large giant font enhanced size crop background output/],
+		 default_output=>'%s%d.png'
+                 },
     'pngcairo'=>{unit=>'px',desc=>"PNG image output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b',sub{return $_[1]?" mono ":""},
 			                          "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed transparent crop font linewidth rounded butt dashlength size output/ ]},
+			qw/color solid dashed transparent crop font linewidth rounded butt dashlength size output/ ],
+                 default_output=>'%s%d.c.png'
+                },
     'postscript'=>{unit=>'in',desc=>"Postscript file output",ok=>1,
 		   opt=>[qw/landscape portrait/,
 			 ['eps',        'b','cff','Select encapsulated output (neither landscape nor portrait)'],
@@ -6645,13 +6721,19 @@ our $termTabSource = {
 			 qw/level1 leveldefault color monochrome solid dashed dashlength linewidth rounded butt clip size/,
 			 ['blacktext',  'b','cff','force text to be B/W even in color plots (see "colortext")'],
 			 ['colortext',  'b','cff','force text to be color even in B/W plots (see "blacktext")'],
-			 'font','output']},
+			 'font','output'],
+		    default_output=>'%s%d.ps'
+                   },
     'pslatex' => {unit=>'in',desc=>"Postscript file tailored for inclusion in LaTeX documents",
 		  opt=>[ qw/rotate oldstyle newstyle auxfile level1 leveldefault color monochrome /,
-			 qw/solid dashed dashlength linewidth rounded butt clip size fontsize output/]},
+			 qw/solid dashed dashlength linewidth rounded butt clip size fontsize output/],
+                    default_output=>'%s%d-latex.ps'
+                  },
     'pstex'   => {unit=>'in',desc=>"Postscript file tailored for inclusion in raw TeX documents",
 		  opt=>[ qw/rotate oldstyle newstyle auxfile level1 leveldefault color monochrome /,
-			 qw/solid dashed dashlength linewidth rounded butt clip size fontsize output/]},
+			 qw/solid dashed dashlength linewidth rounded butt clip size fontsize output/],
+		  default_output=>'%s%d-tex.ps'
+                 },
     'pstricks'=>"Output for pstricks.sty LaTeX macros   [NS: obsolete]",
     'qms'     =>"QMS/QUIC laser printer native format   [NS: ancient]",
     'qt'      =>{unit=>'px',desc=>'QT X windows display',mouse=>1,ok=>1,disp=>2,
@@ -6659,19 +6741,23 @@ our $termTabSource = {
 		       ['title','s','cq','Window title (in title bar)'],
 		       qw/enhanced font linewidth solid dashed persist raise/,
 		       ['ctrlq', 'b', 'cf', 'enable (or disable) control-Q to quit window'],
-		       'size']},
+		       'size']},  # no default (goes to screen)
     'regis'   =>"REGIS graphics language output         [NS: obsolete]",
     'rgip'    =>"RGIP metafiles                         [NS: obsolete]",
     'sun'     =>"SUNView window system window           [NS: ancient]",
     'svg'     =>{unit=>'in',desc=>"Scalable Vector Graphics (SVG) output",ok=>1,
 		 opt=>[ qw/size enhanced font/,
 			['fontfile','s','cq','Font file to copy into the <defs> section of the SVG'],
-			qw/rounded butt solid dashed linewidth output/]},
+			qw/rounded butt solid dashed linewidth output/],
+                 default_output=>'%s%d.svg'
+                },
     'svga'    =>"Output direct to a PC SVGA screen      [NS: obsolete]",
     'tek40'   =>"Tektronix 40xx plotting terminals      [NS: ancient]",
     'tek410x' =>"Tektronix 410x plotting terminals      [NS: ancient]",
     'texdraw' =>{unit=>'in',desc=>"TexDraw environment for LaTeX",
-		 opt=>[ 'output' ]},
+		 opt=>[ 'output' ],
+		 default_output=>'%s%d-texdraw.tex'
+                },
     'tgif'    =>"TGIF X11-based drawing tool            [NS: obsolete]",
     'tikz'    =>"TikZ package via Lua                   [NS: obsolete]",
     'tkcanvas'=>"Tcl/Tk canvas widget design            [NS: weird]",
@@ -6739,7 +6825,9 @@ for my $k(keys %$termTabSource) {
 		       opt  => [ $terminalOpt, 
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
-			   ]};
+			   ],
+		       default_output=> $termTabSource->{$k} ->{default_output}
+                     };
 }
 
 =pod

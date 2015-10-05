@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 171;
+use Test::More tests => 175;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -1009,3 +1009,28 @@ ok(!$@, "default terminal is selected OK");
 undef $w;
 
 unlink($testoutput) or warn "\$!: $!";
+
+##############################
+# Test default output plotting
+
+ SKIP: {
+     if( -e 'Plot-1.txt' || -e 'Plot-2.txt') {
+	 print STDERR "\n***********\nSkipping default-plot-output tests:  files 'Plot-1.txt' and/or 'Plot-2.txt' exist.\n***********\n";
+	 skip "Plot-1.txt and/or Plot-2.txt exist, can't check default plotting", 4;
+     }
+	 
+     $w=gpwin(dumb);
+     eval { $w->line(xvals(20)**3); };
+     ok( !$@, "default-output plot succeeded" );
+     ok( -e "Plot-1.txt", "Plot got made" );
+     eval { $w->line(xvals(10)**4); };
+     ok (!$@, "default-output plot succeeded again");
+     ok( -e "Plot-2.txt", "Second plot got made" );
+     unlink "Plot-1.txt";
+     unlink "Plot-2.txt";
+}
+    
+
+
+
+    

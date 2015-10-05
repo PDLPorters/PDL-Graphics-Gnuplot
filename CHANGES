@@ -1,3 +1,10 @@
+2.06 Codename: Fall released 6-Oct-2015
+
+ - Minor fixes to documentation
+
+ - Plots to output files now go to a sensible default location in the CWD,
+   rather than to gnuplot's stdout.  
+
 2.005 Codename: Spring released 6-May-2015
 
  - Workaround for deprecation of cairo library in MacOS 10.5
