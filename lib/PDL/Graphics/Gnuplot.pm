@@ -2168,6 +2168,11 @@ This is described as a "plot option" in the Gnuplot manual, but it is
 treated as a setup variable and parsed with the setup/terminal options here
 in the constructor.
 
+If you don't specify an output device, plots will go to sequentially-numbered
+files of the form C<Plot-E<lt>nE<gt>.E<lt>sufE<gt>> in your current working 
+directory.  In that case, PDL::Graphics::Gnuplot will report (on STDERR) 
+where the plot ended up.
+
 =item enhanced
 
 This is a flag that indicates whether to enable Gnuplot's enhanced text
