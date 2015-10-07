@@ -258,12 +258,12 @@ $w->restart;
 unlink($testoutput) or warn "\$!: $!";
 ok(@l3==24,"test replot again made 24 lines");
 
-if($w->{gp_version} >= 5.0) {
-    # gnuplot 5.0 uses plusses and hyphens to draw curves in ASCII
+if($w->{gp_version} == 5.0 and $Alien::Gnuplot::pl==0) {
+    # gnuplot 5.0 patchlevel 0 uses plusses and hyphens to draw curves in ASCII
     # match whitespace / curve / whitespace / curve / whitespace  on line 12
     ok($l3[12] =~ m/\s+[\-\+]+\s+[\-\+]+\s+/, "test plot has two curves");
 } else {
-    # gnuplot < 5.0 uses #'s and *'s for the first two ASCII curves
+    # most gnuplots use #'s and *'s for the first two ASCII curves
     ok($l3[12]=~ m/\#\s+\*/, "test plot has two curves and curve 2 is above curve 1");
 }
 
