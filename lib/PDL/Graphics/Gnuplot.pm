@@ -680,8 +680,8 @@ arguments (all are optional) in the order listed:
 
 These keywords set the location of the key -- "inside/outside" is
 relative to the plot border; the margin keywords indicate location in
-the margins of the plot; and at <pos> (where <pos> is a 2-list
-containing (x,y): C<key=E<gt>[at=E<gt>[0.5,0.5]]>) is an exact location to place the key.
+the margins of the plot; and at <pos> (where <pos> is a comma-delimited string
+containing (x,y): C<key=E<gt>[at=E<gt>"0.5,0.5"]>) is an exact location to place the key.
 
 =item * ( left | right | center ) ( top | bottom | center ) - horiz./vert. alignment
 
@@ -1418,7 +1418,7 @@ You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$p
 by C<< angle=>$a >>.
 
 You can specify a circle with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed 
-by C<> size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
+by C<< size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
 
 You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with 
 C<< from=>$pos1,rto=>$diff1,rto=>$diff2,...rto=>$diffn >>.

@@ -565,7 +565,7 @@ SKIP: {
 	    print STDERR "\n\nYou're running an older gnuplot ($PDL::Graphics::Gnuplot::gp_version) and \nwon't be able to scroll.  You should upgrade.  Skipping scroll test.\n\n";
 	    ok(1,"no scroll/zoom test");
 	} else {
-	    print STDERR "\n\nTry to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL to zoom.  Does it work? (Y/n)";
+	    print STDERR "\n\nTry to scroll and zoom the parabola using the scrollbar or (mac) two-fingered\n scrolling in Y; use SHIFT to scroll in X, CTRL (command on mac) to zoom.  Does it work? (Y/n)";
 	    $a = <STDIN>;
 	    ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
 	}
@@ -598,7 +598,7 @@ SKIP: {
 				with=>"xyerrorbars", legend=>"Parabola",
 				$x**2 * 10, abs($x)/10, abs($x)*5 ); };
     print $PDL::Graphics::Gnuplot::last_plotcmd."\n";
-        print STDERR "\n\nAre there error bars in both X and Y, both increasing away from the apex, wider in X than Y? (Y/n)";
+        print STDERR "\n\nAre there error bars in both X and Y, both increasing away from the vertex, wider in X than Y? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "error bars are OK");
 
@@ -654,11 +654,11 @@ SKIP: {
     $z     = xvals(201) * 5 / 200;
 
     eval { $w->reset; $w->plot( {'3d' => 1, title => 'double helix'},
-	    with => 'linespoints pointsize variable pointtype 2 palette' ,
+	    with => 'linespoints', pointsize=>'variable', pointtype=>2, palette=>1 ,
 	    legend => 'spiral 1',
 	    cos($theta), sin($theta), $z, 0.5 + abs(cos($theta)*2),
 	    sin($theta/3),
-	    with => 'linespoints pointsize variable pointtype 4 palette' ,
+	    with => 'linespoints', pointsize=>'variable', pointtype=>4, palette=>1 ,
 	    legend => 'spiral 2',
 	    -cos($theta), -sin($theta), $z, 0.5 + abs(cos($theta)*2),
 	    sin($theta/3)
