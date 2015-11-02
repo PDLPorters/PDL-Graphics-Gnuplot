@@ -102,10 +102,14 @@ to scaled labels.  Individual plots can be 2-D or 3-D, and different sets
 of plot styles are supported in each mode.  Plots can be sent to a variety
 of devices; see the description of plot options, below.
 
+You can specify what type of graphics output you want, but in most cases
+doing nothing will cause a plot to be rendered on your screen: with 
+X windows on UNIX or Linux systems, with an XQuartz windows on MacOS, 
+or with a native window on Microsoft Windows.
+
 You select a plot style with the "with" curve option, and feed in columns
 of data (usually ordinate followed by abscissa).  The collection of columns
 is called a "tuple".  These plots have two columns in their tuples:
-
 
  $x = xvals(51)-25; $y = $x**2;
  gplot(with=>'points', $x, $y);  # Draw points on a parabola
@@ -148,6 +152,14 @@ this will plot X vs. sqrt(X):
  $w->plot($x,$y);
  $y->inplace->sqrt;
  $w->replot();
+
+=head3 Plotting to an image file or device
+
+PDL:Graphics::Gnuplot can plot to most of the devices supported by
+gnuplot itself.  You can specify the file type with the "output"
+method or the object constructor "gplot".  Either one will allow you
+to name a type of file to produce, and a collection of options speciic to
+that type of output file.  
 
 =head3 Image plotting
 
@@ -1984,6 +1996,11 @@ appropriate terminal option (e.g. "window" in the X11 terminal).
 This is described as a "plot option" in the Gnuplot manual, but it is
 treated as a setup variable and parsed with the setup/terminal options here
 in the constructor.
+
+If you don't specify an output device, plots will go to sequentially-numbered
+files of the form C<Plot-E<lt>nE<gt>.E<lt>sufE<gt>> in your current working 
+directory.  In that case, PDL::Graphics::Gnuplot will report (on STDERR) 
+where the plot ended up.
 
 =item enhanced
 
