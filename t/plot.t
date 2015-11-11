@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 175;
+use Test::More tests => 185;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -525,6 +525,42 @@ ok($ticks->nelem==10 && all($ticks == pdl(0,50,100,150,200,250,300,350,400,450))
 
 undef $w;
 unlink($testoutput) or warn "\$!: $!";
+
+
+##############################
+# Check default-location plotting 
+if( -e 'Plot-1.txt' ) {
+    unlink 'Plot-1.txt' or warn "Can't delete Plot-1.txt: $!";
+}
+eval {$w = gpwin('dumb',size=>[80,24]);};
+ok(!$@,"creation of dumb terminal with no output option works ($@)");
+eval {$w->line(xvals(50)**2);};
+ok(!$@,"plotting to default output device works ($@)");
+eval {undef $w;};
+ok(!$@,"closing default output window works");
+ok((-e 'Plot-1.txt'),"correct file got created by default output");
+unlink 'Plot-1.txt' or warn "Can't delete Plot-1.txt after test: $!";
+
+
+###########
+# Test size option parsing -- inches by default, also
+# accepts both array ref and scalar parameters.
+eval {$w=gpwin('dumb',size=>[7,5]); $w->line(xvals(50)**2); $w->close;};
+ok(!$@, "plotting to 42x30 text file worked");
+eval {open FOO,"<Plot-1.txt"; @lines = <FOO>; close FOO;};
+ok(!$@, "read ASCII plot OK");
+eval { unlink 'Plot-1.txt';};
+
+ok(@lines+0 == 30, "'7x5 inch' ascii plot created 30 lines (created ".(0+@lines).")");
+
+eval {$w=gpwin('dumb',size=>5); $w->line(xvals(50)**2); $w->close;};
+ok(!$@, "plotting to 30x30 text file worked");
+eval {open FOO,"<Plot-1.txt"; @lines = <FOO>; close FOO;};
+ok(!$@, "Read ASCII plot #2 OK");
+eval { unlink 'Plot-1.txt';};
+
+ok(@lines+0==30,"'5x5 inch' ascii plot with scalar size param worked");
+
 
 ##############################
 # Interactive tests

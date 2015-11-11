@@ -2153,9 +2153,10 @@ plotting surface.  The format is [$width, $height, $unit]; the
 trailing unit string is optional but recommended, since the default
 unit of length changes from device to device.
 
-The unit string can be in, cm, mm, px, or pt.  Pixels are taken to 
-be 1 point in size (72 pixels per inch) and dimensions are 
-computed accordingly.  
+The unit string can be in, cm, mm, px, char, or pt.  Pixels are taken
+to be 1 point in size (72 pixels per inch) and dimensions are computed
+accordingly.  Characters are taken to be 12 point in size (6 per
+inch).
 
 =item output
 
@@ -4642,7 +4643,8 @@ sub _expand_abbrev {
 #     * "b" for boolean flag (actually ternary: true/false/undef)
 #     * "n" for number
 #     * "s" for a scalar string 
-#     * "l" for a list of options; none required; passing in a number yields a boolean, or undef deletes. 
+#     * "l" for a list of options; none required; passing in a number yields a boolean, or undef deletes.
+#     * "ln" for a list of options; none required; passing in a number copies to list, or undef deletes.
 #     * "C" for cumulative list of options; scalar values OK
 #     * "H" for a hash list of options 
 #     * "N" for multivalue with optional first-parameter index
@@ -5527,11 +5529,18 @@ $_pOHInputs = {
 		 if(ref $_[1] eq 'ARRAY') {
 		     return $_[1];
 		 } else {
-#		     return [ split( /\s+/, $_[1] ) ];
+		     # anything that's not an array ref (and not a number) gets put in the array
 		     return [$_[1]];
 		 }
-                },
+    },
 
+    ## one-line list (no booleanity: scalars always get copied to the list)
+    'ln' => sub { return undef unless(defined $_[1]);
+		  return "" unless(length($_[1]));
+		  return [$_[1]] unless(ref($_[1]) eq 'ARRAY');
+		  return $_[1];
+    },
+				      
     ## one-line list (can also be boolean or hash)
     'lh' => sub { return undef unless(defined $_[1]);
 		 return "" unless(length($_[1]));                                 # false value yields false
@@ -6455,10 +6464,10 @@ our $lConv = {
     inc   => 1,
     in    => 1,
     i     => 1,
-    char  => 16,
-    cha   => 16,
-    ch    => 16,
-    c     => 16,
+    char  => 6,
+    cha   => 6,
+    ch    => 6,
+    c     => 6,
     pt    => 72,
     points=> 72,
     point => 72,
@@ -6466,7 +6475,7 @@ our $lConv = {
     poi   => 72,
     po    => 72,
     px    => 100,
-    pixels=>100,
+    pixels=> 100,
     pixel => 100,
     pixe  => 100,
     pix   => 100,
@@ -6483,7 +6492,7 @@ our $termTab_types = {
     output     => ['s','q',     "File name for output"],                 # autocopied to a plot option when present for a device
     output_    => ['s','cv',    "Window number for persistent windows"], # trailing '_' prevents autocopy to a plot option
     title      => ['s','cq',    "Window title"],
-    size       => ['l','csize', "Window size (default unit is %u)"],
+    size       => ['ln','csize', "Window size (default unit is %u)"],
     font       => ['s','cq',    "Font to use ('<fontname>,<size>')"],
     fontsize   => ['s','cs',    "Font size (points)"],                      # use for devices that use no keyword for font size
     enhanced   => ['b','cf',    "Enable or disable gnuplot enhanced text escapes for markup"],
