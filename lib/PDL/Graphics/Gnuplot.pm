@@ -1634,15 +1634,22 @@ on your terminal, for plots that render points as small glyphs.
 Specify the way that filled regions should be colored, in plots that
 have fillable areas (like C<boxes>).  Unlike C<linestyle> above,
 C<fillstyle> accepts a full specification rather than an index into a
-set of predefined styles. You can feed in: C<empty> for no fill; 
-C<solid> for a solid fill; C<< ['transparent','solid', <density>] >> for
-a transparent solid fill on terminals that support it; C<< pattern >>
-for a cycling-per-curve pattern fill; C<< ['pattern',<n>] >> to specify 
-a particular fill pattern.  
+set of predefined styles. You can feed in: C<< 'empty' >> for no fill;
+C<< 'transparent solid <density>' >> for a solid fill with optional
+<density> from 0.0 to 1.0 (default 1.0); C<< 'transparent pattern <n>'
+>> for a pattern fill--plotting multiple datasets causes the pattern
+to cycle through all available pattern types, starting from pattern
+<n> (be aware that the default <n>=0 may be equivalent to 'empty');
+The 'transparent' portions of the strings are optional, and are only
+effective on terminals that support transparency. Be aware that the
+quality of the visual output may depend on terminal type and rendering
+software.
 
-Any of those fill style specifications can have a border specification appended to it.
-To specify a border, append C<< 'border', lt=><type>, lc=><colorspec> >> to the list.
-(You can omit the lt or the lc).  To specify no border, append C<<'noborder'>>.
+Any of those fill style specification strings can have a border
+specification string appended to it.  To specify a border, append
+C<'border'>, and then optionally either C<< 'lt=><type>' >> or C<<
+'lc=><colorspec>' >> to the string.  To specify no border, append
+C<'noborder'>.
 
 =item nohidden3d
 
