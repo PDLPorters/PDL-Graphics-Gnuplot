@@ -1,3 +1,9 @@
+2.07 Codename: Winter (current devel)
+
+ - More fixes to documentation (d-lamb's description of transparent fill)
+
+ - Fix whitespace in the makefile.pl 
+
 2.06 Codename: Fall released 1-Nov-2015
 
  - Minor fixes to documentation
