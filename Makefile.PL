@@ -1,25 +1,27 @@
 use strict;
 use warnings;
-use ExtUtils::MakeMaker;
+use ExtUtils::MakeMaker 6.48;
+use 5.006;
 
 sub parseversion
 {
     my $version;
-  open GP, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open Gnuplot.pm";
-  for(<GP>){
-      if(m/our \$VERSION = \'([\d\.\_]+b?)\'/) {$version = $1;}
-      last if($version);
-  }
-  die "Couldn't parse version from Gnuplot.pm" unless($version);
-  close GP;
-  return $version;
+    open GP, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open Gnuplot.pm";
+    for(<GP>){
+        if(m/our \$VERSION = \'([\d\.\_]+b?)\'/) {$version = $1;}
+        last if($version);
+    }
+    die "Couldn't parse version from Gnuplot.pm" unless($version);
+    close GP;
+    return $version;
 }
+
 
 # make sure we can run gnuplot before continuing
 {
-  unless(`gnuplot -V`)
-  {
-    print STDERR <<EOM;
+    unless(`gnuplot -V`)
+    {
+        print STDERR <<EOM;
 
 Error: "$!"
 
@@ -29,13 +31,12 @@ Gnuplot to continue. Use your package manager, or download the source from
 http://www.gnuplot.info
 EOM
 
-    exit 0;
-  }
+        exit 0;
+    }
 }
 
 
-sub MY::libscan
-{
+sub MY::libscan {
     package MY;
 
     my ($self, $file) = @_;
@@ -45,6 +46,7 @@ sub MY::libscan
 
     return $self->SUPER::libscan ($file);
 }
+
 
 sub MY::postamble {
     my $text = <<'FOO';
@@ -56,37 +58,44 @@ FOO
     return $text;
 }
 
+
 WriteMakefile(
-    NAME                => 'PDL::Graphics::Gnuplot',
-    AUTHOR              => 'Craig DeForest <craig@deforest.org>, Dima Kogan <dima@secretsauce.net>',
-    VERSION             => parseversion(),
-    ABSTRACT_FROM       => 'lib/PDL/Graphics/Gnuplot.pm',
-    ($ExtUtils::MakeMaker::VERSION >= 6.3002
-     ? ('LICENSE'=> 'perl')
-     : ()),
-    PREREQ_PM => { 'Alien::Gnuplot' => 0,
-		   'Test::More'  => 0,
-                   'PDL'         => 0,
-                   'IPC::Run'    => 0,
-		   'List::Util'  => 0,
-		   'Storable'    => 0,
-		   'IPC::Open3'  => 0,
-		   'IO::Select'  => 0,
-		   'Time::HiRes' => 0,
-		   'Safe::Isa'   => 0
+    NAME                      => 'PDL::Graphics::Gnuplot',
+    AUTHOR                    => 'Craig DeForest <craig@deforest.org>, Dima Kogan <dima@secretsauce.net>',
+    VERSION                   => parseversion(),
+    ABSTRACT_FROM             => 'lib/PDL/Graphics/Gnuplot.pm',
+    ( $ExtUtils::MakeMaker::VERSION >= 6.3002
+        ? ('LICENSE'          => 'perl')
+        : ()
+    ),
+    MIN_PERL_VERSION          => 5.006,
+    CONFIGURE_REQUIRES => {
+        'ExtUtils::Makemaker' => 6.48,
+    },
+    PREREQ_PM => { 
+        'Alien::Gnuplot'      => 0,
+        'Test::More'          => 0,
+        'PDL'                 => 0,
+        'IPC::Run'            => 0,
+        'List::Util'          => 0,
+        'Storable'            => 0,
+        'IPC::Open3'          => 0,
+        'IO::Select'          => 0,
+        'Time::HiRes'         => 0,
+        'Safe::Isa'           => 0
     },
     META_ADD => {
-	resources => {
-	    homepage => 'http://github.com/drzowie/PDL-Graphics-Gnuplot',
-	    repository => 'git://github.com/drzowie/PDL-Graphics-Gnuplot.git',
-	    bugtracker => 'http://rt.cpan.org/Public/Dist/Display.html?Name=PDL-Graphics-Gnuplot'
-	}
-    },		  
+        resources => {
+            homepage          => 'http://github.com/drzowie/PDL-Graphics-Gnuplot',
+            repository        => 'git://github.com/drzowie/PDL-Graphics-Gnuplot.git',
+            bugtracker        => 'http://rt.cpan.org/Public/Dist/Display.html?Name=PDL-Graphics-Gnuplot'
+        }
+    },  
 
-    dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
-    clean               => { FILES => 'PDL-Graphics-Gnuplot-* pdl_graphics_gnuplot_test_* *~' },
-	);
-	
+    dist                      => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },
+    clean                     => { FILES => 'PDL-Graphics-Gnuplot-* pdl_graphics_gnuplot_test_* *~' },
+  );
+
 # reroute the main POD into a separate README.pod if requested. This is here
 # purely to generate a README.pod for the github front page
 my $POD_header = <<EOF;
@@ -100,17 +109,17 @@ page at L<http://search.cpan.org/~zowie/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gn
 
 EOF
 
+
 if(exists $ARGV[0] && $ARGV[0] eq 'README.pod')
 {
-  open MOD, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open main module";
-  open README, '>README.pod'              or die "Couldn't open README.pod";
+    open MOD, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open main module";
+    open README, '>README.pod'              or die "Couldn't open README.pod";
 
-  print README $POD_header;
+    print README $POD_header;
 
-  while (<MOD>)
-  {
-    if (/^=/../^=cut/)
-    { print README; }
-  }
+    while (<MOD>)
+    {
+        if (/^=/../^=cut/) { print README; }
+    }
 }
 
