@@ -1532,14 +1532,14 @@ C<dump> is used for debugging. If true, it writes out the gnuplot commands to
 STDOUT I<instead> of writing to a gnuplot process. Useful to see what commands
 would be sent to gnuplot. This is a dry run. Note that if the 'binary' option is
 given (see below), then this dump will contain binary data. If this binary data
-should be suppressed from the dump, set C<dump => 'nobinary'>.
+should be suppressed from the dump, set C<< dump => 'nobinary' >>.
 
 C<tee> is used for debugging. If true, writes out the gnuplot commands to STDERR
 I<in addition> to writing to a gnuplot process. This is I<not> a dry run: data
 is sent to gnuplot I<and> to the log. Useful for debugging I/O issues. Note that
 if the 'binary' option is given (see below), then this log will contain binary
-data. If this binary data should be suppressed from the log, set C<tee =>
-'nobinary'>.
+data. If this binary data should be suppressed from the log, set C<< tee =>
+'nobinary' >>.
 
 =head1 CURVE OPTIONS 
 
