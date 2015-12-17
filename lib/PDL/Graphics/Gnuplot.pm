@@ -4870,11 +4870,6 @@ our $pOptionsTable =
 		    'sets the label on the color box axis'    ],
     'cbmtics'   => ['b','b',    ['colorbox'], undef,
 		    'cbmtics=>1 to use months-of-year tick labels on the color box axis'    ],
-    'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
-		    'sets minimum end of cbrange'    ],
-    'cbmax'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[1]=$n; return undef},sub{''},undef,undef,
-		    'sets maximum end of cbrange'    ],
-
     'cbrange'   => ['lr','range',['colorbox'], undef,
 		    'controls rendered range of color data values: cbrange=>[<min>,<max>]'    ],
     'cbmin'      => [sub { my($o,$n,$h)=@_; $h->{cbrange}->[0]=$n; return undef},sub{''},undef,undef,
