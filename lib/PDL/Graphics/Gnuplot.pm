@@ -2785,6 +2785,13 @@ sub plot
 	    $slice = "-3:-1" if($with eq 'rgbimage');
 	    $slice = "-4:-2" if($with eq 'rgbalpha');
 
+	    # Sometimes data comes in that has BAD values but they are
+	    # not marked as such, which messes up the cbmin &c. calc.
+	    if ($PDL::Bad::Status){
+		$chunks->[$i]->{data}->[0]->inplace->setvaltobad(
+		    $chunks->[$i]->{data}->[0]->type->badvalue)->check_badflag;
+	    }
+
 	    my $bolus = $chunks->[$i]->{data}->[0]->slice($slice);
 
 	    # Convert NaNs to bad if possible.  This is slow -- 
