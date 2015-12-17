@@ -1322,7 +1322,7 @@ and you are not specifying a <tag>.
 
 The <position> should be a string containing a gnuplot position specifier.
 At its simplest, the position is just two numbers separated by
-a comma, as in C<< label2=>["foo",at=>"5,3" >>, to specify (X,Y) location 
+a comma, as in C<< label2=>["foo",at=>"5,3"] >>, to specify (X,Y) location 
 on the plot in scientific coordinates.  Each number can be preceded
 by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20) 
 for details.
@@ -1340,7 +1340,7 @@ optional.
 The <name>,<size> must be double quoted in the string (this may be fixed
 in a future version), as in
 
- C<< label3=>["foo",at=>"3,4",font=>'"Helvetica,18"'] >>.
+ label3=>["foo",at=>"3,4",font=>'"Helvetica,18"'] 
 
 =item noenhanced - turn off gnuplot enhanced text processing (if enabled)
 
@@ -1367,7 +1367,7 @@ are:
 
 The <position> should be a string containing a gnuplot position specifier.
 At its simplest, the position is just two numbers separated by
-a comma, as in C<< label2=>["foo",at=>"5,3" >>, to specify (X,Y) location 
+a comma, as in C<< arrow2=>["foo",at=>"5,3"] >>, to specify (X,Y) location 
 on the plot in scientific coordinates.  Each number can be preceded
 by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20) 
 for details.
@@ -1380,7 +1380,7 @@ relative to the C<from> position, use "rto".
 =item (arrowstyle | as) <arrow_style>
 
 This specifies that the arrow be drawn in a particular predeclared numerical
-style.  If you give this parameter, you shoudl omit all the following ones.
+style.  If you give this parameter, you should omit all the following ones.
 
 =item ( nohead | head | backhead | heads ) - specify arrowhead placement
 
