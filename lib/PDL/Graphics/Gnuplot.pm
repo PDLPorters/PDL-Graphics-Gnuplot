@@ -17,7 +17,7 @@
 # is hazardous in the event of syntax error.
 #
 # The perl P:G:G object attempts to store and manage essentially
-# all of the state that is also held inside the gnuplot program. 
+# all of the state that is also held inside the gnuplot program.
 # This takes the form of:
 #      - Terminal options - setup for a given terminal output
 #      - Plot options     - setup per-plot
@@ -57,7 +57,7 @@
 # passed through a number of steps back in the main plot() routine,
 # and turned into a colllection of gnuplot commands suitable for plot
 # generation.
-# 
+#
 # Because option parsing and handling is slightly more complicated
 # than simply interpreting values and assigning defaults, we do not
 # use a pre-existing package (such as PDL::Options) for option parsing
@@ -87,8 +87,8 @@ PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
 
  pdl> $xy = zeroes(21,21)->ndcoords - pdl(10,10);
  pdl> $z = inner($xy, $xy);
- pdl> gplot({title  => 'Heat map', 
-             trid   => 1, 
+ pdl> gplot({title  => 'Heat map',
+             trid   => 1,
              view   => [0,0]
             },
             with => 'image', xvals($z),yvals($z),zeroes($z),$z*2
@@ -139,7 +139,7 @@ A call to C<gplot()> looks like:
       curve_options, data, data, ... );
 
 The data entries are columns to be plotted.  They are normally
-an optional ordinate and a required abscissa, but some plot modes 
+an optional ordinate and a required abscissa, but some plot modes
 can use more columns than that.  The collection of columns is called
 a "tuple".  Each column must be a separate PDL or an ARRAY ref.  If
 all the columns are PDLs, you can add extra dimensions to make threaded
@@ -161,13 +161,13 @@ pass-through of plotting commands to the underlying gnuplot process.
 =head2 Basic plotting
 
 Gnuplot generates many kinds of plot, from basic line plots and histograms
-to scaled labels.  Individual plots can be 2-D or 3-D, and different sets 
+to scaled labels.  Individual plots can be 2-D or 3-D, and different sets
 of plot styles are supported in each mode.  Plots can be sent to a variety
 of devices; see the description of plot options, below.
 
 You can specify what type of graphics output you want, but in most cases
-doing nothing will cause a plot to be rendered on your screen: with 
-X windows on UNIX or Linux systems, with an XQuartz windows on MacOS, 
+doing nothing will cause a plot to be rendered on your screen: with
+X windows on UNIX or Linux systems, with an XQuartz windows on MacOS,
 or with a native window on Microsoft Windows.
 
 You select a plot style with the "with" curve option, and feed in columns
@@ -196,7 +196,7 @@ See below for supported curve styles.
 
 =head3 Modifying plots
 
-Gnuplot is built around a monolithic plot model - it is not possible to 
+Gnuplot is built around a monolithic plot model - it is not possible to
 add new data directly to a plot without redrawing the entire plot. To support
 replotting, PDL::Graphics::Gnuplot stores the data you plot in the plot object,
 so that you can add new data with the "replot" command:
@@ -207,7 +207,7 @@ so that you can add new data with the "replot" command:
  $w->plot($x,$y);
  $w->replot($x,$y*$y);
 
-For speed, the data are *not* disconnected from their original variables - so 
+For speed, the data are *not* disconnected from their original variables - so
 this will plot X vs. sqrt(X):
 
  $x = xvals(101)/100;
@@ -222,7 +222,7 @@ PDL:Graphics::Gnuplot can plot to most of the devices supported by
 gnuplot itself.  You can specify the file type with the "output"
 method or the object constructor "gplot".  Either one will allow you
 to name a type of file to produce, and a collection of options speciic to
-that type of output file.  
+that type of output file.
 
 =head3 Image plotting
 
@@ -230,15 +230,15 @@ Several of the plot styles accept image data.  The tuple parameters work the
 same way as for basic plots, but each "column" is a 2-D PDL rather than a 1-D PDL.
 As a special case, the "with image" plot style accepts either a 2-D or a 3-D PDL.
 If you pass in 3-D PDL, the extra dimension can have size 1, 3, or 4.  It is interpreted
-as running across (R,G,B,A) color planes.  
+as running across (R,G,B,A) color planes.
 
 =head3 3-D plotting
 
 You can plot in 3-D by setting the plot option C<trid> to a true value.  Three
 dimensional plots accept either 1-D or 2-D PDLs as data columns.  If you feed
-in 2-D "columns", many of the common plot styles will generalize appropriately 
+in 2-D "columns", many of the common plot styles will generalize appropriately
 to 3-D.  For example, to plot a 2-D surface as a line grid, you can use the "lines"
-style and feed in 2-D columns instead of 1-D columns.  
+style and feed in 2-D columns instead of 1-D columns.
 
 =head2 Enhanced text
 
@@ -248,31 +248,31 @@ and subscripts into labels.  Codes are:
 
 =over 3
 
-=item {} 
+=item {}
 
 Text grouping - enclose text in braces to group characters, as in LaTeX.
 
-=item ^ 
+=item ^
 
 Superscript the next character or group (shrinks it slightly too where that is supported).
 
-=item _ 
+=item _
 
 Subscript the next character or group (shrinks it slightly too where that is supported).
 
-=item @ 
+=item @
 
 Phantom box (occupies no width; controls height for super- and subscripting)
 
 =item &
 
-Controllable-width space, e.g. &amp;{template-string} 
+Controllable-width space, e.g. &amp;{template-string}
 
-=item ~ 
+=item ~
 
 overstrike -- e.g. ~a{0.8-} overprints '-' on 'a', raised by 0.8xfontsize.
 
-=item {/[fontname][=fontsize | *fontscale] text} 
+=item {/[fontname][=fontsize | *fontscale] text}
 
 Change font to (optional) fontname, and optional absolute font size or relative font scale ("fontsize" and "fontscale" are numbers).  The space after the size parameter is not rendered.
 
@@ -300,12 +300,12 @@ This specifies a recognizable unique color in the same order as used by the plot
 
 =item - an RGB value string
 
-Strings have the form C<#RRGGBB>, where the C<#> is literal and the RR, GG, and BB are hexadecimal bytes.  
+Strings have the form C<#RRGGBB>, where the C<#> is literal and the RR, GG, and BB are hexadecimal bytes.
 
 =item - the word "palette"
 
 "palette" indicates that color is to be drawn from the scaled colorbar
-palette (which you can set with the "clut" plot option), by lookup 
+palette (which you can set with the "clut" plot option), by lookup
 using an additional column in the associated data tuple.
 
 =item - the word "variable"
@@ -318,7 +318,7 @@ column in the associated data tuple.
 
 "rgb variable" indicates that color is to be directly specified by a
 24 bit integer specifying 8-bit values for (from most significant byte
-to least significant byte) R, G, and B in the output color.  The 
+to least significant byte) R, G, and B in the output color.  The
 integer is drawn from an additional column in the associated data tuple.
 
 =back
@@ -326,19 +326,19 @@ integer is drawn from an additional column in the associated data tuple.
 
 =head2 Plot styles supported
 
-Gnuplot itself supports a wide range of plot styles, and all are supported by 
+Gnuplot itself supports a wide range of plot styles, and all are supported by
 PDL::Graphics::Gnuplot.  Most of the basic plot styles collect tuples of 1-D columns
-in 2-D mode (for ordinary plots), or either 1-D or 2-D "columns" in 3-D mode (for 
+in 2-D mode (for ordinary plots), or either 1-D or 2-D "columns" in 3-D mode (for
 grid surface plots and such).  Image modes always collect tuples made of 2-D "columns".
 
-You can pass in 1-D columns as either PDLs or ARRAY refs.  That is important for 
-plot types (such as "labels") that require a collection of strings rather than 
+You can pass in 1-D columns as either PDLs or ARRAY refs.  That is important for
+plot types (such as "labels") that require a collection of strings rather than
 numeric data.
 
 Each plot style can by modified to support particular colors or line
 style options.  These modifications get passed in as curve options (see
-below). For example, to plot a blue line you can use 
-C<with=E<gt>'lines',lc=E<gt>'blue'>.  To match the autogenerated style of a 
+below). For example, to plot a blue line you can use
+C<with=E<gt>'lines',lc=E<gt>'blue'>.  To match the autogenerated style of a
 particular line you can use the C<ls> curve option.
 
 The GNuplot plot styles supported are:
@@ -422,7 +422,7 @@ C<image>, etc.).
 The curve options are parameters that affect only one curve in particular. Each
 call to C<plot()> can contain many curves, and options for a particular curve
 I<precede> the data for that curve in the argument list. The actual type of curve
-(the "with" option) is persistent, but all other curve options and modifiers 
+(the "with" option) is persistent, but all other curve options and modifiers
 are not.  An example:
 
  gplot( with => 'points',  $x, $a,
@@ -464,7 +464,7 @@ in the tuple.  But strings, in particular, cannot easily be hammered into
 PDLs.  Therefore any column in each tuple can be a list ref containing
 values (either numeric or string).  The column is interpreted using the
 usual polymorphous cast-behind-your-back behavior of Perl.  For the sake
-of sanity, if even one list ref is present in a tuple, then threading is 
+of sanity, if even one list ref is present in a tuple, then threading is
 disabled in that tuple: everything has to have a nice 1-D shape.
 
 
@@ -475,7 +475,7 @@ PDL::Graphics::Gnuplot will use C<sequence(N)> as the domain. This is
 why code like C<plot(pdl(1,5,3,4,4) )> works. Only one PDL is given
 here, but the plot type ("lines" by default) requires 2 elements per
 tuple. We are thus exactly 1 piddle short; C<sequence(5)> is used as
-the missing domain PDL.  This is thus equivalent to 
+the missing domain PDL.  This is thus equivalent to
 C<plot(sequence(5), pdl(1,5,3,4,4) )>.
 
 If plotting in 3d or displaying an image, an implicit domain will be
@@ -496,7 +496,7 @@ for different plots, so it is always clear from the arguments you pass
 in just how many columns you are supplying. For example,
 C<plot($a,$b)> will plot C<$b> vs. C<$a>.  If you actually want to
 plot an overlay of both C<$a> and C<$b> against array index, you want
-C<plot($a,{},$b)> instead.  The C<{}> is a hash ref containing a 
+C<plot($a,{},$b)> instead.  The C<{}> is a hash ref containing a
 collection of all the curve options that you are changing between
 the two curves -- in this case, zero of them.
 
@@ -520,7 +520,7 @@ the 'cbrange' plot option:
 
  image( {cbrange=>[0,1]}, $im );
 
-You can plot rgb images directly with the image style, just by including a 
+You can plot rgb images directly with the image style, just by including a
 3rd dimension of size 3 on your image:
 
  $rgbim = pdl( xvals($im), yvals($im),rvals($im)/sqrt(2));
@@ -532,7 +532,7 @@ directly.  These are the "with" styles "rgbimage" and "rgbalpha".  For each
 of them you must specify the channels as separate PDLs:
 
  gplot( with=>'rgbimage', $rgbim->dog );           # RGB  the long way
- gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way 
+ gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way
 
 According to the gnuplot specification you can also give X and Y
 values for each pixel, as in
@@ -574,7 +574,7 @@ this. Some terminals (such as C<wxt>) are persistently interactive. Other
 terminals (such as C<x11>) maintain their interactivity only while the
 underlying gnuplot process is active -- i.e. until another plot is
 created with the same PDL::Graphics::Gnuplot object, or until the perl
-process exits (whichever comes first).  Still others (the hardcopy 
+process exits (whichever comes first).  Still others (the hardcopy
 devices) aren't interactive at all.
 
 Some interactive devices (notably C<wxt> and C<x11>) also support
@@ -595,20 +595,20 @@ convenience.
 
 There are many, many plot options.  For convenience, we've grouped
 them by general category below.  Each group has a heading "POs for E<lt>fooE<gt>",
-describing the category.  You can skip below them all if you want to 
+describing the category.  You can skip below them all if you want to
 read about curve options or other aspects of PDL::Graphics::Gnuplot.
 
 =head2 POs for Output: terminal, termoption, output, device, hardcopy
 
-You can send plots to a variety of different devices; Gnuplot calls 
+You can send plots to a variety of different devices; Gnuplot calls
 devices "terminals".  With the object-oriented interface, you must set
-the output device with the constructor C<PDL::Graphics::Gnuplot::new> 
+the output device with the constructor C<PDL::Graphics::Gnuplot::new>
 (or the exported constructor C<gpwin>) or the C<output> method.  If you
-use the simple non-object interface, you can set the output with the 
+use the simple non-object interface, you can set the output with the
 C<terminal>, C<termoption>, and C<output> plot options.
 
-C<terminal> sets the output device type for Gnuplot, and C<output> sets the 
-actual output file or window number.  
+C<terminal> sets the output device type for Gnuplot, and C<output> sets the
+actual output file or window number.
 
 C<device> and C<hardcopy> are for convenience. C<device> offers a
 PGPLOT-style device specifier in "filename/device" format (the "filename"
@@ -617,12 +617,12 @@ option). C<hardcopy> takes an output file name, attempts to parse out a
 file suffix and infer a device type. C<hardcopy> also uses a common set of
 terminal options needed to fill an entire letter page with a plot.
 
-For finer grained control of the plotting environment, you can send 
-"terminal options" to Gnuplot.  If you set the terminal directly with 
-plot options, you can include terminal options by interpolating them 
+For finer grained control of the plotting environment, you can send
+"terminal options" to Gnuplot.  If you set the terminal directly with
+plot options, you can include terminal options by interpolating them
 into a string, as in C<terminal jpeg interlace butt crop>, or you can
 use the constructor C<new> (also exported as C<gpwin>), which parses
-terminal options as an argument list. 
+terminal options as an argument list.
 
 The routine C<PDL::Graphics::Gnuplot::terminfo> prints a list of all
 available terminals or, if you pass in a terminal name, options accepted
@@ -664,7 +664,7 @@ for 2-D plots.  The C<zlabel> works for 3-D plots.  The C<cblabel> option
 sets the label for the color box, in plot types that have one (e.g.
 image display).
 
-(Don't be confused by C<clabel>, which doesnt' set a label at all, rather 
+(Don't be confused by C<clabel>, which doesnt' set a label at all, rather
 specifies the printf format used by contour labels in contour plots.)
 
 C<key> controls where the plot key (that relates line/symbol style to label)
@@ -705,7 +705,7 @@ containing (x,y): C<key=E<gt>[at=E<gt>"0.5,0.5"]>) is an exact location to place
 
 =item * font "<face>,<size>" - set font for the labels
 
-=item * textcolor <colorspec> 
+=item * textcolor <colorspec>
 
 =item * [no]box linestyle <ls> linetype <lt> linewidth <lw> - control box around the key
 
@@ -749,9 +749,9 @@ in the order given.
 =item * <integer> - packed bit flags for which border lines to draw
 
 
-The default if you set a true value for C<border> is to draw all border lines. 
+The default if you set a true value for C<border> is to draw all border lines.
 You can feed in a single integer value containing a bit mask, to draw only some
-border lines.  From LSB to MSB, the coded lines are bottom, left, top, right for 
+border lines.  From LSB to MSB, the coded lines are bottom, left, top, right for
 2D plots -- e.g. 5 will draw bottom and top borders but neither left nor right.
 
 In three dimensions, 12 bits are used to describe the twelve edges of
@@ -763,7 +763,7 @@ top plane edges.
 
 =item * ( back | front ) - draw borders first or last (controls hidden line appearance)
 
-=item * linewidth <lw>, linestyle <ls>, linetype <lt> 
+=item * linewidth <lw>, linestyle <ls>, linetype <lt>
 
 These are Gnuplot's usual three options for line control.
 
@@ -777,7 +777,7 @@ e.g. C<< grid=>["noxtics","ymtics"] >> draws no X gridlines and draws
 C<< grid=>["xtics","ytics"] >> or C<< grid=>["xtics ytics"] >> will draw both
 vertical (X) and horizontal (Y) grid lines on major tics.
 
-To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more 
+To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more
 control, feed in a list ref with zero or more of the following parameters, in order:
 
 The C<zeroaxis> keyword indicates whether to actually draw each axis
@@ -822,8 +822,8 @@ The options described here are
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
 accepts a list ref with (min, max).  If either min or max is missing, then
-the opposite limit is autoscaled.  The x and y ranges refer to the usual 
-ordinate and abscissa of the plot; x2 and y2 refer to alternate ordinate and 
+the opposite limit is autoscaled.  The x and y ranges refer to the usual
+ordinate and abscissa of the plot; x2 and y2 refer to alternate ordinate and
 abscissa; z if for 3-D plots; r is for polar plots; t, u, and v are for parametric
 plots.  cb is for the color box on plots that include it (see "color", below).
 
@@ -841,9 +841,9 @@ if you are plotting a parametric curve.
 By default all axes are autoscaled unless you specify a range on that
 axis, and partially (min or max) autoscaled if you specify a partial
 range on that axis.  C<autoscale> allows more explicit control of how
-autoscaling is performed, on an axis-by-axis basis.  It accepts a hash 
+autoscaling is performed, on an axis-by-axis basis.  It accepts a hash
 ref, each element of which specifies how a single axis should be
-autoscaled.  Each keyword contains an axis name followed by one of 
+autoscaled.  Each keyword contains an axis name followed by one of
 "fix", "min", "max", "fixmin", or "fixmax".  You can set all the axes at
 once by setting the keyword name to ' '.  Examples:
 
@@ -916,11 +916,11 @@ major tics (major tics typically show units; minor tics typically show fractions
 of a unit).
 
 Each tics option can accept a hash ref containing options to pass to
-Gnuplot.  You can also pass in a snippet of gnuplot command, as either 
+Gnuplot.  You can also pass in a snippet of gnuplot command, as either
 a string or an array ref -- but those techniques are deprecated and may
 disappear in a future version of C<PDL:Graphics::Gnuplot>.
 
-The keywords are case-insensitive and may be abbreviated, just as with 
+The keywords are case-insensitive and may be abbreviated, just as with
 other option types.  They are:
 
 =over 2
@@ -935,7 +935,7 @@ other option types.  They are:
 
 =item * out - set to 1 to draw tics outward from the axis/border
 
-=item * scale - multiplier on tic length compared to the default  
+=item * scale - multiplier on tic length compared to the default
 
 If you pass in undef, tics get the default length.  If you pass in a scalar, major tics get scaled.  You can pass in an array ref to scale minor tics too.
 
@@ -1035,9 +1035,9 @@ specifiers should be in UNIX strftime(3) format -- for example,
 C<<xdata=>"time",xtics=>{format=>"%Y-%b-%dT%H:%M:%S"}>>
 will plot UNIX times as ISO timestamps in the ordinate.
 
-Due to limitations within gnuplot, the time resolution in this mode is 
+Due to limitations within gnuplot, the time resolution in this mode is
 limited to 1 second - if you want fractional seconds, you must use numerically
-formatted times (and/or create your own tick labels using the C<labels> suboption 
+formatted times (and/or create your own tick labels using the C<labels> suboption
 to the C<?tics> option.
 
 B<Timestamp format specifiers>
@@ -1082,15 +1082,15 @@ If you just want to plot named days of the week, you can instead use
 the C<dtics> options set plotting to day of week, where 0 is Sunday and 6
 is Saturday; values are interpreted modulo 7.  For example, C<<
 xmtics=>1,xrange=>[-4,9] >> will plot two weeks from Wednesday to
-Wednesday. As far as output format goes, this is exactly equivalent to 
-using the C<%w> option with full formatting - but you can treat the 
+Wednesday. As far as output format goes, this is exactly equivalent to
+using the C<%w> option with full formatting - but you can treat the
 numeric range in terms of weeks rather than seconds.
 
 =item B<month-of-year plotting>
 
-The C<mtics> options set plotting to months of the year, where 1 is January and 12 is 
+The C<mtics> options set plotting to months of the year, where 1 is January and 12 is
 December, so C<< xdtics=>1, xrange=>[0,4] >> will include Christmas through Easter.
-This is exactly equivalent to using the C<%d> option with full formatting - but you 
+This is exactly equivalent to using the C<%d> option with full formatting - but you
 can treat the numeric range in terms of months rather than seconds.
 
 =back
@@ -1141,24 +1141,24 @@ C<offsets> accepts a list ref with four values for the offsets, which
 are given in scientific (plotted) axis units.
 
 The C<origin> option lets you specify the origin (lower left corner)
-of an individual plot on the plotting window.  The coordinates are 
-screen coordinates -- i.e. fraction of the total plotting window.  
+of an individual plot on the plotting window.  The coordinates are
+screen coordinates -- i.e. fraction of the total plotting window.
 
-The size option lets you adjust the size and aspect ratio of the plot, 
+The size option lets you adjust the size and aspect ratio of the plot,
 as an absolute fraction of the plot window size.  You feed in fractional
 ratios, as in C<< size=>[$xfrac, $yfrac] >>.  You can also feed in some keywords
-to adjust the aspect ratio of the plot.  The size option overrides any 
-autoscaling that is done by the auto-layout in multiplot mode, so use 
+to adjust the aspect ratio of the plot.  The size option overrides any
+autoscaling that is done by the auto-layout in multiplot mode, so use
 with caution -- particularly if you are multiplotting.  You can use
-"size" to adjust the aspect ratio of a plot, but this is deprecated 
+"size" to adjust the aspect ratio of a plot, but this is deprecated
 in favor of the pseudo-option C<justify>.
 
-C<justify> sets the scientific aspect ratio of a 2-D plot.  Unity 
+C<justify> sets the scientific aspect ratio of a 2-D plot.  Unity
 yields a plot with a square scientific aspect ratio.  Larger
-numbers yield taller plots. 
+numbers yield taller plots.
 
 C<clip> controls the border between the plotted data and the border of the plot.
-There are three clip types supported:   points, one, and two.  You can set them 
+There are three clip types supported:   points, one, and two.  You can set them
 independently by passing in booleans with their names: C<< clip=>[points=>1,two=>0] >>.
 
 =head2 POs for Color: colorbox, palette, clut
@@ -1168,7 +1168,7 @@ grayscale can have a "color box" that shows the photometric meaning of the color
 
 The colorbox generally appears when necessary but can be controlled manually
 with the C<colorbox> option.  C<colorbox> accepts a scalar boolean value indicating
-whether or no to draw a color box, or a list ref containing additional options.  
+whether or no to draw a color box, or a list ref containing additional options.
 The options are all, well, optional but must appear in the order given:
 
 =over 3
@@ -1217,19 +1217,19 @@ sets equal length scales on all three axes.
 
 The C<pm3d> option accepts several parameters to control the pm3d plot style,
 which is a palette-mapped 3d surface.  They are not documented here in this
-version of the module but are explained in the gnuplot manual.  
+version of the module but are explained in the gnuplot manual.
 
 C<hidden3d> accepts a list of parameters to control how hidden surfaces are
 plotted (or not) in 3D. It accepts a boolean argument indicating whether to hide
-"hidden" surfaces and lines; or a list ref containing parameters that control how 
+"hidden" surfaces and lines; or a list ref containing parameters that control how
 hidden surfaces and lines are handled.  For details see the gnuplot manual.
 
 C<xyplane> sets the location of that plane (which is drawn) relative
 to the rest of the plot in 3-space.  It takes a single string: "at" or
 "relative", and a number.  C<< xyplane=>[at=>$z] >> places the XY plane at the
 stated Z value (in scientific units) on the plot.  C<< xyplane=>[relative=>$frac] >>
-places the XY plane $frac times the length of the scaled Z axis *below* the Z 
-axis (i.e. 0 places it at the bottom of the plotted Z axis; and -1 places it 
+places the XY plane $frac times the length of the scaled Z axis *below* the Z
+axis (i.e. 0 places it at the bottom of the plotted Z axis; and -1 places it
 at the top of the plotted Z axis).
 
 C<mapping> takes a single string: "cartesian", "spherical", or
@@ -1253,14 +1253,14 @@ it.
 
 =head2 POs for Polar plots - polar, angles, mapping
 
-You can make 2-D polar plots by setting C<polar> to a true value.  The 
+You can make 2-D polar plots by setting C<polar> to a true value.  The
 ordinate is then plotted as angle, and the abscissa is radius on the plot.
-The ordinate can be in either radians or degrees, depending on the 
+The ordinate can be in either radians or degrees, depending on the
 C<angles> parameter
 
 C<angles> takes either "degrees" or "radians" (default is radians).
 
-C<mapping> is used to set 3-D polar plots, either cylindrical or spherical 
+C<mapping> is used to set 3-D polar plots, either cylindrical or spherical
 (see the section on 3-D plotting, above).
 
 =head2 POs for Markup - label, arrow, object
@@ -1275,7 +1275,7 @@ options for all of them as a nested list-of-lists.
 
 To modify an object, you can specify it by number, either by appending
 the number to the plot option name (e.g. C<arrow3>) or by supplying it
-as the first element of the option list for that object.  
+as the first element of the option list for that object.
 
 To remove all objects of a given type, supply undef (e.g. C<< arrow=>undef >>).
 
@@ -1288,7 +1288,7 @@ index number it gets, do this:
 
  $w->options( label=>["my new label",at=>[10,20]] );
 
-If you do care what index number it gets (or want to replace an existing label), 
+If you do care what index number it gets (or want to replace an existing label),
 do this:
 
  $w->options( label=>[$n, "my replacement label", at=>"10,20"] );
@@ -1302,7 +1302,7 @@ you care about.
 The C<label> option allows adding small bits of text at arbitrary
 locations on the plot.
 
-Each label specifier list ref accepts the following suboptions, in 
+Each label specifier list ref accepts the following suboptions, in
 order.  All of them are optional -- if no options other than the index
 tag are given, then any existing label with that index is deleted.
 
@@ -1322,9 +1322,9 @@ and you are not specifying a <tag>.
 
 The <position> should be a string containing a gnuplot position specifier.
 At its simplest, the position is just two numbers separated by
-a comma, as in C<< label2=>["foo",at=>"5,3"] >>, to specify (X,Y) location 
+a comma, as in C<< label2=>["foo",at=>"5,3"] >>, to specify (X,Y) location
 on the plot in scientific coordinates.  Each number can be preceded
-by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20) 
+by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20)
 for details.
 
 =item ( left | center | right ) - text placement rel. to position
@@ -1340,13 +1340,13 @@ optional.
 The <name>,<size> must be double quoted in the string (this may be fixed
 in a future version), as in
 
- label3=>["foo",at=>"3,4",font=>'"Helvetica,18"'] 
+ label3=>["foo",at=>"3,4",font=>'"Helvetica,18"']
 
 =item noenhanced - turn off gnuplot enhanced text processing (if enabled)
 
 =item ( front | back ) - rendering order (last or first)
 
-=item textcolor <colorspec> 
+=item textcolor <colorspec>
 
 =item (point <pointstyle> | nopoint ) - control whether the exact position is marked
 
@@ -1367,15 +1367,15 @@ are:
 
 The <position> should be a string containing a gnuplot position specifier.
 At its simplest, the position is just two numbers separated by
-a comma, as in C<< arrow2=>["foo",at=>"5,3"] >>, to specify (X,Y) location 
+a comma, as in C<< arrow2=>["foo",at=>"5,3"] >>, to specify (X,Y) location
 on the plot in scientific coordinates.  Each number can be preceded
-by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20) 
+by a coordinate system specifier; see the Gnuplot 4.4 manual (page 20)
 for details.
 
 =item ( to | rto ) <position>  - end of arrow line
 
 These work like C<from>.  For absolute placement, use "to".  For placement
-relative to the C<from> position, use "rto". 
+relative to the C<from> position, use "rto".
 
 =item (arrowstyle | as) <arrow_style>
 
@@ -1409,7 +1409,7 @@ The arguments, all of which are optional but which must be given in the order li
 
 =item <object-type> <object-properties> - type name of the shape and its type-specific properties
 
-The <object-type> is one of four words: "rectangle", "ellipse", "circle", or "polygon".  
+The <object-type> is one of four words: "rectangle", "ellipse", "circle", or "polygon".
 
 You can specify a rectangle with C<< from=>$pos1, [r]to=>$pos2 >>, with C<< center=>$pos1, size=>"$w,$h" >>,
 or with C<< at=>$pos1,size=>"$w,$h" >>.
@@ -1417,10 +1417,10 @@ or with C<< at=>$pos1,size=>"$w,$h" >>.
 You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed
 by C<< angle=>$a >>.
 
-You can specify a circle with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed 
+You can specify a circle with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed
 by C<< size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
 
-You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with 
+You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with
 C<< from=>$pos1,rto=>$diff1,rto=>$diff2,...rto=>$diffn >>.
 
 =item ( front | back | behind ) - draw the object last | first | really-first.
@@ -1481,12 +1481,12 @@ parameter of surface s(u,v), the iso-u lines of the form c(v) =
 s(u0,v) are produced, and by fixing the v parameter, the iso-v lines
 of the form c(u)=s(u,v0) are produced".
 
-B<C<pointsize>> accepts a single number and scales the size of points used in plots. 
+B<C<pointsize>> accepts a single number and scales the size of points used in plots.
 
 B<C<style>> provides a great deal of customization for individual plot styles.
 It is not (yet) fully parsed by PDL::Graphics::Gnuplot; please refer to the Gnuplot
 manual for details (it is pp. 145ff in the Gnuplot 4.6.1 maual).  C<style> accepts
-a hash ref whose keys are plot styles (such as you would feed to the C<with> curve option), 
+a hash ref whose keys are plot styles (such as you would feed to the C<with> curve option),
 and whose values are list refs containing keywords and other parameters to modify how each
 plot style should be displayed.
 
@@ -1510,8 +1510,8 @@ C<fontpath> sets a font search path for gnuplot.  It accepts a collection of fil
 =head2 POs for advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, tee
 
 Plotting is carried out by sending a collection of commands to an underlying
-gnuplot process.  In general, the plot options cause "set" commands to be 
-sent, configuring gnuplot to make the plot; these are followed by a "plot" or 
+gnuplot process.  In general, the plot options cause "set" commands to be
+sent, configuring gnuplot to make the plot; these are followed by a "plot" or
 "splot" command and by any cleanup that is necessary to keep gnuplot in a known state.
 
 Provisions exist for sending commands directly to Gnuplot as part of a plot.  You
@@ -1522,9 +1522,9 @@ or after the plot command (with the C<bottomcmds> option).  Each of these plot
 options takes a list ref, each element of which should be one command line for
 gnuplot.
 
-Most plotting is done with binary data transfer to Gnuplot; however, due to 
+Most plotting is done with binary data transfer to Gnuplot; however, due to
 some bugs in Gnuplot binary handling, certain types of plot data are sent in ASCII.
-In particular, time series and label data require transmission in ASCII (as of Gnuplot 4.4). 
+In particular, time series and label data require transmission in ASCII (as of Gnuplot 4.4).
 You can force ASCII transmission of all but image data by explicitly setting the
 C<< binary=>0 >> option.
 
@@ -1541,9 +1541,9 @@ if the 'binary' option is given (see below), then this log will contain binary
 data. If this binary data should be suppressed from the log, set C<< tee =>
 'nobinary' >>.
 
-=head1 CURVE OPTIONS 
+=head1 CURVE OPTIONS
 
-The curve options describe details of specific curves within a plot. 
+The curve options describe details of specific curves within a plot.
 They are in a hash, whose keys are as follows:
 
 =over 2
@@ -1573,17 +1573,17 @@ no sense to specify a fill style for C<< with=>lines >>.
 
 For historical reasons, you can supply the with modifier curve options
 as a single string in the "with" curve option.  That usage is deprecated
-and will disappear in a future version of PDL::Graphics::Gnuplot. 
+and will disappear in a future version of PDL::Graphics::Gnuplot.
 
 =item linetype (abbrev 'lt')
 
 This is a numeric selector from the default collection of line styles.
-It includes automagic selection of dash style, color, and width from the 
+It includes automagic selection of dash style, color, and width from the
 default set of linetypes for your current output terminal.
 
 =item linestyle (abbrev 'ls')
 
-This works exactly like C<< linetype >> above, except that you can modify 
+This works exactly like C<< linetype >> above, except that you can modify
 individual line styles by setting the C<< style line <num> >> plot option.
 That is handy for a custom style you might use across several curves either
 a single plot or several plots.
@@ -1606,11 +1606,11 @@ additional column of data containing 24-bit packed integers with RGB
 color values, C<< [palette=>'frac',<val>] >> to specify a single
 fractional position (scaled 0-1) in the current palette, or C<<
 [palette=>'cb',<val>] >> to specify a single value in the scaled
-cbrange. 
+cbrange.
 
 There is no C<< linecolor=>[palette=>variable] >> due to Gnuplot's
 non-orthogonal syntax.  To draw line color from the palette, via an
-additional data column, see the separate "palette" curve option 
+additional data column, see the separate "palette" curve option
 (below).
 
 =item textcolor (abbrev 'tc')
@@ -1629,7 +1629,7 @@ C<linespoints>).
 Selects a fractional size for point glyphs, relative to the default size
 on your terminal, for plots that render points as small glyphs.
 
-=item fillstyle (abbrev 'fs') 
+=item fillstyle (abbrev 'fs')
 
 Specify the way that filled regions should be colored, in plots that
 have fillable areas (like C<boxes>).  Unlike C<linestyle> above,
@@ -1655,7 +1655,7 @@ C<'noborder'>.
 
 If you are making a 3D plot and have used the plot option C<hidden3d> to get
 hidden line removal, you can override that for a particular curve by setting
-the C<nohidden3d> option to a true value.  Only the single curve with C<nohidden3d> 
+the C<nohidden3d> option to a true value.  Only the single curve with C<nohidden3d>
 set will have its hidden points rendered.
 
 =item nocontours
@@ -1683,13 +1683,13 @@ column is second-to-last).
 Specifies how many values represent each data point.  Normally you
 don't need to set this as individual C<with> styles implicitly set a
 tuple size (which is automatically extended if you specify additional
-modifiers such as C<palette> that require more data); this option 
+modifiers such as C<palette> that require more data); this option
 lets you override PDL::Graphics::Gnuplot's parsing in case of irregularity.
 
-=item cdims 
+=item cdims
 
-Specifies the dimensions of of each column in this curve's tuple.  It must 
-be 0, 1, or 2.   Normally you don't need to set this for most plots; the 
+Specifies the dimensions of of each column in this curve's tuple.  It must
+be 0, 1, or 2.   Normally you don't need to set this for most plots; the
 main use is to specify that a 2-D data PDL is to be interpreted as a collection
 of 1-D columns rather than a single 2-D grid (which would be the default
 in a 3-D plot). For example:
@@ -1776,7 +1776,7 @@ Variable-size AND color-coded circles. A Gnuplot (4.4.0) bug make it necessary t
 specify the color range here
 
   gplot(cbmin => $mincolor, cbmax => $maxcolor,
-        with => 'circles', palette=>1, 
+        with => 'circles', palette=>1,
         $x, $y, $radii, $colors);
 
 =head2 3D plotting
@@ -1801,7 +1801,7 @@ Complicated 3D plot with fancy styling:
   splot(title => 'double helix',
 
         { with => 'linespoints',
-          pointsize=>'variable', 
+          pointsize=>'variable',
           pointtype=>7,
           palette=>1,
           legend => 'spiral 1' },
@@ -1830,7 +1830,7 @@ To send any plot to a file, instead of to the screen, one can simply do
 
 The C<hardcopy> option is a shorthand for the C<terminal> and
 C<output> options. The output device is chosen from the file name
-suffix.  
+suffix.
 
 If you want more (any) control over the output options (e.g. page
 size, font, etc.) then you can specify the output device using the
@@ -1853,10 +1853,10 @@ Using the object oriented mode, you could instead say:
   $w->replot();
   $w->close();
 
-Many hardcopy output terminals (such as C<pdf> and C<svg>) will not 
-dump their plot to the file unless the file is explicitly closed with a 
+Many hardcopy output terminals (such as C<pdf> and C<svg>) will not
+dump their plot to the file unless the file is explicitly closed with a
 change of output device or a call to C<reset>, C<restart>, or C<close>.
-This is because those devices support multipage output and also require 
+This is because those devices support multipage output and also require
 and end-of-file marker to close the file.
 
 =head1 Plotting examples
@@ -1876,14 +1876,14 @@ across X values from 0 to 44.
 =head2 A not-so-simple example
 
    $win = gpwin('x11');
-   $pi = 3.14159 
+   $pi = 3.14159;
    $win->plot( {with => line}, xvals(10)**2, xvals(10),
                {with => circles}, 2 * xvals(50), 2 * sin(xvals(50) * $pi / 10), xvals(50)/20
     );
 
-This plots sqrt(x) in an interesting way, and overplots some circles of varying size.  
+This plots sqrt(x) in an interesting way, and overplots some circles of varying size.
 The line plot accepts a 2-tuple, and we supply both X and Y.  The circles plot accepts
-a 3-tuple: X, Y, and R.  
+a 3-tuple: X, Y, and R.
 
 =head2 A complicated example:
 
@@ -1905,7 +1905,7 @@ a 3-tuple: X, Y, and R.
          sin($theta/3),                          # color
          { with=>'points',
            pointsize=>'variable',
-           pointtype=>5, 
+           pointtype=>5,
            palette=>0
          },
          zeroes(6),                         # x
@@ -1920,14 +1920,14 @@ piddles have a single dimension. The "cdim=>1" specifies that each column
 of data should be one-dimensional. Thus the PDL threading generates 2
 distinct curves, with varying values for x,y and identical values for
 everything else.  To label the curves differently, 2 different sets of
-curve options are given.  Omitting the "cdim" curve option would yield 
-a 201x2 grid with the "linespoints" plotstyle, rather than two separate 
+curve options are given.  Omitting the "cdim" curve option would yield
+a 201x2 grid with the "linespoints" plotstyle, rather than two separate
 curves.
 
-In addition to the threaded pair of linespoints curves, there are six 
+In addition to the threaded pair of linespoints curves, there are six
 variable size points plotted as filled squares, as a secondary curve.
 
-Plot options are passed in in two places:  as a leading hash ref, and as 
+Plot options are passed in in two places:  as a leading hash ref, and as
 a trailing hash ref.  Any other hash elements or hash refs must be curve
 options.
 
@@ -1971,7 +1971,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.006';   
+our $VERSION = '2.006';
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -1996,7 +1996,7 @@ my %gnuplotFeatures = _getGnuplotFeatures();
 # Declare the parse tables for plot and curve options.  (They're populated below).
 our($pOpt, $cOpt);
 
-# This is a magic string that's used to separate curve blocks when assembling the 
+# This is a magic string that's used to separate curve blocks when assembling the
 # plot command.
 our $cmdFence = "cmdFENCEcmd";
 
@@ -2011,7 +2011,7 @@ our $cmdFence = "cmdFENCEcmd";
 
 =pod
 
-=head2 gpwin 
+=head2 gpwin
 
 =for usage
 
@@ -2020,7 +2020,7 @@ our $cmdFence = "cmdFENCEcmd";
  $w->plot( @plot_args );
 
 
-=for ref 
+=for ref
 
 gpwin is the PDL::Graphics::Gnuplot exported constructor.  It is
 exported by default and is a synonym for "new
@@ -2034,7 +2034,7 @@ some terminal and output options (see "output").
 
 sub gpwin { return new("PDL::Graphics::Gnuplot",@_); }
 
-=pod 
+=pod
 
 =head2 new
 
@@ -2058,7 +2058,7 @@ For convenience, you can specify the output device and its options
 right here in the constructor.  Because different gnuplot devices
 accept different options, you must specify a device if you want to
 specify any device configuration options (such as window size, output
-file, text mode, or default font).  
+file, text mode, or default font).
 
 If you don't specify a device type, then the Gnuplot default device
 for your system gets used.  You can set that with an environment
@@ -2078,7 +2078,7 @@ C<output> for a description of terminal options and how to format
 them.
 
 Normally, the object connects to the command "gnuplot" in your path,
-using the C<Alien::Gnuplot> module.  If you need to specify a binary 
+using the C<Alien::Gnuplot> module.  If you need to specify a binary
 other than this default, check the C<Alien::Gnuplot> documentation.
 
 =for example
@@ -2094,14 +2094,14 @@ our $termTab;
 sub new
 {
   my $classname;
-  
+
   # DWIM if we call this like gpwin(). That usage is deprecated but tolerated.
   if(UNIVERSAL::isa('PDL::Graphics::Gnuplot',$_[0])) {
       $classname = shift;
   } else {
       $classname = "PDL::Graphics::Gnuplot";
   }
-  
+
   # Declare & bless minimal object to hold everything.
   my $this = { t0          => [gettimeofday],   # last access
 	       options     => {multiplot=>0},   # multiplot option actually holds multiplotting state flag
@@ -2116,7 +2116,7 @@ sub new
 
   # Parse and process all remaining parameters using output(), below.
   output($this, @_);
-  
+
   _logEvent($this, "startGnuplot() finished") if ($this->{options}{tee});
 
   return $this;
@@ -2127,7 +2127,7 @@ sub new
 
 =pod
 
-=head2 output 
+=head2 output
 
 =for usage
 
@@ -2144,7 +2144,7 @@ the C<$device> name, then you get the gnuplot default device (generally
 C<x11>, C<wxt>, or C<aqua>, depending on platform).
 
 You can control the output device of a PDL::Graphics::Gnuplot object on
-the fly.  That is useful, for example, to replot several versions of the 
+the fly.  That is useful, for example, to replot several versions of the
 same plot to different output devices (interactive and hardcopy).
 
 Gnuplot interprets terminal options differently per device.
@@ -2177,8 +2177,8 @@ treated as a setup variable and parsed with the setup/terminal options here
 in the constructor.
 
 If you don't specify an output device, plots will go to sequentially-numbered
-files of the form C<Plot-E<lt>nE<gt>.E<lt>sufE<gt>> in your current working 
-directory.  In that case, PDL::Graphics::Gnuplot will report (on STDERR) 
+files of the form C<Plot-E<lt>nE<gt>.E<lt>sufE<gt>> in your current working
+directory.  In that case, PDL::Graphics::Gnuplot will report (on STDERR)
 where the plot ended up.
 
 =item enhanced
@@ -2186,16 +2186,16 @@ where the plot ended up.
 This is a flag that indicates whether to enable Gnuplot's enhanced text
 processing (e.g. for superscripts and subscripts).  Set it to a false
 value for plain text, to a true value for enhanced text (which includes
-LaTeX-like markup for super/sub scripts and fonts). 
+LaTeX-like markup for super/sub scripts and fonts).
 
 
 =back
 
-For a brief description of the terminal options that any one device supports, 
+For a brief description of the terminal options that any one device supports,
 you can run PDL::Graphics::Gnuplot::terminfo().
 
 As with plot options, terminal options can be abbreviated to the shortest
-unique string -- so (e.g.) "size" can generally be abbreviated "si" and 
+unique string -- so (e.g.) "size" can generally be abbreviated "si" and
 "monochrome" can be abbreviated "mono" or "mo".
 
 =cut
@@ -2213,9 +2213,9 @@ sub output {
 	options($this,$poh);
     }
 
-    # If there are no arguments, we're not setting the terminal - so we need to 
+    # If there are no arguments, we're not setting the terminal - so we need to
     # ask gnuplot what it thinks the terminal is.  Then we run it through the usual
-    # setting logic, to make sure we've got our terminal options parsing and 
+    # setting logic, to make sure we've got our terminal options parsing and
     # other switches set right (e.g. does the default terminal support mouse input?)
     my $terminal = "";
     unless(@_ && (@_ % 2)) {
@@ -2227,7 +2227,7 @@ sub output {
 	    unshift(@_, $2);
 	}
     }
-    
+
     if(@_) {
 	# Check that, if there is at least one more argument, it is recognizable as a terminal
 	my $terminal;
@@ -2245,7 +2245,7 @@ PDL::Graphics::Gnuplot: Your gnuplot has terminal '$terminal' but it is not supp
         $terminal: $this->{unknown_terms}->{$terminal}
 FOO
 
-	    } 
+	    }
 	    elsif(exists($termTab->{$terminal})) {
 		$s = <<"FOO";
 PDL::Graphics::Gnuplot: your gnuplot appears not to support the terminal '$terminal'.
@@ -2264,22 +2264,22 @@ FOO
 	    $s .= "\nYou can use the 'terminfo' method for a list of available terminals.\n\n";
 	    barf($s);
 	}
-	
+
 	# Generate abbrevs on first invokation for each terminal type.
 	unless($termTab->{$terminal}->{opt}->[1]) {
 	    $termTab->{$terminal}->{opt}->[1] = _gen_abbrev_list(keys %{$termTab->{$terminal}->{opt}[0]});
 	    $termTab->{$terminal}->{opt}->[0]->{__unit__} = ['s','-']; # Hack so we can stash the unit string in there later.
 	}
-	
+
 	my $termOptions = {};
-	
+
 	# parse "terminal" options
 	if($termTab->{$terminal} && $termTab->{$terminal}->{opt}) {
 
 	    # Stuff the default output filename into the options hash (will be overwritten if
 	    # the user specified an "output" option)
 	    $termOptions->{'output'} = $termTab->{$terminal}->{default_output};
-	    
+
 	    # Stuff the default size unit into the options hash, so that the parser has access to it.
 	    $termOptions->{'__unit__'} = $termTab->{$terminal}->{unit};
 
@@ -2293,7 +2293,7 @@ FOO
 	    }
 
 	    # Default the 'dashed' option to 1.
-	    if(exists($termTab->{$terminal}->{opt}->[0]->{dashed})  and  
+	    if(exists($termTab->{$terminal}->{opt}->[0]->{dashed})  and
 	       !defined($termOptions->{dashed}) ) {
 		$termOptions->{dashed} = 1;
 	    }
@@ -2301,9 +2301,9 @@ FOO
 	    # Although 'output' is strictly speaking a terminal option, gnuplot treats it as a plot option -- so
 	    # we copy it into the main plot options hash to be emitted as part of the plot operation.
 	    $this->{options}->{output} = $termOptions->{output};
-	    $this->{wait} = $termOptions->{wait};  
+	    $this->{wait} = $termOptions->{wait};
 	    delete $termOptions->{output};
-	    
+
 	    ## Emit the terminal options line for this terminal.
 	    $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
 	    $this->{terminal} = $terminal;
@@ -2311,7 +2311,7 @@ FOO
 	} else {
 	    barf "PDL::Graphics::Gnuplot doesn't support the device '$terminal', sorry\n\n     Run PDL::Graphics::Gnuplot::terminfo() for a list of devices.\n\n";
 	}
-    }        
+    }
 
     return $this;
 }
@@ -2330,7 +2330,7 @@ sub DESTROY
 
 =pod
 
-=head2 close 
+=head2 close
 
 =for usage
 
@@ -2360,7 +2360,7 @@ sub close
 
 =pod
 
-=head2 restart 
+=head2 restart
 
 =for usage
 
@@ -2371,7 +2371,7 @@ sub close
 
 Restart the gnuplot backend for a plot object
 
-Occasionally the gnuplot backend can get into an unknown state.  
+Occasionally the gnuplot backend can get into an unknown state.
 C<restart> kills the gnuplot backend and starts a new one, preserving
 state in the object.  (i.e. C<replot> and similar functions work even
 with the new subprocess).
@@ -2390,9 +2390,9 @@ sub restart {
 	# We restart the process when the dump option is switched on or off.
 	# Since _killGnuplot uses _printGnuplotPipe, we have
 	# to hold the old state briefly while the old process is killed.
-	local($this->{options}->{dump}) = 
+	local($this->{options}->{dump}) =
 	    ($dumpswitch ? $this->{dumping} : $localdumpvar);
-	
+
 	_killGnuplot($this);
     }
     # When starting Gnuplot we use the {options}->{dump} flag as it should be.
@@ -2408,10 +2408,10 @@ sub restart {
 
 =pod
 
-=head2 reset 
+=head2 reset
 
 =for usage
-   
+
     $w->reset()
 
 =for ref
@@ -2426,6 +2426,7 @@ gnuplot.
 
 
 =cut
+
 *greset = \*reset;
 sub reset {
     my $this = _obj_or_global(\@_);
@@ -2441,7 +2442,7 @@ sub reset {
     }
     _printGnuplotPipe($this, "main", "reset\n");
     $checkpointMessage = _checkpoint($this, "main");
-    
+
     $this->{replottable} = 0;
     delete $this->{last_plot};
     return $this;
@@ -2449,13 +2450,13 @@ sub reset {
 
 
 ##############################
-# 
+#
 # Options setting routines
-# 
+#
 
 =pod
 
-=head2 options  
+=head2 options
 
 =for usage
 
@@ -2466,11 +2467,11 @@ sub reset {
 =for ref
 
 Set/get persistent plot options for a plot object
-  
+
 The options method parses plot options into a gnuplot object on a
 cumulative basis, and returns the resultant options hash.
 
-If called as a sub rather than a method, options() changes the 
+If called as a sub rather than a method, options() changes the
 global gnuplot object.
 
 =cut
@@ -2489,13 +2490,13 @@ sub options {
 ######################################################################
 ######################################################################
 #
-# plot - the main API function to generate a plot. 
+# plot - the main API function to generate a plot.
 
 =pod
 
-=head2 gplot 
+=head2 gplot
 
-=for ref 
+=for ref
 
 Plot method exported by default (synonym for "PDL::Graphics::Gnuplot::plot")
 
@@ -2508,7 +2509,7 @@ This is the main plotting routine in PDL::Graphics::Gnuplot.
 Each C<plot()> call creates a new plot from whole cloth, either creating
 or overwriting the output for that device.
 
-If you want to add features to an existing plot, use C<replot>.  
+If you want to add features to an existing plot, use C<replot>.
 
 C<plot()> understands the PDL bad value mechanism.  Bad values are omitted
 from the plot.
@@ -2533,7 +2534,7 @@ All of the extensive array of gnuplot plot styles are supported, including image
 
 See main POD for PDL::Graphics::Gnuplot for details.
 
-You can pass plot options into plot as either a leading or trailing hash ref, or both. 
+You can pass plot options into plot as either a leading or trailing hash ref, or both.
 If you pass both, the trailing hash ref is parsed last and overrides the leading hash.
 
 For debugging and curiosity purposes, the last plot command issued to gnuplot
@@ -2557,7 +2558,7 @@ sub plot
     # This is additionally complicated by the desire to make these *temporary*
     # options -- so we don't accumulate the options in the main object options
     # hash.
-    # 
+    #
     # The temporariness is accomplished by localizing $this->{options} and replacing
     # it with either itself or the parsed copy of itself.
     #
@@ -2578,7 +2579,7 @@ sub plot
 		($kk,$knum) = eval { _expand_abbrev($_[0], $pOpt->[1], $pOpt->[2]) };
 
 		if(!$@) {
-		    # It's a plot option and not a curve option -- pull it, and its argument, from the arg list and put them 
+		    # It's a plot option and not a curve option -- pull it, and its argument, from the arg list and put them
 		    # into $dwim_plot_options.
 		    push(@{$dwim_plot_options}, shift);
 		    push(@{$dwim_plot_options}, shift);
@@ -2645,8 +2646,8 @@ sub plot
 	}
     }
 
-    #  Localize the options hash for uniform reference.  Now the 
-    #  object options has the full parsed options, but it is fully localized -- 
+    #  Localize the options hash for uniform reference.  Now the
+    #  object options has the full parsed options, but it is fully localized --
     #  it will revert to its pre-call state when we exit this block.
     local($this->{options}) = $o;
     local($this->{tmp_options}) = {};
@@ -2656,7 +2657,7 @@ sub plot
     $this->{options}->{palette} = [] unless($this->{options}->{palette});
 
     # If we're replotting, then any remaining arguments need to be put
-    # *after* the arguments that we used for the last plot.  
+    # *after* the arguments that we used for the last plot.
     if($this->{replotting}) {
 	unless( $_[0]->$_isa('PDL') ) {
 	    @_ = (@{$this->{last_plot}->{args}},@_);
@@ -2668,13 +2669,13 @@ sub plot
 
     ##############################
     # Set binary mode default. This is a bit complex since
-    # we sometimes default to binary and sometimes to ascii. 
+    # we sometimes default to binary and sometimes to ascii.
     local($this->{binary_flag_defaulted});
 
     unless(defined $this->{options}->{binary}) {
 	# The user didn't explicitly set binary or non-binary mode.  Try to guess.
 	# Also, under Microsoft Windows binary mode seems to be dicey (Juegen Mueck's hang
-	# test), so we default to ascii.  
+	# test), so we default to ascii.
 	if($this->{early_gnuplot} or $MS_io_braindamage ) {
 	    # Early gnuplot - ASCII mode only (by default)
 	    $this->{options}->{binary} = 0;
@@ -2694,16 +2695,16 @@ sub plot
     } else {
 	$this->{binary_flag_defaulted} = 0;
     }
-    
+
     # Store the current arguments into the state array for next time.
     # (This has to be done here because plot options need to be stripped out first).
-    # 
+    #
     # Because of all the local-variable shenanigans with overlain configs for this and that,
     # we unfortunately have to make a deep copy of the plot options for the last_plot.
     # The variables we deliberately do *not* deep copy, in case someone wants to use the
     # modify-and-replot trick that is in the gnuplot documentation.  (That trick uses
     # file modification, but in-place modification of PDLs "feels right" too)
-    # 
+    #
     # We don't store the arguments if we're carrying the "ephemeral" flag - that is
     # so we can do ephemeral markup of plots, without adding to the replot list.
     unless($this->{ephemeral}) {
@@ -2713,46 +2714,46 @@ sub plot
 	    delete $this->{last_plot}->{options}->{binary};
 	}
     }
-	
+
 
     # Now parse the rest of the arguments into chunks.
     # parseArgs is a nested sub at the bottom of this one.
     my($chunks, $Ncurves) = parseArgs($this, @_);
-    
+
     if( scalar @$chunks == 0)
     { barf "plot() was not given any data"; }
-    
+
     ##############################
-    # 
+    #
     # Now generate the plot command.
     # This is complicated by the need to generate two separate commands --
     # the main command (which goes into $plotcmd), and a separate test command
     # that is intended to check syntax (and goes into $testcmd).
-    # 
-    # We start by emitting the options string (and re-emitting it with the dumb 
-    # terminal, for the test command), then emitting a mock-up of each 
+    #
+    # We start by emitting the options string (and re-emitting it with the dumb
+    # terminal, for the test command), then emitting a mock-up of each
     # chunk's plot/curve arguments into a single "plot" command line.  This first
     # line doesn't contain the data specifier, only a fence string.
-    # 
-    # Then we cut up the command line into pieces at the fences, so that we can assemble the 
+    #
+    # Then we cut up the command line into pieces at the fences, so that we can assemble the
     # data specifiers and build a complete command line.
     #
-    
+
     ##########
-    # Figure per-curve binary/ASCII mode, and fix up some of the option defaults based on context.  
-    # In particular, gnuplot 4.4-4.6 don't handle image scaling correctly, so unless an xrange/yrange 
-    # is specified we have to take care of it ourselves.  
-    # 
-    # This is complicated in the case when there are multiple chunks, one of which is an image. 
+    # Figure per-curve binary/ASCII mode, and fix up some of the option defaults based on context.
+    # In particular, gnuplot 4.4-4.6 don't handle image scaling correctly, so unless an xrange/yrange
+    # is specified we have to take care of it ourselves.
+    #
+    # This is complicated in the case when there are multiple chunks, one of which is an image.
     # We can't set an overall range until we scan the whole collection of chunks.
-    
+
     my ($cbmin,$cbmax) = (undef, undef);
     my $im_ranges = {};
     my $active_axes = {};
     my @axes_by_chunkno = ();
 
     for my $i(0..$#$chunks) {
-	
+
 	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
 	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $this->{options}->{binary});
 
@@ -2794,10 +2795,10 @@ sub plot
 
 	    my $bolus = $chunks->[$i]->{data}->[0]->slice($slice);
 
-	    # Convert NaNs to bad if possible.  This is slow -- 
+	    # Convert NaNs to bad if possible.  This is slow --
 	    # need to fix the minmax &c. operators in PDL to ignore NaNs on command;
 	    # currently the default behavior is that NaN poisons the whole min/max
-	    # operation.  
+	    # operation.
 	    my ($cmin, $cmax);
 	    ($cmin,$cmax) = $bolus->where(isfinite($bolus))->minmax;
 
@@ -2806,8 +2807,8 @@ sub plot
 	}
 
 	# Do image ranging.
-	# This is necessary to tighten up the boundaries around images -- gnuplot ranging 
-	# has a wart in that case, where image boundaries are extended to the nearest round 
+	# This is necessary to tighten up the boundaries around images -- gnuplot ranging
+	# has a wart in that case, where image boundaries are extended to the nearest round
 	# number of pixels by default.
 	#
 	# We implement that here by accumulating the largest extent covered by images.
@@ -2825,7 +2826,7 @@ sub plot
 
 	$im_ranges->{$xax} = [undef, undef] unless(defined($im_ranges->{$xax}));
 	$im_ranges->{$xax}->[0] = $z->[0]  if( !defined( $im_ranges->{$xax}->[0] ) or $z->[0] < $im_ranges->{$xax}->[0] );
-	$im_ranges->{$xax}->[1] = $z->[1]  if( !defined( $im_ranges->{$xax}->[1] ) or $z->[1] > $im_ranges->{$xax}->[1] ); 
+	$im_ranges->{$xax}->[1] = $z->[1]  if( !defined( $im_ranges->{$xax}->[1] ) or $z->[1] > $im_ranges->{$xax}->[1] );
 
 	if($chunks->[$i]->{ArrayRec} eq 'array') {
 	    $z= [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
@@ -2847,7 +2848,7 @@ sub plot
     # This is complicated (of course) by the fact that the user can omit the ordinate - so we have
     # to detect the missing-ordinate case and use the dimension instead.
     #
-    # We don't actually keep the non-image range limits, since we want to fall back to gnuplot's 
+    # We don't actually keep the non-image range limits, since we want to fall back to gnuplot's
     # axis estimator in the case where a non-image curve is setting the size of the axis.
 
     if( 0 + (keys %$im_ranges) ) {
@@ -2872,29 +2873,29 @@ sub plot
 		$cxr = [$chunks->[$i]->{data}->[0]->minmax];
 		$cyr = [$chunks->[$i]->{data}->[1]->minmax];
 	    }
-	    
+
 	    my $xax = $axes_by_chunkno[$i]->[0];
 	    my $yax = $axes_by_chunkno[$i]->[1];
-	    
+
 	    $ranges->{$xax} = [undef,undef] unless defined($ranges->{$xax});
 	    $ranges->{$xax}->[0] = $cxr->[0] if( !defined( $ranges->{$xax}->[0] ) or $cxr->[0] < $ranges->{$xax}->[0]);
 	    $ranges->{$xax}->[1] = $cxr->[1] if( !defined( $ranges->{$xax}->[1] ) or $cxr->[1] > $ranges->{$xax}->[1]);
-	    
+
 	    $ranges->{$yax} = [undef,undef] unless defined($ranges->{$yax});
 	    $ranges->{$yax}->[0] = $cyr->[0] if( !defined( $ranges->{$yax}->[0] ) or $cyr->[0] < $ranges->{$yax}->[0]);
 	    $ranges->{$yax}->[1] = $cyr->[1] if( !defined( $ranges->{$yax}->[1] ) or $cyr->[1] > $ranges->{$yax}->[1]);
 	}
 
-	# Having accumulated the max/min values for non-image plots on this axis, 
+	# Having accumulated the max/min values for non-image plots on this axis,
 	# if one of them goes past the image, then void the im_range for that axis
 	# in that direction (to allow gnuplot to autoscale that axis in that direction).
 	for my $ax(keys %$im_ranges) {
 	    if(defined($ranges->{$ax})) {
-		$im_ranges->{$ax}->[0] = undef if( defined($im_ranges->{$ax}->[0]) and 
-						   defined($ranges->{$ax}->[0])    and 
+		$im_ranges->{$ax}->[0] = undef if( defined($im_ranges->{$ax}->[0]) and
+						   defined($ranges->{$ax}->[0])    and
 						   $ranges->{$ax}->[0] < $im_ranges->{$ax}->[0] );
 
-		$im_ranges->{$ax}->[1] = undef if( defined($im_ranges->{$ax}->[1]) and 
+		$im_ranges->{$ax}->[1] = undef if( defined($im_ranges->{$ax}->[1]) and
 						   defined($ranges->{$ax}->[1]) and
 						   $ranges->{$ax}->[1] > $im_ranges->{$ax}->[1] );
 	    }
@@ -2903,19 +2904,19 @@ sub plot
 
 
     ##############################
-    # Fix up cbrange if necessary. 
+    # Fix up cbrange if necessary.
     if( defined($cbmin)   or   defined($cbmax) ) {
 	$cbmin = undef if(defined($cbmin) and "$cbmin" =~ m/nan/i);
 	$cbmax = undef if(defined($cbmax) and "$cbmax" =~ m/nan/i);
-	    
+
 	if($cbmin==$cbmax) {
 	    $cbmin -= 0.1;
 	    $cbmax += 0.1;
 	}
 
 	$this->{tmp_options}->{cbrange} = [$cbmin, $cbmax];
-    } 
-    
+    }
+
     ##############################
     # Now reconcile all of the <axis>range stuff for the plot itself,
     # and set it as a temporary plot option.
@@ -2925,7 +2926,7 @@ sub plot
     # (Maybe it would have been better to just submit a gnuplot patch...)
     for my $k(keys %$im_ranges) {
 	my $rkey = $k."range";
-	
+
 	# Calculate the widest-range merge of any supplied plot options and curve options
 	# for this axis.
 	my $po_range = _def( $this->{options}->{$rkey}, [undef,undef] );
@@ -2948,7 +2949,7 @@ sub plot
     ##############################
     # If we're working with time data, and timefmt isn't set, then default it to '%s'.
     $this->{options}->{timefmt} = '%s'
-	if ( !defined($this->{options}->{timefmt}) and  
+	if ( !defined($this->{options}->{timefmt}) and
 	     grep { _def($this->{options}->{$_."data"}, "") =~ m/^time/i }  qw/x x2 y y2 z cb/ );
 
     ##############################
@@ -2959,13 +2960,13 @@ sub plot
 	my $ax2 = $ax.'2';
 	my $axtics = $ax.'tics';
 	my $ax2tics = $ax2.'tics';
-	
+
 	if($active_axes->{$ax2}) {
 	    # Turn on the axis2 tick marks
 	    unless( exists($this->{options}->{$ax2tics} ) ) {
 		$this->{tmp_options}->{$ax2tics} = ' ';
 	    }
-	   
+
 	    # Turn off the axis1 mirror marks by default.
 	    # Do this with a 'topcmds' command since it will be overridden
 	    # by whatever comes below (and axis1 ticks are on by default anyway,
@@ -2975,11 +2976,11 @@ sub plot
 	    $this->{options}->{topcmds} = $tc;
 	}
     }
-	
-    
+
+
     ##########
     # Merge in any temporary options that have been set by the argument parsing.
-    # (e.g. prefrobnicators can set plot options via $this->{tmp_options}).  This is OK since 
+    # (e.g. prefrobnicators can set plot options via $this->{tmp_options}).  This is OK since
     # we've already localized $this->{options}.
     if(exists($this->{tmp_options})) {
 	for my $k(keys %{$this->{tmp_options}}) {
@@ -2988,7 +2989,7 @@ sub plot
     }
 
     ##########
-    # Emit the plot options lines that go above the plot command.  We do this 
+    # Emit the plot options lines that go above the plot command.  We do this
     # twice -- once for the main plot command and once for the syntax test.
     my $plotOptionsString = "";
 
@@ -3018,11 +3019,11 @@ POS
     }
 
     ##########
-    # Generate the plot command with the fences in it instead of data specifiers. 
+    # Generate the plot command with the fences in it instead of data specifiers.
     # (The fences are emitted in _emitOpts and contained in the global $cmdFence)
-    my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") . 
-	join( ", ", 
-	      map { 
+    my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") .
+	join( ", ",
+	      map {
 		  _emitOpts($chunks->[$_]->{options}, $cOpt, $this);
 	      } (0..$#$chunks)
 	);
@@ -3050,7 +3051,7 @@ POS
 
     for my $i(0..$#plotcmds){
 	my($pchunk, $tchunk);
-	
+
 	if( $chunks->[$i]->{cdims} == 2 ) {
 	    # It's an image -- always use binary to push the image out.
 
@@ -3060,7 +3061,7 @@ POS
 		sprintf(' "-" binary %s=(%s) format="%s" %s',
 			$chunks->[$i]->{ArrayRec},
 			$_,
-			$fstr, 
+			$fstr,
 			$plotcmds[$i]);
 	    } ( join(",", ($chunks->[$i]->{data}->[0]->slice("(0)")->dims)),
 		join(",", (("1") x ($chunks->[$i]->{data}->[0]->ndims - 1)))
@@ -3070,27 +3071,27 @@ POS
 
 	} else {
 	    # It's a non-image plot.  Calculate whether binary or ASCII output.
-	    # First, check the per-chunk flag (if set).  If it's not, then 
+	    # First, check the per-chunk flag (if set).  If it's not, then
 	    # use the global flag.
 
 	    if( $chunks->[$i]->{binaryCurveFlag} ) {
 		my $fstr = "%double" x $chunks->[$i]->{tuplesize};
 		my $first = $chunks->[$i]->{data}->[0];
 		# The specifiers are identical, except that one gets a length of 1 and the other gets
-		# the correct length.   The map statement ensures the main and test cmd get identical 
+		# the correct length.   The map statement ensures the main and test cmd get identical
 		# sprintf templates.
 		($pchunk, $tchunk) = map {
 		    sprintf(" '-' binary %s=(%d) format=\"%s\" %s",
 			    $chunks->[$i]->{ArrayRec},
-			    $_, 
-			    $fstr, 
+			    $_,
+			    $fstr,
 			    $plotcmds[$i]);
 		} (  ((ref($first) eq 'ARRAY') ? 0+@{$first} : $first->dim(0))  , 1);
-		
-		# test data is a string containing the data to send -- just garbage. Use '.' to aid 
+
+		# test data is a string containing the data to send -- just garbage. Use '.' to aid
 		# byte counting in the test string.
 		$chunks->[$i]->{testdata} = $testdataunit_binary x ($chunks->[$i]->{tuplesize});
-	    } else {		
+	    } else {
 		# ASCII transfer has been specified - plot command is easier, but the data are in ASCII.
 		$pchunk = $tchunk =   " '-' ".$plotcmds[$i];
 		$chunks->[$i]->{testdata} = " 1 " x ($chunks->[$i]->{tuplesize}) . "\ne\n";
@@ -3101,7 +3102,7 @@ POS
 	$testcmd .= $tchunk if($check_syntax);
 
     }
-	
+
     $plotcmd .= "\n";
 
 
@@ -3135,7 +3136,7 @@ POS
     if($check_syntax) {
 	_printGnuplotPipe( $this, "syntax", $plotOptionsString.$testcmd );
 	$checkpointMessage = _checkpoint($this,"syntax");
-	
+
 	if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
 	{
 	    $checkpointMessage =~ s/$print_checkpoint//;
@@ -3145,7 +3146,7 @@ POS
 
     ##############################
     ##############################
-    ##### Send the PlotOptionsString 
+    ##### Send the PlotOptionsString
     _printGnuplotPipe( $this, "main", $plotOptionsString);
     my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
 
@@ -3160,7 +3161,7 @@ POS
 	    # error.  So we don't barf, we only warn. Blech.
 	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter during plot setup:\n$optionsWarnings\n\n";
 	} else {
-	    # Used to barf here, but now we just issue an announcement, since 
+	    # Used to barf here, but now we just issue an announcement, since
 	    # some messages are warnings (rather than errors).
 	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
 	}
@@ -3189,7 +3190,7 @@ POS
 		}
 	    }
 	}
-	
+
 	if($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}->[0]->double->sever;
@@ -3214,20 +3215,20 @@ POS
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
 	    # a line with just "e".
 
-	    # Defining the emitter here lets me keep context inside it instead of breaking it 
+	    # Defining the emitter here lets me keep context inside it instead of breaking it
 	    # out, which would probably be a better way to do it.
 
 	    my $emitter;
 	    if($MS_io_braindamage) {
 		$emitter = sub {
 		    my @lines = split /\n/, shift;
-		    my $byte; 
+		    my $byte;
 		    my $pipe = $this->{"err-main"};
-		    
+
 		    for my $line(@lines) {
 			_printGnuplotPipe($this, "main", $line."\n", {data => 1 });
 			unless($this->{dumping}) {
-			    do { 
+			    do {
 				sysread $pipe, $byte, 1;
 				if( $byte eq \004 or $byte eq \000 ) {
 				    $byte = undef;
@@ -3259,7 +3260,7 @@ POS
 		    $last_plotcmd .= $s;
 		    $this->{last_plotcmd} .= $s;
 		}
-		
+
 		# Create a set of ASCII lines.  If any of the elements of a given row are NaN or BAD, blank that line.
 		my $outbuf = join("\n", map { ($_->isfinite->all) ? join(" ", $_->list) : "" } $p->dog) . "\n";
 
@@ -3289,7 +3290,7 @@ POS
 	    }
 	}
     }
-	
+
     my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
     if($plotWarnings) {
 	if($MS_io_braindamage) {
@@ -3302,7 +3303,7 @@ POS
     }
 
     ##############################
-    # Finally, finally ...  send any required cleanup commands.  This 
+    # Finally, finally ...  send any required cleanup commands.  This
     # starts with {bottomcmds} and includes several things we don't want to persist,
     # but that do by default.
 
@@ -3316,7 +3317,7 @@ POS
 		);
 	}
 
-    } 
+    }
 
     # Mark the gnuplot as replottable - we now have a full set of plot parameters stashed away.
     $this->{replottable} = 1;
@@ -3330,7 +3331,7 @@ POS
 	    barf "Gnuplot error: \"$checkpointMessage\" after syntax-checking cleanup cmd \"$cleanup_cmd\"\n";
 	}
     }
-    
+
     $PDL::Graphics::Gnuplot::last_plotcmd .= $cleanup_cmd;
     $this->{last_plotcmd} .= $cleanup_cmd;
     _printGnuplotPipe($this, "main", $cleanup_cmd);
@@ -3344,31 +3345,31 @@ POS
 	    barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n";
 	}
     }
-    
+
     # read and report any warnings that happened during the plot
 
     return $plotWarnings;
 
     #####################
-    # 
+    #
     # parseArgs - helper sub nested inside plot
-    # 
-    # This breaks out the parsing of the curve arguments. 
-    # 
-    # Each chunk of data to plot appears in the argument list as 
-    #      plot(options, options, ..., data, data, ....). 
-    # The options are a hashref or an inline hash and also serve as delimiters between 
-    # chunks of data. 
+    #
+    # This breaks out the parsing of the curve arguments.
+    #
+    # Each chunk of data to plot appears in the argument list as
+    #      plot(options, options, ..., data, data, ....).
+    # The options are a hashref or an inline hash and also serve as delimiters between
+    # chunks of data.
     #
     # Curve options, with the exception of "legend", are accumulated - each set
     # is used as the default value of the same option for the next one.
-    # 
-    # The data arguments are one-argument-per-tuple-element, but higher 
-    # dims can be used for threading.  Plot elements that are to be treated 
-    # as 1-D (non-image) data can be threaded over -- so, e.g., you can pass in 
+    #
+    # The data arguments are one-argument-per-tuple-element, but higher
+    # dims can be used for threading.  Plot elements that are to be treated
+    # as 1-D (non-image) data can be threaded over -- so, e.g., you can pass in
     # a 50 PDL (as X) and a 50x3 PDL (as Y) and you'll get three separate plots with
-    # the same options.  As a special case, you can pass an array ref into the 
-    # "legend" or "color" options in that case, and thereby specify a different legend/color 
+    # the same options.  As a special case, you can pass an array ref into the
+    # "legend" or "color" options in that case, and thereby specify a different legend/color
     # for each of those threaded plots.
     #
     sub parseArgs
@@ -3379,17 +3380,17 @@ POS
 	# Parse curve option / data chunks.
 
 	my @args = @_;
-	
+
 	my $is3d = (defined $this->{options}->{'3d'}) ? $this->{options}->{'3d'} : 0;
 	my $ND = (('2D','3D')[!!$is3d]);  # mainly for error messages
 	my $spec_legends = 0;
-	
+
 	# options were once cumulative.  The 'with' specifier is still kept, but most
 	# of that functionality is not present as of 2.003.
 	# We keep the lastOptions accumulator around just in case it comes in handy for
 	# a little more context.
 	my $lastOptions = {};
-	
+
 	my @chunks;
 	my $Ncurves  = 0;
 	my $argIndex = 0;
@@ -3399,9 +3400,9 @@ POS
 	    # First, I find and parse the options in this chunk
 	    # Array refs are allowed in some curve options, but only as values of key/value
 	    # pairs -- so any list refs glommed in with a bunch of other refs are data.
-	    my $nextDataIdx = first { (ref $args[$_] ) and 
-					  (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or 
-					     $args[$_]->$_isa('PDL') 
+	    my $nextDataIdx = first { (ref $args[$_] ) and
+					  (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or
+					     $args[$_]->$_isa('PDL')
 					     )
 	    } $argIndex..$#args;
 
@@ -3412,7 +3413,7 @@ POS
 
 	    my %chunk;
 	    eval {
-		$chunk{options} = dclone( 
+		$chunk{options} = dclone(
 		    _parseOptHash( $lastWith, $cOpt, @args[$argIndex..$nextDataIdx-1] )
 		    );
 	    };
@@ -3427,7 +3428,7 @@ POS
 
 	    # Find the data for this chunk...
 	    $argIndex         = $nextDataIdx;
-	    my $nextOptionIdx = first { !(ref $args[$_]) or 
+	    my $nextOptionIdx = first { !(ref $args[$_]) or
 					!( (ref $args[$_]) eq 'ARRAY' or
 					    $args[$_]->$_isa('PDL')
 					 )
@@ -3452,7 +3453,7 @@ POS
 	    if(@with > 1) {
 		print STDERR q{
 WARNING: deprecated usage of complex 'with' detected.  Use a simple 'with'
-specifier and curve options instead.  This will fail in future releases of 
+specifier and curve options instead.  This will fail in future releases of
 PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 } unless($ENV{'PGG_DEP'});
 	    }
@@ -3474,12 +3475,12 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 
 	    my $psProps = $plotStyleProps->{$with[0]};
 
-	    # Extract the data objects from the argument list.  
+	    # Extract the data objects from the argument list.
 	    # They should all be either PDLs or array refs.
 	    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1] ;
 
 
-	    # Some plot styles (currently just "fits") are implemented via a 
+	    # Some plot styles (currently just "fits") are implemented via a
 	    # prefrobnicator that processes the data.
 	    if( $psProps->[ 4 ] ) {
 		@dataPiddles = &{ $psProps->[4] }( \@with, $this, \%chunk, @dataPiddles );
@@ -3489,8 +3490,8 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 
 	    # Image flag and base tuplesizes allowed for this plot style...
 	    my $tupleSizes     = $psProps->[ !!$is3d ];  # index is 0 or 1 depending on truth of 3D flag
-	    my $imgFlag        = $psProps->[ 2 ];        
-	    $chunk{binaryWith} = $psProps->[ 3 ]; 
+	    my $imgFlag        = $psProps->[ 2 ];
+	    $chunk{binaryWith} = $psProps->[ 3 ];
 
 	    # If the user wanted binary but this style requires ASCII (or vice
 	    # versa) I throw a warning
@@ -3524,14 +3525,14 @@ EOF
 	    # the real one is the second line that scans through curve options.
 	    my $ExtraColumns = 0;
 	    map { $ExtraColumns++ } grep /(palette|variable)/,map { split /\s+/ } @with;
-	    for my $k( qw/linecolor textcolor fillstyle pointsize linewidth/ ) { 
+	    for my $k( qw/linecolor textcolor fillstyle pointsize linewidth/ ) {
 		my $v = $chunk{options}{$k};
 		next unless defined($v);
 		my $s = (ref $v eq 'ARRAY') ? join(" ",@$v) : $v;
 		$ExtraColumns++ if($s =~ m/palette|variable/);
 	    }
 	    $ExtraColumns++ if($chunk{options}{palette});
-	    
+
 	    ##############################
 	    # Figure out what size of tuple we have, and check it against the tuple sizes we can take...
 	    my $NdataPiddles = @dataPiddles;
@@ -3547,8 +3548,8 @@ EOF
 
 
 	    if( @tuplematch ) {
-		# Tuple sizes that require autogenerated dimensions require 'array' in binary mode; 
-		# all others reqire 'record' in binary mode.   Note that in ascii mode it's slightly 
+		# Tuple sizes that require autogenerated dimensions require 'array' in binary mode;
+		# all others reqire 'record' in binary mode.   Note that in ascii mode it's slightly
 		# different -- an additional "using" column (or two) is needed (see below).
 		$chunk{ArrayRec} = ($tuplematch[0] < 0) ? 'array' : 'record';
 	    } else {
@@ -3590,8 +3591,8 @@ EOF
 	    }
 
 	    ##############################
-	    # A little aside:  streamline the common optimization case -- 
-	    # if the user specified "image" but handed in an RGB or RGBA image, 
+	    # A little aside:  streamline the common optimization case --
+	    # if the user specified "image" but handed in an RGB or RGBA image,
 	    # bust it up into components and update the 'with' accordingly.
 	    if( $cdims==2 ) {
 		if($chunk{options}->{with}->[0] eq 'image') {
@@ -3614,25 +3615,25 @@ EOF
 	    $chunk{cdims} = $cdims;
 
 	    $chunk{tuplesize} = @dataPiddles;
-	    
+
 	    # Get the threading dims right
 	    @dataPiddles = matchDims( @dataPiddles );
-	    
+
 	    ##############################
 	    # Make sure there is a using spec, in case one wasn't given.
 	    # If we have one implicit dim in ASCII, we need a different using spec
 	    # (blech).  If we have implicit dims in 3-D, imgFlag is set (see just above),
 	    # and we will be sending the data in binary anyway (see the emission code in plot itself).
 	    unless(exists($chunk{options}->{using})) {
-		if( 
-		    defined($this->{options}->{binary}) and !$this->{options}->{binary} and 
+		if(
+		    defined($this->{options}->{binary}) and !$this->{options}->{binary} and
 		    !$imgFlag and
 		    $chunk{ArrayRec} eq 'array'
 		    ){
 		    # ASCII mode, not an image.  Add the requisite implicit columns.
 		    if($is3d) {
 			# Two implicit columns.  The first is column 0, the second is all zeroes since
-			# we'd have to be sending an image to make it otherwise.  We sleaze up the 
+			# we'd have to be sending an image to make it otherwise.  We sleaze up the
 			# y=0 column by multipling column 0 by 0.
 			$chunk{options}->{using} = join(":",0,'($0*0)',1..$chunk{tuplesize});
 		    } else {
@@ -3648,7 +3649,7 @@ EOF
 	    }
 
 
-	    # Check number of lines threaded into this tupleset; make sure everything 
+	    # Check number of lines threaded into this tupleset; make sure everything
 	    # is consistent...
 	    my $ncurves;
 
@@ -3658,7 +3659,7 @@ EOF
 		}
 	    }
 
-	    # For the image case glom everything together into one 3-dimensional PDL, 
+	    # For the image case glom everything together into one 3-dimensional PDL,
 	    # pre-inverted so that the 0 dim runs across column.
 	    if($cdims==2) {
 		# Surfaces never get a label unless one is explicitly set
@@ -3691,7 +3692,7 @@ EOF
 
 	    } elsif( $dataPiddles[0]->$_isa('PDL') ) {
 		# Non-image case: check that the legend count agrees with the
-		# number of curves we found, and break up compound chunks (with multiple 
+		# number of curves we found, and break up compound chunks (with multiple
 		# curves) into separate chunks of one curve each.
 
 		$ncurves = $dataPiddles[0]->slice("(0)")->nelem;
@@ -3710,8 +3711,8 @@ in the plot options.
 FOO
 		}
 
-		if($chunk{options}->{legend} and 
-		   @{$chunk{options}->{legend}} and 
+		if($chunk{options}->{legend} and
+		   @{$chunk{options}->{legend}} and
 		   @{$chunk{options}->{legend}} != $ncurves
 		    ) {
 		    my $ent = (0+@{$chunk{options}->{legend}} == 1) ? "y" : "ies";
@@ -3737,11 +3738,11 @@ FOO
 		    for my $i(0..$ncurves - 1) {
 			my $chk = dclone(\%chunk);
 			$chk->{data} = [ map { $_->slice(":,($i)") } @dataPiddles ];
-			
+
 			if(exists($chk->{options}->{legend})) {
 			    $chk->{options}->{legend} = [$chk->{options}->{legend}->[$i]];
 			}
-			
+
 			push(@chunks, $chk);
 		    }
 		}
@@ -3760,16 +3761,16 @@ FOO
 	    $Ncurves += $ncurves;
 	    $chunk{imageflag} = $imgFlag;
 
-	    
+
 	    $argIndex = $nextOptionIdx;
 	}
-	
+
 	return (\@chunks, $Ncurves);
     } # end of ParseArgs nested sub
 
 
     ##########
-    # matchDims: nested sub inside plot - kludge up thread style matching across 
+    # matchDims: nested sub inside plot - kludge up thread style matching across
     # the data arguments to a given chunk.
     sub matchDims
     {
@@ -3783,24 +3784,24 @@ FOO
 	    # Make sure the domain and ranges describe the same number of data points,
 	    # and that all PDLs have at least one dim.
 	    #
-	    # ( This is complicated by the need/desire to preserve threading rules.  Here, 
+	    # ( This is complicated by the need/desire to preserve threading rules.  Here,
 	    # we accumulate thread dimensions manually and then match 'em using dummy
 	    # dimensions...  --CED )
 	    my @data_dims = (1);  # ensure at least 1 dim with at least 1 element
-	    
+
 	    # Assemble the thread-rules dim list
 	    for my $i(0..$#data) {
 		my @ddims = $data[$i]->dims;
 		for my $i(0..$#ddims) {
 		    if( (!defined($data_dims[$i])) || ($data_dims[$i] <= 1) ) {
 			$data_dims[$i] = $ddims[$i];
-		    } 
+		    }
 		    elsif( ( $ddims[$i]>1) && ($ddims[$i] != $data_dims[$i] )) {
 			barf "plot(): mismatched arguments in tuple (position $i)\n";
 		    }
 		}
 	    }
-	    
+
 	    # Now pad each data element out, by slicing, to match the full dim list.  If the
 	    # dim matches, mark a ':'; if not, put in the correct dummy dim to make it match.
 	    # Don't bother slicing unless at least one dummy dim is needed.
@@ -3808,15 +3809,15 @@ FOO
 		my @ddims = $data[$i]->dims;
 		my @s = ();
 		my $slice_needed = 0;
-		
+
 		for my $id(0..$#data_dims) {
 		    if((!defined($ddims[$id])) || !$ddims[$id]) {
 			push(@s,"*$data_dims[$id]");
 			$slice_needed = 1;
-		    } 
+		    }
 		    elsif($data_dims[$id] == $ddims[$id]) {
 			push(@s,":");
-		    } 
+		    }
 		    elsif( $ddims[$id]==1 ) {
 			push(@s,"(0), *$data_dims[$id]");
 			$slice_needed = 1;
@@ -3825,7 +3826,7 @@ FOO
 			barf "plot(): problem with dim assignments. This is a bug."; # no newline
 		    }
 		}
-		
+
 		if($slice_needed) {
 		    my $s = join(",",@s);
 		    $data[$i] = $data[$i]->slice( join(",",@s) );
@@ -3868,7 +3869,7 @@ FOO
 		    barf "plot(): problem with dim checking.  This should never happen.";
 		}
 	    }
-	    
+
 	    return @out;
 	}
     } # end of matchDims (nested in plot)
@@ -3883,7 +3884,7 @@ FOO
 
 =pod
 
-=head2 replot 
+=head2 replot
 
 =for ref
 
@@ -3891,13 +3892,13 @@ Replot the last plot (possibly with new arguments).
 
 C<replot> is similar to gnuplot's "replot" command - it allows you to
 regenerate the last plot made with this object.  You can change the
-plot by adding new elements to it, modifying options, or even (with the 
+plot by adding new elements to it, modifying options, or even (with the
 "device" method) changing the output device.  C<replot> takes the same
 arguments as C<plot>.
 
-If you give no arguments at all (or only a plot object) then the plot 
-is simply redrawn.  If you give plot arguments, they are added to the 
-new plot exactly as if you'd included them in the original plot 
+If you give no arguments at all (or only a plot object) then the plot
+is simply redrawn.  If you give plot arguments, they are added to the
+new plot exactly as if you'd included them in the original plot
 element list, and maintained for subsequent replots.
 
 (Compare to 'markup').
@@ -3916,14 +3917,14 @@ sub replot {
 
 =pod
 
-=head2 markup 
+=head2 markup
 
 =for ref
 
 Add ephemeral markup to the last plot.
 
-C<markup> works exactly the same as C<replot>, except that any 
-new arguments are not added to the replot list - so you can 
+C<markup> works exactly the same as C<replot>, except that any
+new arguments are not added to the replot list - so you can
 add temporary markup to a plot and regenerate the plot later
 without it.
 
@@ -3941,12 +3942,14 @@ sub markup {
 }
 
 =pod
-    
+
 =head2 plot3d
 
 =for ref
 
 Generate 3D plots. Synonym for C<plot(trid =E<gt> 1, ...)>
+
+=cut
 
 =pod
 
@@ -3957,6 +3960,7 @@ Generate 3D plots. Synonym for C<plot(trid =E<gt> 1, ...)>
 Generate 3D plots.  Synonym for C<plot(trid =E<gt> 1, ...)>
 
 =cut
+
 *splot = \&plot3d;
 sub plot3d {
     my $this = _obj_or_global(\@_);
@@ -3973,6 +3977,7 @@ sub plot3d {
 Generates plots with lines, by default. Shorthand for C<plot(globalwith =E<gt> 'lines', ...)>
 
 =cut
+
 *line = \&lines;
 sub lines {
     my $this = _obj_or_global(\@_);
@@ -4040,7 +4045,7 @@ sub fits {
     local($this->{options}->{'globalwith'}) = ["fits"];
     plot($this,@_);
 }
-    
+
 ##############################
 # Multiplot support
 
@@ -4065,10 +4070,10 @@ Plot multiple plots into a single page of output.
 
 The C<multiplot> method enables multiplot mode in gnuplot, which permits
 multiple plots on a single pane.  Plots can be lain out in a grid,
-or can be lain out freeform using the C<size> and C<origin> plot 
-options for each of the individual plots.  
+or can be lain out freeform using the C<size> and C<origin> plot
+options for each of the individual plots.
 
-It is not possible to change the terminal or output device when in 
+It is not possible to change the terminal or output device when in
 multiplot mode; if you try to do that, by setting one of those plot
 options, PDL::Graphics::Gnuplot will throw an error.
 
@@ -4095,7 +4100,7 @@ C<scale> takes either a scalar or a list ref containing one or two
 values.  If only one value is supplied, it is a general scale factor
 of each plot in the grid.  If two values are supplied, the first is an
 X stretch factor for each plot in the grid, and the second is a Y
-stretch factor for each plot in the grid.  
+stretch factor for each plot in the grid.
 
 =item offset - offset each plot from its grid origin
 
@@ -4103,8 +4108,6 @@ C<offset> takes a list ref containing two values, that control placement
 of each plot within the grid.
 
 =back
-
-=pod
 
 =head2 end_multi
 
@@ -4154,7 +4157,7 @@ our $mpOptionsTable = {
 };
 our $mpOptionsAbbrevs = _gen_abbrev_list(keys %$mpOptionsTable);
 our $mpOpt = [$mpOptionsTable, $mpOptionsAbbrevs, "multiplot option"];
-		       
+
 sub multiplot {
     my $this = _obj_or_global(\@_);
     my @params = @_;
@@ -4162,15 +4165,15 @@ sub multiplot {
     if($this->{options}->{multiplot}) {
 	print STDERR "Warning: multiplot: object is already in multiplot mode!\n  Exiting multiplot mode first...\n";
 	end_multi($this);
-    } 
+    }
 
     my $mp_opts = _parseOptHash( undef, $mpOpt, @_ );
 
-    # Assemble the command.  
+    # Assemble the command.
 
     my $command = "set multiplot " . _emitOpts($mp_opts, $mpOpt) . "\n";
-    my $preamble = _emitOpts({ 'terminal'   => $this->{options}->{terminal}, 
-			       'output'     => $this->{options}->{output}, 
+    my $preamble = _emitOpts({ 'terminal'   => $this->{options}->{terminal},
+			       'output'     => $this->{options}->{output},
 			       'termoption' => $this->{options}->{termoption}
 			     },
 			     $pOpt);
@@ -4188,9 +4191,9 @@ sub multiplot {
 	    } else {
 		barf("Gnuplot error: \"$checkpointMessage\" while sending multiplot command.");
 	    }
-	} 
+	}
     }
-    
+
     $PDL::Graphics::Gnuplot::last_plotcmd = $preamble . $command;
     $this->{last_plotcmd} = $preamble.$command;
     _printGnuplotPipe( $this, "main", $preamble . $command);
@@ -4202,9 +4205,9 @@ sub multiplot {
 	    barf("Gnuplot error: \"$checkpointMessage\" while sending final multiplot command.");
 	}
     }
-    
+
     $this->{options}->{multiplot} = 1;
-    
+
     return;
 }
 
@@ -4222,7 +4225,7 @@ sub end_multi {
 	    barf("Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage");
 	}
     }
-    
+
     _printGnuplotPipe($this, "main", "unset multiplot\n");
     $checkpointMessage = _checkpoint($this, "main");
     if($checkpointMessage) {
@@ -4245,26 +4248,27 @@ sub end_multi {
 
 =pod
 
-=head2 read_mouse 
+=head2 read_mouse
 
-=for usage 
+=for usage
 
   ($x,$y,$char,$modstring) = $w->read_mouse($message);
   $hash = $w->read_mouse($message);
 
-=for ref 
+=for ref
 
 Get a mouse click or keystroke from the active interactive plot window.
 
 For interactive devices (e.g. x11, xwt, aqua), read_mouse lets you accept a
 keystroke or mouse button input from the gnuplot window.  In list context, it
-returns four arguments containing the reported X, Y, keystroke character, and 
+returns four arguments containing the reported X, Y, keystroke character, and
 modifiers packed in a string.  In scalar context, it returns a hash ref containing
 those things.
 
 read_mouse blocks execution for input, but responds gracefully to interrupts.
 
 =cut
+
 my $mouse_serial = 0;
 sub read_mouse {
     my $this = shift;
@@ -4283,7 +4287,7 @@ sub read_mouse {
 	} else {
 	    $s .= "Your gnuplot supports mousing on these devices: ".join(", ", @terms)."\n";
 	}
-	    
+
 	barf $s."\n";
     }
 
@@ -4305,13 +4309,13 @@ if( (exists("MOUSE_BUTTON") * exists("MOUSE_X") * exists("MOUSE_Y")) )  print "K
 EOC
 
 	$string = _checkpoint($this, "main", {notimeout=>1});
-	
-	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/ 
+
+	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
 	($ch,$x,$y,$b,$sft,$alt,$ctl) = map { _def($_,"") } ($1,$3,$4,$5,$6,$7,$8);
 
-    } 
+    }
 
     ## Gnuplot 4.7 runs button input into the Key indicator.
     elsif($gp_version >= 4.7) {
@@ -4345,7 +4349,7 @@ EOC
 
 
     if(wantarray) {
-	return ($x,$y, ($ch>=32)?chr($ch):undef, 
+	return ($x,$y, ($ch>=32)?chr($ch):undef,
 		{
 		    'b'=>$b,
 		    'm'=>($sft?"S":"").($alt?"A":"").($ctl?"C":"")
@@ -4376,12 +4380,12 @@ Read in a polygon by accepting mouse clicks.  The polygon is returned as a 2xN P
 
 =over 3
 
-=item message - what to print before collecting points  
+=item message - what to print before collecting points
 
 There are some printf-style escapes for the prompt:
-    
 
-* C<%c> - expands to "an open" or "a closed" 
+
+* C<%c> - expands to "an open" or "a closed"
 
 * C<%n> - number of points currently in the polygon
 
@@ -4410,8 +4414,8 @@ associated keypress) or array refs containing a short description
 string followed by a code ref.  Non-printable characters (e.g. ESC,
 BS, DEL) are accessed via a hash followed by a three digit decimal
 ASCII code -- e.g. "#127" for DEL. Button events are indexed with the
-strings "BUTTON1", "BUTTON2", and "BUTTON3", and modifications must be 
-entered as well for shift, control, and 
+strings "BUTTON1", "BUTTON2", and "BUTTON3", and modifications must be
+entered as well for shift, control, and
 
 The code ref receives the arguments ($obj, $c, $poly,$x,$y,$mods), where:
 
@@ -4437,8 +4441,8 @@ This works by duplicating the initial point at the end of the point list.
 
 =item markup - (default 'linespoints'): style to use to render the polygon on the fly
 
-If this is set to a true value, it should be a valid 'with' specifier (curve option).  
-The routine will call markup after each click.  
+If this is set to a true value, it should be a valid 'with' specifier (curve option).
+The routine will call markup after each click.
 
 =back
 
@@ -4447,7 +4451,7 @@ The routine will call markup after each click.
 =cut
 
 # This table describes option parsing for read_polygon.  Its format is the same as for the large
-# $plotOptionsTable, below.  Full Gnuplot options parsing is perhaps a bit overblown for this 
+# $plotOptionsTable, below.  Full Gnuplot options parsing is perhaps a bit overblown for this
 # application, but it's present in the module so what the heck...
 
 our $rpOptionsTable = {
@@ -4464,7 +4468,7 @@ our $rpOpt = [$rpOptionsTable, _gen_abbrev_list(keys %$rpOptionsTable), "read_po
 
 sub read_polygon {
     my $this = _obj_or_global(\@_);
-    
+
     barf "read_polygon: $this->{terminal} terminal doesn't support mousing\n"
 	unless($this->{mouse});
 
@@ -4511,7 +4515,7 @@ EOMSG
 
 	$z = $poly->dim(1);
 	$s =~ s/\%n/$z/g;
-	
+
 	$z = $opt->{n_points} || "indefinite";
 	$s =~ s/\%N/$z/g;
 
@@ -4530,7 +4534,7 @@ EOMSG
     };
 
     print &$pstring($opt->{message});
-    
+
     my $h;
     do {
 	$h = $this->read_mouse(&$pstring($opt->{prompt}));
@@ -4551,9 +4555,9 @@ EOMSG
 	}
 
     } while(($h->{'b'} || $h->{'k'}) and !$this->{quit} and ($opt->{n_points}==0  or $poly->dim(1)<$opt->{n_points}));
-    
+
     print "\n";
-    
+
     if($opt->{'closed'}) {
 	$poly = $poly->glue(1,$poly->slice(":,(0)"));
 	if($opt->{markup}) {
@@ -4573,22 +4577,22 @@ use PDL::NiceSlice;
     }
 
     sub __quit { $_[0]->{quit} = 1; }
-    
+
     sub __add { my($w,$c,$p,$x,$y,$m) = @_;
 		$$p = $$p->glue(1,pdl($x,$y));
     }
 
 no PDL::NiceSlice;
-		    
+
 }
 
 ######################################################################
 ######################################################################
 ######################################################################
-##### 
+#####
 ##### Parsing routines
 #####
-##### The task of parsing input parameters is nontrivial.  It is 
+##### The task of parsing input parameters is nontrivial.  It is
 ##### pushed off to several internal routines, which are here.
 #####
 
@@ -4606,7 +4610,7 @@ sub _gen_abbrev_list {
 	for my $i(0..length($k)-2) {
 	    my $s = substr($k,0,$i+1);
 	    if(exists($hash->{$s})) {
-		push(@{$hash->{$s}},$k) 
+		push(@{$hash->{$s}},$k)
 		    unless($hash->{$s}->[0] eq $s);  # exact matches override abbrevs
 	    } else {
 		$hash->{$s} = [$k];
@@ -4646,38 +4650,38 @@ sub _expand_abbrev {
     }
     barf "This can't happen";
 }
-	
+
 ##########
 # pOptionsTable - describes valid plot options and their allowed value types
 #
-# The keywords are the option name (from the Gnuplot 4.6 manual); the values are 
+# The keywords are the option name (from the Gnuplot 4.6 manual); the values are
 # a list ref containing:
 #   - value type:
 #     * list ref for a single value with options (first is default)
 #     * "b" for boolean flag (actually ternary: true/false/undef)
 #     * "n" for number
-#     * "s" for a scalar string 
+#     * "s" for a scalar string
 #     * "l" for a list of options; none required; passing in a number yields a boolean, or undef deletes.
 #     * "ln" for a list of options; none required; passing in a number copies to list, or undef deletes.
 #     * "C" for cumulative list of options; scalar values OK
-#     * "H" for a hash list of options 
+#     * "H" for a hash list of options
 #     * "N" for multivalue with optional first-parameter index
 #            (NOTE this is explicitly hardwired into _parseOptHash to accept trailing numbers
 #             in the keyword itself, to enable passing multiple multivalue numbers with different labels
 #             in a hash ref -- search for "HARDWIRED-N" to find the place)
-#     * code ref for code checker: gets ($old-val, $new-param, $hash); returns new values 
+#     * code ref for code checker: gets ($old-val, $new-param, $hash); returns new values
 #               (with possible side effects on the object, e.g. for "device")
 #   - output form:
 #     * nothing: output single value or all list values on a single line
 #     * ",":     output list values as a comma-separated list on a single line (default is with spaces)
 #     * "1":     output list values one per line
 #     * "H":     output hash-of-lists, one list per line, with leading key
-#     * "N":     output list-of-lists, one list per line, with leading index  
-#     * code ref for code emitter: accepts key, value, source options hash, and object; returns 
+#     * "N":     output list-of-lists, one list per line, with leading index
+#     * code ref for code emitter: accepts key, value, source options hash, and object; returns
 #                                  (potentially multiline) string of commands.
 #     * hash ref for value context switch: keys are
-#        accepted/understood keywords, values are output form for further keywords.  
-#        This is only valid with options lists ('l' input), and is used to keep track of 
+#        accepted/understood keywords, values are output form for further keywords.
+#        This is only valid with options lists ('l' input), and is used to keep track of
 #        (e.g.) which keywords should be auto-quoted.
 #     * array ref is not allowed in pOptionsTable but *is* allowed in cOptionsTable below.
 #
@@ -4706,22 +4710,22 @@ our $hardCopySuffixes = {
     'eps'=>'postscript eps',
     'svg'=>'svg'
 };
-    
-    
-our $pOptionsTable = 
+
+
+our $pOptionsTable =
 {
     # Start with pseudo-options we use internally.
-    '3d'        => ['s', sub { "" }, undef, undef, 
+    '3d'        => ['s', sub { "" }, undef, undef,
 		    '[pseudo] Make the current plot 3d (gnuplot "splot" command).'  ],
     'trid'      => [sub { my($o,$n,$h)=@_; $h->{'3d'}=$n; return undef}, sub { "" }, undef, undef,
 		    '[pseudo] Make the current plot 3d (synonym for "3d").'   ],
-    'binary'    => ['b', sub {""}, undef, undef, 
+    'binary'    => ['b', sub {""}, undef, undef,
                     '[pseudo] Communicate with gnuplot in binary mode (default on non-Microsoft platforms).'    ],
     'ascii'     => [sub { my($old, $new, $hash) = @_;
 			  $hash->{binary} = !$new;
 		    }, sub {""}, undef, undef,
                     '[pseudo] Antonym for "binary" (default is 0 for non-Microsoft platforms).'    ],
-    'device'     => [ sub { my ($old, $new, $hash) = @_; 
+    'device'     => [ sub { my ($old, $new, $hash) = @_;
 			    barf "Can't set device while in multiplot mode!\n" if($hash->{multiplot});
 			    if( $new =~ m/^(.*)\/([^\/]*)$/ ) {
 				$hash->{terminal} = $2;
@@ -4730,10 +4734,10 @@ our $pOptionsTable =
 				barf("Device option format: [<filename>]/<terminal-type>\n");
 			    }
 			    return undef;
-		      }, 
+		      },
 		      sub { "" }, undef, undef,
 		      '[pseudo] Shorthand for device spec.: "dev=>\'<output/<terminal>\'".'    ],
-    
+
     'hardcopy'  => [ sub { my ($old, $new, $hash) = @_;
 			   barf "Can't set hardcopy while in multiplot mode!\n" if($hash->{multiplot});
 			   if( $new =~ m/\.([a-z]+)$/i) {
@@ -4744,7 +4748,7 @@ our $pOptionsTable =
 				   return undef;
 			       } else {
 				   die "hardcopy: couldn't identify file type from '$new'\n";
-			       } 
+			       }
 			   } else {
 			       die "hardcopy: need a file suffix to infer file type\n";
 			   }
@@ -4767,13 +4771,13 @@ our $pOptionsTable =
     'tee'       => [ sub { $_[1]; }, sub { "" }, undef, undef,
 		    '[pseudo] Tee gnuplot commands to stdout (set to "nobinary" for viewing)'    ],
 
-    'silent'      => ['b', sub { "" }, undef, undef, 
+    'silent'      => ['b', sub { "" }, undef, undef,
 		    '[pseudo] Be silent about gnuplot errors'    ],
 
       # topcmds/extracmds/bottomcmds: contain explicit strings for gnuplot.
       # topcmds go just below the "set term", "set termoption", and "set output" commands;
       # extracmds go after all the auto-generated commands and just before the plot lines
-      # bottomcmds comes after everything -- useful for cleanup after the plot command 
+      # bottomcmds comes after everything -- useful for cleanup after the plot command
       #is sent.
     'topcmds'   => ['l', sub { my($k,$v,$h) = @_;
 			       return (ref $v eq 'ARRAY') ? join("\n",(@$v,"")) : $v."\n"; },
@@ -4791,16 +4795,16 @@ our $pOptionsTable =
     'globalwith'=> ['l', sub { "" }, undef, undef,
 		    '[pseudo] default plot style (overridden by "with" in curve options)'    ],
 
- 
+
     'clut'      => [sub { my($old, $new, $this) = @_;
 			  $new = ($new ? lc $new : "default");
 			  if($palettesTab->{$new}) {
 			      return $new;
 			  } else {
 			      my $s = "Unknown lookup table name passed as a 'clut' option.  Acceptable values are:\n";
-			      for my $k(sort 
-					{$a eq 'default' ? $b : $a eq 'default' ? $b : $a cmp $b} 
-					keys %$palettesTab 
+			      for my $k(sort
+					{$a eq 'default' ? $b : $a eq 'default' ? $b : $a cmp $b}
+					keys %$palettesTab
 				  ) {
 				  $s .= sprintf("   %10.10s (%s)\n",$k, $palettesTab->{$k}->[2]);
 			      }
@@ -4820,12 +4824,12 @@ our $pOptionsTable =
 		    '[pseudo] Use named color look-up table for palette: "clut=>\'heat2\'"'    ],
 
     'globalPlot'=> ['l',sub { return '' },undef,undef,
-		    '[pseudo] marker for the global plot object'    ], 
+		    '[pseudo] marker for the global plot object'    ],
 
     'justify'   => [sub { my($old,$new,$opt) = @_;
 			  if(!defined($new)){
 			      return undef;
-			  }			      
+			  }
 			  if($new > 0) {
 			      $opt->{'size'} = ["ratio ".(-$new)];
 			      return undef;
@@ -4837,7 +4841,7 @@ our $pOptionsTable =
 			      }
 			      return undef;
 			  }
-		    }, 
+		    },
 		    sub { '' }, undef, undef,
 		    '[pseudo] Set aspect ratio (equivalent to: size=>["ratio",<r>])'    ],
     'square'    => [sub { my($old, $new, $opt) = @_;
@@ -4853,7 +4857,7 @@ our $pOptionsTable =
 		    },
                     sub { return '' }, undef, undef,
 		    '[pseudo] Set aspect ratio to square (equivalent to: size=["ratio",1])'    ],
-    ##############################		    
+    ##############################
     # These are all the "plot" (top-level) options recognized by gnuplot 4.4.
     'angles'    => [['degrees','radians'],'s',undef,undef,
 		    '(radians or degrees): sets unit in which angles will be specified'    ],
@@ -5027,7 +5031,7 @@ our $pOptionsTable =
 			       return "set view 60,30,1.0,1.0\nset view noequal\n" unless( ref $v eq 'ARRAY' ); # default value from manual
 			       my @numbers = ();
 			       my @v = @$v;
-			       
+
 			       while( @v && (_def($v[0],"") =~ m/^(\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*)?$/ )) {
 				   push(@numbers, _def(shift(@v),""));
 			       }
@@ -5152,8 +5156,8 @@ $pOpt = [$pOptionsTable, $pOptionsAbbrevs, "plot option"];
 # cOptionsTable - describes valid curve options and their allowed value types
 #
 # The output types are different so that they can all be interpolated into the same
-# master table.  Curve option output routines have a 'c' in front of the name.  
-# 
+# master table.  Curve option output routines have a 'c' in front of the name.
+#
 
 our $cOptionsTable = {
          # data is here so that it gets sorted properly into each chunk -- but it doesn't get specified this way.
@@ -5165,7 +5169,7 @@ our $cOptionsTable = {
 			  } else {
 			      barf "Curve option 'cdims' must be one of 0, 1, or 2\n";
 			  }
-		    },			  
+		    },
 		    sub { return ""}],
     'data'     => [sub { barf "mustn't specify data as a curve option...\n" },
 		   sub { return " $cmdFence "; },
@@ -5197,7 +5201,7 @@ our $cOptionsTable = {
     'nohidden3d'=>['b', 'cff', undef, 19],
     'nocontours'=>['b', 'cff', undef, 20],
     'nosurface' =>['b', 'cff', undef, 21],
-    'palette'   =>['b', 'cff',  undef, 22],		       
+    'palette'   =>['b', 'cff',  undef, 22],
 
     'tuplesize'=> ['s',sub { return ""}]    # set tuplesize explicitly (not a gnuplot option)
 };
@@ -5227,39 +5231,39 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 ##########
 # $plotStyleProps
 #
-# This table describes the types of input expected by the various 
+# This table describes the types of input expected by the various
 # plot styles.  Each entry should be an array ref.  The colums are:
 #
 #   0:  "ts"   Tuple sizes (columns of data) that are allowed by this plot style for
-#              ordinary 2-D plots.  (We let gnuplot interpret the columns; this just 
-#              keeps track of the different numbers of columns that are allowed).  If 
+#              ordinary 2-D plots.  (We let gnuplot interpret the columns; this just
+#              keeps track of the different numbers of columns that are allowed).  If
 #              a plot style isn't allowed in 2-D, then this entry should be a false value.
 #              Negative values get the "array" rather than the "record" specifier (for autogen
 #              of coordinates)
 #
-#   1:  "3dts" Tuple sizes (columns of data) that are allowed by this plot style for 
+#   1:  "3dts" Tuple sizes (columns of data) that are allowed by this plot style for
 #              3-D plots (with the gnuplot "plots" command).  If this plot style doesn't
 #              work in 3-D, then the entry should be a false value instead.
 #
 #   2:  img    This is a flag indicating whether it is an image format plot (which accepts
 #              2-D matrix data in each "column").  If false, the column is a 1-D collection
 #              of values.
-# 
+#
 #   3:  bin    0/1/undef - 0: ASCII data required for this plot type; 1: binary data required.
 #
 #   4:  frob   if present, pointer to a prefrobnication routine to prepare the data.
 #              Currently, fits images are handled that way because of gnuplot's problem
-#              dealing with proper coordinate grids -- the fits image is sampled into 
+#              dealing with proper coordinate grids -- the fits image is sampled into
 #              scientific coordinates using PDL::Transform.  The prefrobnicator should accept:
-#               * the 'with' option list ref, 
-#               * the main plot object (for access to plot options) 
-#               * the plot chunk (for access to curve options), 
+#               * the 'with' option list ref,
+#               * the main plot object (for access to plot options)
+#               * the plot chunk (for access to curve options),
 #               * all the data passed in for that curve.
 #              It should return the new data piddle list, and modify the chunk 'with' list and curve options in place.
 #              While it has access to plot options, it probably shouldn't modify them.
 
 our $plotStyleProps ={
-### key                ts         3dts         img  bin     prefrobnicator 
+### key                ts         3dts         img  bin     prefrobnicator
     boxerrorbars   => [ [3,4,5],  0,            0, undef ],
     boxes          => [ [2,3],    0,            0, undef ],
     boxxyerrorbars => [ [4,6],    0,            0, undef ],
@@ -5276,7 +5280,7 @@ our $plotStyleProps ={
     fits           => [ [-1],     [-1],         1, 1     , \&_with_fits_prefrobnicator ],
     image          => [ [-1,3],   [-1,4],       1, 1     ],
     impulses       => [ [-1,2,3], [-1,-2,3,4],  0, undef ],
-    labels         => [ [3],      [4],          0, 0     ], 
+    labels         => [ [3],      [4],          0, 0     ],
     lines          => [ [-1,2],   [-1,3],       0, undef ],
     linespoints    => [ [-1,2],   [-1,3],       0, undef ],
     points         => [ [-1,2],   [-1,3],       0, undef ],
@@ -5294,7 +5298,7 @@ our $plotStyleProps ={
 };
 
 ##############################
-# plotStyleDocs - just a one-line string for summarizing each plot style.  
+# plotStyleDocs - just a one-line string for summarizing each plot style.
 # These are not (yet) used but should be incorporated into a documentation schema.
 our $plotStyleSyntax = 'Tuple columns are listed for each style. "[]": optional.  "{}": 3-D style';
 our $plotStyleDocs ={
@@ -5330,7 +5334,7 @@ our $plotStyleDocs ={
     yerrorlines    => ["Whisker errorbars in Y, connected",     "x, y, dy;   x, y, ylo, yhi"],
     pm3d           => ["Colored 3-D surface plot",              "{[x,y,z],[i]}"]
 };
-    
+
 
 our $plotStyleAbbrevs = _gen_abbrev_list(keys %$plotStyleProps);
 # Make some tweaks to the abbreviations...
@@ -5348,24 +5352,24 @@ map { $plotStyleAbbrevs->{$_} = 'histeps' } qw/ hs hi his hist /;
 # these are used where possible, but defined palettes can also be used.
 #
 # These codes are used in the parser/emitter codes for the "clut" pseudo-option.
-# 
+#
 # Each value is an array ref containing (color model),(palette string).
 #
 # For reference, the formulae in the 'rgbformulae' option, at least in Gnuplot 4.4, are:
-# 
-#             0: 0               1: 0.5             2: 1              
-#             3: x               4: x^2             5: x^3            
-#             6: x^4             7: sqrt(x)         8: sqrt(sqrt(x))  
-#             9: sin(90x)       10: cos(90x)       11: |x-0.5|        
-#            12: (2x-1)^2       13: sin(180x)      14: |cos(180x)|    
-#            15: sin(360x)      16: cos(360x)      17: |sin(360x)|    
-#            18: |cos(360x)|    19: |sin(720x)|    20: |cos(720x)|    
-#            21: 3x             22: 3x-1           23: 3x-2           
-#            24: |3x-1|         25: |3x-2|         26: (3x-1)/2       
-#            27: (3x-2)/2       28: |(3x-1)/2|     29: |(3x-2)/2|     
+#
+#             0: 0               1: 0.5             2: 1
+#             3: x               4: x^2             5: x^3
+#             6: x^4             7: sqrt(x)         8: sqrt(sqrt(x))
+#             9: sin(90x)       10: cos(90x)       11: |x-0.5|
+#            12: (2x-1)^2       13: sin(180x)      14: |cos(180x)|
+#            15: sin(360x)      16: cos(360x)      17: |sin(360x)|
+#            18: |cos(360x)|    19: |sin(720x)|    20: |cos(720x)|
+#            21: 3x             22: 3x-1           23: 3x-2
+#            24: |3x-1|         25: |3x-2|         26: (3x-1)/2
+#            27: (3x-2)/2       28: |(3x-1)/2|     29: |(3x-2)/2|
 #            30: x/0.32-0.78125 31: 2*x-0.84       32: 4x;1;-2x+1.84;x/0.08-11.5
-#            33: |2*x - 0.5|    34: 2*x            35: 2*x - 0.5      
-#            36: 2*x - 1        
+#            33: |2*x - 0.5|    34: 2*x            35: 2*x - 0.5
+#            36: 2*x - 1
 
 $palettesTab = {
     default  => [ undef, undef,   		         "default palette assigned by Gnuplot" ],
@@ -5398,21 +5402,21 @@ $palettesTab = {
 # Used for parsing/adding plot options...
 #
 # Call with the options hash to be written to, then with the Opt list ref (e.g. $pOpt global above),
-# then with the arguments.  The $me is needed to feed to special-handling subs in the 
+# then with the arguments.  The $me is needed to feed to special-handling subs in the
 # OptionsTable.
 
-# _pOHTable: helper for _parseOptHash - handles the individual cases.  Each sub 
+# _pOHTable: helper for _parseOptHash - handles the individual cases.  Each sub
 # gets ($oldval, $param, $opts) and returns the parsed value (or barfs).
 
 our $_pOHInputs; # table of parser code snippets (declared at bottom)
- 
+
 sub _parseOptHash {
     my($options)   = shift || {};
     my($OptTable, $AbbrevTable, $name) = @{shift()};
     my @opts  = @_;
 
     # Parse arguments one at a time.  If the first one is a hash ref then
-    # unpack it inline.  
+    # unpack it inline.
     opt: while(@opts) {
 	# Pull the next key.  If it turns out to be a hash, interpolate the hash into the list
 	# of parameters.  If it turns out to be a list, do likewise.  Note that list refs that are
@@ -5430,14 +5434,14 @@ sub _parseOptHash {
 
 	# now pull the value.
 	my $v = shift @opts;
-	
+
 	# Expand abbreviations and get the table entry for the option
 	# (throws an exception on failure)
 	my ($kk,$knum) = _expand_abbrev($k, $AbbrevTable, $name); # throws exception on failure
 
 	# Evil DWIMmery.  'N' type parameters take a numeric argument that is
 	# allowed to trail the keyword itself in the keyword part of the specifier.
-	# So if we got a number we have to check that the corresponding keyword 
+	# So if we got a number we have to check that the corresponding keyword
 	# in fact is 'N' type - else we leave the number in the keyword itself and
 	# revalidate.
 	if(defined $knum) {
@@ -5446,7 +5450,7 @@ sub _parseOptHash {
 		    unshift(@$v, $knum);
 		} else {
 		    $v = [$knum, $v];
-		
+
 		}
 	    } else {
 		$kk = "$kk$knum";
@@ -5456,7 +5460,7 @@ sub _parseOptHash {
 		}
 	    }
 	}
-	
+
 	my $TableEntry = $OptTable->{$kk};
 
 	# Grab a parser code ref...
@@ -5470,7 +5474,7 @@ sub _parseOptHash {
 	} elsif(ref $parser eq 'ARRAY') {
 	    # If the parser entry is an array ref with one non-ref element only, it is a regexp to match
 	    # for successful enumeration.  If it has more than one element, it is an enum list that
-	    # can be abbreviated.  
+	    # can be abbreviated.
 	    if(ref($parser->[0])) {
 		barf("HELP!  Parser is confused.  This is a bug, please report it.\n");
 	    } elsif (  0+@$parser == 1 )  {
@@ -5514,7 +5518,7 @@ sub _parseOptHash {
 
 ##############################
 #
-# Parse table 
+# Parse table
 #
 # $_pOHInputs describes input parsing from argument lists.  Each key
 # is a code for a particular type of input; the value is a subroutine
@@ -5549,7 +5553,7 @@ $_pOHInputs = {
 		  return [$_[1]] unless(ref($_[1]) eq 'ARRAY');
 		  return $_[1];
     },
-				      
+
     ## one-line list (can also be boolean or hash)
     'lh' => sub { return undef unless(defined $_[1]);
 		 return "" unless(length($_[1]));                                 # false value yields false
@@ -5594,7 +5598,7 @@ $_pOHInputs = {
 		 return $out;
                 },
 
-    ## set hash values 
+    ## set hash values
     'H' => sub { return undef unless(defined $_[1]);
 		 my $out = (ref $_[0] eq 'HASH') ? $_[0] : {};
 		 my $in = $_[1];
@@ -5621,9 +5625,9 @@ $_pOHInputs = {
 		 }
 		 return $out;
                 },
-		
+
     ## number-indexed list
-    ## 
+    ##
     'N' => sub { my($old,$new,$h) = @_;
 		 return undef unless(defined $new);
 		 my $out = (ref($old) eq 'ARRAY') ? $old : [];
@@ -5657,7 +5661,7 @@ $_pOHInputs = {
 		 }
 		 return $out;
     },
-    
+
     ## <foo>tics option list
     ## (For valid hash keys, see footicsAbbrevs definition above)
     'lt' => sub { my($old, $new, $h, $fieldname) = @_;
@@ -5674,8 +5678,8 @@ $_pOHInputs = {
 			  @list = @$new;
 		      }
 
-		      # We don't fully parse gnuplot lines -- but we do 
-		      # check for the simple numeric case -- if it's correct, 
+		      # We don't fully parse gnuplot lines -- but we do
+		      # check for the simple numeric case -- if it's correct,
 		      # turn the list ref into a hash for future manipulability.
 		      if( @list == 0 ) {
 			  return {};
@@ -5715,34 +5719,34 @@ $_pOHInputs = {
 
 
 ##############################
-# _emitOpts 
+# _emitOpts
 #
 # Accepts an options table as a single hash ref, and emits a corresponding
-# string that is suitable for passing on to gnuplot.  Curve options and 
+# string that is suitable for passing on to gnuplot.  Curve options and
 # plot options use different output specifiers and can therefore both be
 # handled by one routine.
 #
-# Because curve and plot options have different parse tables, you have to 
+# Because curve and plot options have different parse tables, you have to
 # pass in the parse table ref appropriate to the type of option you're emitting.
 
 sub _emitOpts {
     my ($options, $tab, $this) = @_;
     my $table = $tab->[0];
     our $_OptionEmitters;
-    
+
     # Sort the keys into options table order -- this is so that keys that are supposed
-    # to be up top go up top; keys with no particular order defined in the parse table 
+    # to be up top go up top; keys with no particular order defined in the parse table
     # are allowed to stay in random order.
     #
-    # Keys that are supposed to be at bottom (if any in future) can be 
+    # Keys that are supposed to be at bottom (if any in future) can be
     # placed there by the expedient of assigning them sort values in excess of 1,000.
     #
-    my @keys = sort { ((defined $table->{$a}->[3])?($table->{$a}->[3]): 999) <=> ((defined $table->{$b}->[3])?($table->{$b}->[3]):999) or  
-			  ($a cmp $b) 
+    my @keys = sort { ((defined $table->{$a}->[3])?($table->{$a}->[3]): 999) <=> ((defined $table->{$b}->[3])?($table->{$b}->[3]):999) or
+			  ($a cmp $b)
                     } keys %$options;
 
     my $s = "";
-    
+
 
     # Loop over the keys and emit.
     key: while(@keys) {
@@ -5753,9 +5757,9 @@ sub _emitOpts {
 	    barf "_emitOpts: bad table entry for keyword '$k'";
 	}
 
-	## Cheesy ordering logic here -- if the parse table indicates that we have to go after 
-	## a particular option, walk back from the end until we find one of them or get to the 
-	## front of the queue.  If we find a match, we splice the current one back there and move 
+	## Cheesy ordering logic here -- if the parse table indicates that we have to go after
+	## a particular option, walk back from the end until we find one of them or get to the
+	## front of the queue.  If we find a match, we splice the current one back there and move
 	## on to the next key.
 	if($tableEntry->[2]) {
 	    my %h = (map { ($_, 1) } @{$tableEntry->[2]});  # make a hash of later-than keywords, with 1 in each entry
@@ -5766,7 +5770,7 @@ sub _emitOpts {
 		}
 	    }
 	}
-	
+
 	## Rubber meets the road -- call the corresponding output function
 	my $emitter = $tableEntry->[1] || " ";
 	unless(ref $emitter) {
@@ -5787,13 +5791,13 @@ sub _emitOpts {
 
 
 ##############################
-# Emitter table folows.  Colorspecs are so 
+# Emitter table folows.  Colorspecs are so
 # complicated that they get their own helper routine,
-# _emit_colorspec.  
-# 
+# _emit_colorspec.
+#
 sub _emit_colorspec {
     my $v = shift;
-    
+
     my @words;
     unless(ref($v)) {
 	$v =~ s/^\s+//;
@@ -5810,10 +5814,10 @@ sub _emit_colorspec {
     } else {
 	die "colorspec: only scalar and ARRAY values are supported for colors";
     }
-    
+
     my $s = "";
     $s .= shift @words if(lc($words[0]) eq 'rgb');
-    
+
     if( $words[0] =~ s/\"?(\#[0-9a-fA-F]{6})\"?/\"$1\"/ ) {
 	$s .= " rgb " unless($s =~ m/rgb/);
 	$s .= " ".join(" ",@words);
@@ -5826,12 +5830,12 @@ sub _emit_colorspec {
 	$s .= join(" ",@words)." ";
 	return $s;
     } elsif($words[0] =~ m/(^[0-9]+$)|(variable)|(palette)/) {
-	return join(" ",($s,@words,"")); 
+	return join(" ",($s,@words,""));
     } else {
 	my $ww = join(" ",@words);
 	die <<"EOD";
-PDL::Graphics::Gnuplot: Unknown color spec '$ww'. 
-  Use an integer, an '#RRGGBB' spec, 'variable', 'palette', or a name from 
+PDL::Graphics::Gnuplot: Unknown color spec '$ww'.
+  Use an integer, an '#RRGGBB' spec, 'variable', 'palette', or a name from
   the list in \@PDL::Graphics::Gnuplot::colornames.
 EOD
     }
@@ -5839,7 +5843,7 @@ EOD
 }
 
 ##############################
-# 
+#
 # Emission table
 #
 # $_OptionEmitters describes how to emit stored parameters.  Each
@@ -5850,14 +5854,14 @@ EOD
 # space-delimited words (e.g. for setting curve options).  Curve
 # option emitters have codes that start with 'c'.
 #
-# Although most of the emitters take just (keyword, value, options-hash), 
+# Although most of the emitters take just (keyword, value, options-hash),
 # they may take a fourth parameter containing the complete object.
 # That's useful for things like "crange", which needs to know the global
 # options state to know how to emit itself.
 
 our $_OptionEmitters = {
     #### Default output -- a collection of terms with spaces between them as a plot option
-    ' ' => sub { my($k,$v,$h) = @_; 
+    ' ' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
 		 if(ref $v eq 'ARRAY') {
 		     return join(" ",("set",$k,map { (defined $_)?$_:"" } @$v))."\n";
@@ -5869,7 +5873,7 @@ our $_OptionEmitters = {
                 },
 
     #### nomulti -- a default style plot option that is ignored in multiplot mode
-    'nomulti' => sub { my($k,$v,$h) = @_; 
+    'nomulti' => sub { my($k,$v,$h) = @_;
 		 return "" unless((defined($v)) and !($h->{multiplot}));
 		 if(ref $v eq 'ARRAY') {
 		     return join(" ",("set",$k,map { (defined $_)?$_:"" } @$v))."\n";
@@ -5933,7 +5937,7 @@ our $_OptionEmitters = {
 		  return "" unless($v);
 		  return " $k ";
     },
-   
+
     ### A size specification (used in terminal options in the constructor, see $termTab)
     ### generally a list with (width, height, [units]) in it.  Should have been parsed as an 'l'.
     'csize'=> sub { my($k, $v, $h) = @_;
@@ -5963,12 +5967,12 @@ our $_OptionEmitters = {
     },
 
     ### A color specification as a curve option
-    'ccolor' => sub { my($k,$v,$h) = @_;  
-		      return "" unless($v); 
+    'ccolor' => sub { my($k,$v,$h) = @_;
+		      return "" unless($v);
 		      return " $k "._emit_colorspec($v);
     },
-    
-    
+
+
     #### A boolean value as a plot option
     'b' => sub { my($k,$v,$h) = @_;
 		 return "" unless defined($v);
@@ -6013,9 +6017,9 @@ our $_OptionEmitters = {
 		      }
 		      push(@l, 'in')     if($h{in});     delete $h{in};
 		      push(@l, 'out')    if($h{out});    delete $h{out};
-		      
-		      
-		      
+
+
+
 		      unless($k =~ m/^m/) {
 			  push(@l, 'scale');
 			  if( defined( $h{scale} ) ) {
@@ -6059,8 +6063,8 @@ our $_OptionEmitters = {
 
 
 		      ##############################
-		      # Deal with complex add/labels/locations logic.  
-		      # If you specify locations *or* labels then that style gets 
+		      # Deal with complex add/labels/locations logic.
+		      # If you specify locations *or* labels then that style gets
 		      # emitted.  if you specify both, then the labels get appended
 		      # to the end of the plot command as a *separate* "set <foo>tics"
 		      # gnuplot command with "add" marked.
@@ -6082,16 +6086,16 @@ our $_OptionEmitters = {
 			      barf("<foo>tics: 'locations' elements must be scalar or list ref");
 			  }
 			  # Workaround for bug in gnuplot parser (documented in xtics section of gnuplot manual):
-			  # if the first number in the start/incr/end sequence is negative, subtract it from 0 
+			  # if the first number in the start/incr/end sequence is negative, subtract it from 0
 			  # to avoid problems with binary subtraction.
 			  $l[$#l] =~ s/^\s*\-/0\-/;
 		      }
 		      if(defined($h{labels})) {
 			  my $line;
 			  if( ref($h{labels}) eq 'ARRAY' ) {
-			      $line =   "(".  
+			      $line =   "(".
 					(join(", ",
-					      map { 
+					      map {
 						  barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
 						  sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") );
 					      } @{$h{labels}}
@@ -6122,9 +6126,9 @@ our $_OptionEmitters = {
 			  }
 		      }
 		      delete $h{font};
-		      
+
 		      push(@l,'rangelimited') if(defined($h{rangelimited})); delete $h{rangelimited};
-		      
+
 		      if(defined $h{textcolor}) {
 			  push(@l,"textcolor", _emit_colorspec($h{textcolor}));
 		      }
@@ -6135,11 +6139,11 @@ our $_OptionEmitters = {
 
 		  push(@l, @l2);
 		  return "set $k ".join(" ",@l)."\n";
-		  
+
                  },
 
     ## one-line list with leading quoted string (e.g. for titles)
-    'ql' => 
+    'ql' =>
 		    sub { my($k,$v,$h) = @_;
 			  return "" unless defined($v);
 			  unless(ref $v eq 'ARRAY') {
@@ -6173,7 +6177,7 @@ our $_OptionEmitters = {
 		 return "" unless(defined($v));
 		 if(ref $v eq 'ARRAY') {
 		     return " ".join(",",@$v)." ";
-		 } 
+		 }
 		 return " $v ";
     },
 
@@ -6210,7 +6214,7 @@ our $_OptionEmitters = {
 					       }
 					   }
 					   $l;
-				 } 
+				 }
 				 sort keys %$v
 			 );
 		 } else {
@@ -6242,7 +6246,7 @@ our $_OptionEmitters = {
 						}
 					    }
 					    $l;
-				  } 
+				  }
 				  sort keys %$v
 			  );
 		  } else {
@@ -6270,7 +6274,7 @@ our $_OptionEmitters = {
 						 }
 					     }
 					     $l;
-				   } 
+				   }
 				   sort keys %$v
 			   );
 		   } else {
@@ -6349,7 +6353,7 @@ our $_OptionEmitters = {
 					    if(ref $v->[$_] eq 'ARRAY') {                      # It's an array
 						$v->[$_]->[0] = "\"$v->[$_]->[0]\""            # quote the first element
 						    unless($v->[$_]->[0] =~ m/^\".*\"$/);      # unless it's already quoted
-						$l .= join(" ", map {                          
+						$l .= join(" ", map {
 						    (ref($_) eq 'ARRAY') ? join(",",@$_) : $_; # Nested arrays get connected with ','
 							   } @{$v->[$_]});
 					    } elsif(ref $v->[$_] eq 'HASH') {
@@ -6365,7 +6369,7 @@ our $_OptionEmitters = {
 			      } (0..$#$v)
 		     );
                  },
-    
+
     #### Ranges can either be given as a list, the first two elements
     #### of which are the range and the rest of which are options, or
     #### as a list, the first element of which is a gnuplot range
@@ -6374,13 +6378,13 @@ our $_OptionEmitters = {
     ####
     #### The job is complicated by the fact that the 'restore' keyword
     #### can replace the normal range specifier.
-    #### 
+    ####
     #### Note: we don't try to do a perfect job of parsing, only to
     #### decide which parse fixing-up style is needed to send
     #### something reasonable to gnuplot in the correct case.  Gnuplot
     #### is expected to throw an error if something is broken.
 
-    "range" => sub { my($k,$v,$h) = @_;    
+    "range" => sub { my($k,$v,$h) = @_;
 		     return "" unless(defined $v);
 
 		     # scalar -- treat it as a string containing the whole command.
@@ -6396,7 +6400,7 @@ our $_OptionEmitters = {
 
 		     my $c = substr($k,0,1);
 		     my $tfmt = _def( $h->{$c."data"}, "" ) =~ m/time/;
-		     
+
 		     # first element has a nonempty range specifier (naked or not).
 		     if( _def($v->[0], '') =~ m/\:/) {
 			 $v->[0]=~ s/^\s*((.*[^\s])?)\s*$/$1/; # trim leading and trailing whitespace if present
@@ -6405,7 +6409,7 @@ our $_OptionEmitters = {
 			     # the first char was not a '['; assume it is a naked range and patch accordingly.
 			     $v->[0] = "[$v->[0]]";
 			 }
-			 
+
 			 if($tfmt) {
 			     # Make sure we have quotes as necessary
 			     $v->[0] =~ s/\[([^\"\:\*]+)\:/\[\"$1\"\:/;
@@ -6417,14 +6421,14 @@ our $_OptionEmitters = {
 
 			 return "set $k $s\n";
 		     }
-		     # If we got here, the first element has no ':'.  Treat the first two elements as numbers and make a range 
+		     # If we got here, the first element has no ':'.  Treat the first two elements as numbers and make a range
 		     # specifier out of 'em, then emit.
 		     # Here's a little fillip: gnuplot requires quotes around time ranges
 		     # if the corresponding axes are time data.  Handle that bizarre case.
 		     if( _def($h->{$c."data"},  "" ) =~ m/time/ ) {
 			 return sprintf("set %s [%s:%s]\n",$k, ((defined $v->[0])?"\"$v->[0]\"":"*"), ((defined $v->[1])?"\"$v->[1]\"":"*"));
 		     }
-	
+
 		     return sprintf("set %s [%s:%s] %s\n", $k, ((defined $v->[0])?$v->[0]:"*"), ((defined $v->[1])?$v->[1]:"*"), join(" ",@{$v}[2..$#$v]));
     },
 
@@ -6453,7 +6457,7 @@ our $_OptionEmitters = {
 #   desc - a one-line description of the terminal
 #   default_output - an optional format string with the name of the default output plot for that device.
 #
-# Since there are so many terminal types, with so many slightly 
+# Since there are so many terminal types, with so many slightly
 # different syntaxes, we store them in shorthand here.  The
 # $termTab_types table contains commonly used parameter keywords,
 # together with partial hash parser table entries.  The
@@ -6495,7 +6499,7 @@ our $lConv = {
     cm    => 2.54
 };
 
-# These are keyed descriptors for options that are used in at least two devices. They are invoked by name in the 
+# These are keyed descriptors for options that are used in at least two devices. They are invoked by name in the
 # $termTab_source table below, which describes all the known gnuplot device specification options.
 our $termTab_types = {
     output     => ['s','q',     "File name for output"],                 # autocopied to a plot option when present for a device
@@ -6528,7 +6532,7 @@ our $termTab_types = {
     large      => ['b','cff',   "Set large preset plot size (see also 'size')"],
     giant      => ['b','cff',   "Set giant preset plot size (see also 'size')"],
     transparent=> ['b','cf',    "Enable or disable transparency for the background"],
-    background => ['s','cv',    "Background color in xRRGGBB format ('x' literal)"],    
+    background => ['s','cv',    "Background color in xRRGGBB format ('x' literal)"],
     interlace  => ['s','cf',    "Enable or disable interlaced encoding of image"],         # JPEG and PNG
     crop       => ['b','cf',    "Enable or disable autocropping to first drawn pixel"],
     oldstyle   => ['b','cff',   "Force old-style text spacing (deprecated)"],
@@ -6536,9 +6540,9 @@ our $termTab_types = {
     auxfile    => ['b','cf',    "Generate (or not) an auxiliary .aux file for LaTeX"],
     persist    => ['b','cf',    'enable (or disable) persistence after plotting is done'],
     raise      => ['b','cf',    'enable (or disable) raising the display window to the top'],
-};    
+};
 
-# This table includes all terminals named in the gnuplot 4.4 documentation.  Unsupported terminals have 
+# This table includes all terminals named in the gnuplot 4.4 documentation.  Unsupported terminals have
 # only a description string; supported terminals get a hash that contains:
 #   - unit (default size unit for the terminal)
 #   - desc (description string)
@@ -6561,11 +6565,11 @@ our $termTabSource = {
 		  opt=>[ qw/ output_ title size font enhanced / ]},
     'be'       => "BeOS/X11 (Ah, Be, how we miss thee)    [NS: ancient]",
     'canvas'   => { unit=>'pt', desc=> "Output Javascript Canvas rendering code.",
-		    opt=>[ 'size', 
+		    opt=>[ 'size',
 			       # custom line shields user from "fsize/fontsize"
-			   ['fontsize', 's', sub { " fsize $_[1] "}, "Font size (points)"],  
-			   'enhanced', 
-			   'linewidth', 
+			   ['fontsize', 's', sub { " fsize $_[1] "}, "Font size (points)"],
+			   'enhanced',
+			   'linewidth',
 			   ['standalone', 'b','cff',  "Generate a standalone html page (default) (see 'name')"],
 			   ['mousing',    'b','cff',  "Make a mouse-tracking box underneath the plot"],
 			   ['name',       's','cq',   "Generate a javascript subroutine named 'name'"],
@@ -6576,11 +6580,11 @@ our $termTabSource = {
     'cgi'      => "SCO CGI drivers.                       [NS: ancient/evil]",
     'cgm'      => { unit=>'pt', desc=> "Computer Graphic Metafile format (ANSI X3.122-1986)",
 		    opt=>[ qw/ color monochrome solid dashed rotate /,
-			   ['size',  'l', sub { my( $k, $v, $h) = @_; 
+			   ['size',  'l', sub { my( $k, $v, $h) = @_;
 						my $conv = 1;
 						if(@$v > 2) {
 						    printf STDERR "Warning: cgm device ignores height spec; using width only.";
-						} 
+						}
 						if(@$v >= 2) {
 						    if($lConv->{$v->[$#$v]}) {
 							$conv = $lConv->{ $v->[$#$v] } / $lConv->{ 'pt' };
@@ -6589,7 +6593,7 @@ our $termTabSource = {
 						    }
 						}
 						return " ".($v->[0] * $conv)." ";
-			                     }, 
+			                     },
 			                     "Window size (default unit is pt; height is ignored)"
 			                   ],
 			   'linewidth',
@@ -6610,7 +6614,7 @@ our $termTabSource = {
 		 opt=>[ 'output' ]},
     'dxy800a'=> "Roland DXY800A Plotter                 [NS: obsolete]",
     'eepic'  => {unit=>'in',desc=>"LaTeX picture (alternative w/ epic.sty & eepic.sty)",
-		 opt=>[ qw/ color dashed rotate small tiny /, 
+		 opt=>[ qw/ color dashed rotate small tiny /,
 			['fontsize','s','cv','Font size (points)'], # special entry 'coz eepic wants no "fontsize" keyword
 			'output'],
 		 default_output=>'%s-epic-%d.tex'
@@ -6638,12 +6642,12 @@ our $termTabSource = {
 		 opt=>[ qw/ color monochrome landscape portrait small big size /,
 			['pointsmax',  's','cs', "maximum number of points per polyline (default 2000)"],
 			qw/ solid dashed /,
-			['font','s', sub { my($k,$v,$h)=@_;                   # special entry to allow standard format 
-					   my($f,$fs)=split /,/,$v;           # (fig requires breaking font name and 
+			['font','s', sub { my($k,$v,$h)=@_;                   # special entry to allow standard format
+					   my($f,$fs)=split /,/,$v;           # (fig requires breaking font name and
 					   my($s) = $f ? " font $f " : "";    # size out into different keywords)
 					   $s .= "fontsize $fs " if ($fs);
 					   return $s;
-			                 }, 
+			                 },
 			                         "Font to use ('<fontname>,<size>')"],
 			'fontsize',
 			['textnormal', 'b','cff','turn off all special text flags (default)'],
@@ -6737,7 +6741,7 @@ our $termTabSource = {
 			 ['simplex',    'b','cff','single sided printing'],
 			 ['duplex',     'b','cff','double sided printing'],
 			 ['defaultplex','b','cff','accept printer default for 1/2 sided printing'],
-			 ['fontfile',   's',sub { my ($k,$v)=@_; 
+			 ['fontfile',   's',sub { my ($k,$v)=@_;
 						  return " $k add \"$v\" "}
 			                   ,      'add font file to prologue'],
 			 ['adobeglyphnames','b','cf','enable or disable Adobe style glyph names'],
@@ -6811,11 +6815,11 @@ our $termTabSource = {
 ##############################
 # Generate the termTab from termTabSource.
 #
-# Each entry in termTab gets the description string and unit, and a 
+# Each entry in termTab gets the description string and unit, and a
 # list with the same structure as the $pOpt global for parse options --
 # except that the abbrevs table is not prepopulated for all devices
 # (it is calculated on the fly within the constructor).
-# 
+#
 # Unsupported entries are left to rot in the termTabSource structure.
 
 $termTab = {};
@@ -6824,7 +6828,7 @@ for my $k(keys %$termTabSource) {
     next unless(ref($termTabSource->{$k}));   # names aren't supported -- eliminate
     my $terminalOpt = {};   #this will hold the _parseOptHash control structure we generate
     my $i = 1;              #this is a sort order counter
-    
+
     for my $n(@{$termTabSource->{$k}->{opt}}) {
 	my $name = $n;
 	my $line;
@@ -6832,7 +6836,7 @@ for my $k(keys %$termTabSource) {
 	    $name = $n->[0];
 	    $line = [@{$n}[1..3]];
 	} else {
-	    $line = $termTab_types->{$name} 
+	    $line = $termTab_types->{$name}
 	       or die "Bug in parse table build! ('$name' inside terminal '$k')";
 	}
 	$terminalOpt->{$name} = [ $line->[0], $line->[1], undef, $i++, $line->[2]];
@@ -6845,7 +6849,7 @@ for my $k(keys %$termTabSource) {
 		       mouse => _def( $termTabSource->{$k}->{mouse}, 0),
 		       disp  => _def( $termTabSource->{$k}->{disp},  0),
 		       int   => _def( $termTabSource->{$k}->{int},   0),
-		       opt  => [ $terminalOpt, 
+		       opt  => [ $terminalOpt,
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
 			   ],
@@ -6855,7 +6859,7 @@ for my $k(keys %$termTabSource) {
 
 =pod
 
-=head2 terminfo 
+=head2 terminfo
 
 =for usage
 
@@ -6916,7 +6920,7 @@ sub terminfo {
 	print STDERR $s unless($dont_print);
 	return $s;
     }
-    
+
     if($terminal && $terminal ne 'all'){
 	$s = "terminfo: terminal '$terminal' isn't recognized.  I'm listing all supported terminals instead.\n\n";
 	$terminal = '';
@@ -6936,7 +6940,7 @@ sub terminfo {
 	    next unless($termTab->{$k}->{int} || $termTab->{$k}->{mouse});
 	    $s .= sprintf("  %10s: %s %s\n",$k,$termTab->{$k}->{mouse} ? "[M]" : "   ", $termTab->{$k}->{desc});
 	}
-	
+
 	$s .= "\n\n  FILE TERMINALS\n";
 	for my $k(sort keys %$termTab) {
 	    next unless($this->{valid_terms}->{$k});
@@ -6963,19 +6967,19 @@ sub terminfo {
 	    $s .= "\n(use terminfo('all') to see unsupported terminals as well)\n";
 	}
 	$s .= "\nRun PDL::Graphics::Gnuplot::terminfo( \$term_name ) for information on options.\n\n";
-	
+
 	$s .= (($this==$globalPlot) ? "The default P::G::G" : "This") . " window is currently using the '$this->{terminal}' terminal.\n\n";
 
 	print STDERR $s unless($dont_print);
 	return $s;
     }
 
-}    
+}
 
 ######################################################################
 ######################################################################
 #####
-#####  I/O to Gnuplot 
+#####  I/O to Gnuplot
 #####
 #####  The following routines provide basic I/O to the underlying
 #####  Gnuplot process: starting Gnuplot, writing commands and/or data
@@ -7002,13 +7006,13 @@ sub terminfo {
 #####  POSIX IPC is pretty sane and we can use signals to control
 #####  what's going on.  Unfortunately, not all supported platforms
 #####  are POSIX, so we have to switch some behavior based on the
-#####  $MS_io_braindamage flag. 
+#####  $MS_io_braindamage flag.
 #####
 #####  Because not much data comes back from gnuplot over the pipe, we
 #####  are pretty careless about how we pull it through -- one
-#####  character at a time, which is pretty inefficient.  
+#####  character at a time, which is pretty inefficient.
 #####
-#####  Dealing with exceptions and interrupts is difficult, since 
+#####  Dealing with exceptions and interrupts is difficult, since
 #####  gnuplot doesn't seem to respond well over the pipe in the most
 #####  common case (while receiving binary data).  In that particular
 #####  case we simply dropkick gnuplot and restart it.
@@ -7017,8 +7021,8 @@ sub terminfo {
 ##############################
 ##############################
 ## _load_alien_gnuplot -- load up the local caches of terminal support and color names.
-## This is necessary because Alien::Gnuplot doesn't know which terminals we support, 
-## and is in a separate subroutine so we can call it to reload the cached terminal 
+## This is necessary because Alien::Gnuplot doesn't know which terminals we support,
+## and is in a separate subroutine so we can call it to reload the cached terminal
 ## database.
 
 _load_alien_gnuplot();   # Execute this during module load!
@@ -7059,12 +7063,12 @@ sub _startGnuplot
     if($this->{"pid-$suffix"}) {
 	_killGnuplot($this,$suffix);
     }
-    
+
     $this->{options}->{multiplot} = 0;
 
     if( $this->{options}{dump} ) {
 	$this->{"in-$suffix"} = \*STDOUT;
-	$this->{"pid-$suffix"} = undef; 
+	$this->{"pid-$suffix"} = undef;
 	$this->{dumping} = $this->{options}{dump};
 	return $this;
     } else {
@@ -7092,7 +7096,7 @@ sub _startGnuplot
     $this->{"pid-$suffix"} = $pid;
 
     ## Make sure the executable is working as expected.  We do this by
-    ## telling it to emit a version number.  (Alien::Gnuplot did this at 
+    ## telling it to emit a version number.  (Alien::Gnuplot did this at
     ## load time, so we can check both that the gnuplot works, and also
     ## that it is probably the same executable that Alien::Gnuplot reported.)
 
@@ -7115,7 +7119,7 @@ sub _startGnuplot
 		}
 	    } else {
 		print STDERR <<"EOM";
-WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read 
+WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read
    a version number.  Carry on, but don\'t be surprised if it doesn\'t work.
 
 -
@@ -7137,7 +7141,7 @@ EOM
 	    $this->{gp_version} = $1;
 	    $this->{gp_pl} = $3;
 	} else {
-	    
+
 	    # Something went wrong with i/o.  See if the process still exists.
 	    unless($MS_io_braindamage) {
 		use POSIX ":sys_wait_h";
@@ -7155,8 +7159,8 @@ EOM
 	    }
 
 	    print STDERR <<"EOM"
-WARNING: I couldn\'t parse a version number from gnuplot\'s output.  I\'m 
-   returning the object anyway - but don\'t be surprised if it  doesn\'t work.  
+WARNING: I couldn\'t parse a version number from gnuplot\'s output.  I\'m
+   returning the object anyway - but don\'t be surprised if it  doesn\'t work.
    I\'m marking it with an internal \"obsolete\" flag, which may help.
 EOM
 ;
@@ -7173,7 +7177,7 @@ EOM
 	    $PDL::Graphics::Gnuplot::non_numeric_patch_warned = 0;
 	    if( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
 		print STDERR <<"EOM";
-WARNING: we found gnuplot version '$gp_version' pl '$gp_pl' but Alien::Gnuplot reported 
+WARNING: we found gnuplot version '$gp_version' pl '$gp_pl' but Alien::Gnuplot reported
 a different version ('$Alien::Gnuplot::version' pl '$Alien::Gnuplot::pl').  Reloading Alien::Gnuplot...
 EOM
 		Alien::Gnuplot::load_gnuplot();
@@ -7194,8 +7198,8 @@ EOM
 	    print STDERR <<"EOM";
 
 ***************************************************************************
-WARNING: Your gnuplot version ($gp_version) is deprecated and may cause 
-plotting errors or random behavior.  It is suggested you upgrade to v$gnuplot_dep_v. 
+WARNING: Your gnuplot version ($gp_version) is deprecated and may cause
+plotting errors or random behavior.  It is suggested you upgrade to v$gnuplot_dep_v.
 To silence this warning, set the GNUPLOT_DEPRECATED environment variable.
 ***************************************************************************
 
@@ -7218,7 +7222,7 @@ EOM
     our $unknown_terms; # ditto
     $this->{valid_terms} = $valid_terms;
     $this->{unknown_terms} = $unknown_terms;
-    
+
     _checkpoint($this, "main");
 
     $this;
@@ -7232,9 +7236,9 @@ sub _killGnuplot {
     my $this = shift;
     my $suffix = shift;
     my $kill_it_dead = shift;
-    
+
     local($SIG{PIPE}) = sub { };
-    
+
     unless(defined($suffix)) {
 	for my $k(keys %$this) {
 	    next unless $k =~ m/^pid\-(.*)$/;
@@ -7242,7 +7246,7 @@ sub _killGnuplot {
 	}
 	return;
     }
-    
+
     if( defined $this->{"pid-$suffix"})
     {
 	my $goner = $this->{"pid-$suffix"};
@@ -7257,21 +7261,21 @@ sub _killGnuplot {
 
 	} else {
 	    # Try Mr. Nice Guy first.
-	    
+
 	    _printGnuplotPipe($this,$suffix,"exit\n");
 
-	    # Give it 1 second to quit, then interrupt it again.  
+	    # Give it 1 second to quit, then interrupt it again.
 	    # If that doesn't work kill it dead.
 	    my $countdown = 2;
-	    
+
 	    # In case of ^C, give up and kill the process dead.
 	    local($SIG{INT}) = sub {
 		kill 'KILL', $goner;
 		alarm(0);
 		$countdown = -1;
 	    };
-	    
-	    local($SIG{ALRM}) = sub { 
+
+	    local($SIG{ALRM}) = sub {
 		$countdown--;
 		if($countdown <= 2) {
 		    kill 'HUP',$goner;
@@ -7283,26 +7287,26 @@ sub _killGnuplot {
 		    alarm(0);
 		}
 	    };
-	    
+
 	    alarm(1);
 
 	    $z = waitpid($goner, 0);
 	    alarm(0);
 
 	}
-	    
-	
+
+
 	unless($z == $goner) {
 	    # If for some reason it didn't die, fire and forget.
-	    kill 'KILL', $goner; 
+	    kill 'KILL', $goner;
 	    waitpid( $goner, 0 ) ;
 	}
-	
+
 	# This clears the status bits from the killed process, so
 	# we don't report anomalous error when we finally exit.
-	$? = 0;  
+	$? = 0;
     }
-    
+
     for (map { $_."-$suffix" } qw/in err errSelector pid/) {
 	delete $this->{$_} if(exists $this->{$_});
     }
@@ -7313,16 +7317,16 @@ sub _killGnuplot {
 
 
 ##############################
-# _printGnuplotPipe - output stuff to the pipe.  
+# _printGnuplotPipe - output stuff to the pipe.
 #
 # Used for both commands and data.
-# 
+#
 sub _printGnuplotPipe
 {
   my $this   = shift;
   my $suffix = shift;
   my $string = shift;
-  
+
   local($SIG{PIPE}) = sub { _killGnuplot($this,undef,1); die "PDL::Graphics::Gnuplot: subproc died.\n";};
 
   unless(defined($this->{"in-$suffix"})) {
@@ -7337,7 +7341,7 @@ sub _printGnuplotPipe
 
   # Autodetect the dump option
   # If it gets set or unset, restart gnuplot
-  if(($this->{options}->{dump} && !$this->{dumping})  or  
+  if(($this->{options}->{dump} && !$this->{dumping})  or
      ($this->{dumping} && !$this->{options}->{dump})
       ) {
       $this->restart(1);
@@ -7359,13 +7363,13 @@ sub _printGnuplotPipe
       my $s = $SIG{INT};
       local $SIG{INT} = sub { $int_flag = 1; };
 
-      # Write out the string in 640kiB chunks to enable interruption	  
+      # Write out the string in 640kiB chunks to enable interruption
       my $pipeerr = $this->{"err-$suffix"};
       my $pipeselector = $this->{"errSelector-$suffix"};
 
       if($MS_io_braindamage) {
 	  my $chunksize= 655360;
-	  
+
 	  if(length($string)) { # Only write nonempty strings :-)
 	      do {
 	      # Send the next block out.
@@ -7377,8 +7381,8 @@ sub _printGnuplotPipe
 		      " bytes to the gnuplot pipe.\nError was:\n\t$err";
 	      }
 	      $of += $len;
-	      } while($of < length($string) and !$int_flag); 
-	      
+	      } while($of < length($string) and !$int_flag);
+
 	      if($int_flag) {
 		  # We were interrupted, which hoses up gnuplot.  Restart gnuplot.
 		  _killGnuplot($this,undef,1);
@@ -7402,7 +7406,7 @@ sub _printGnuplotPipe
 	      if(ref($s) eq 'CODE') {
 		  print STDERR $str;
 		  &$s;
-	      } 
+	      }
 	      die $str;
 	  }
       }
@@ -7416,8 +7420,8 @@ sub _printGnuplotPipe
       $s =~ s/^/gnuplot> /msg unless($flags->{data});
       $this->{$k} .= $s;
   }
-  
-  # Various debugging options. 
+
+  # Various debugging options.
   if( $this->{dumping} || $this->{options}{tee} )
   {
     my $debug_display_string;
@@ -7463,12 +7467,12 @@ sub _checkpoint {
     my $notimeout = _def($opt->{notimeout}, 0);
     my $printwarnings = (_def($opt->{printwarnings},  0) and !_def($this->{options}->{silent}, 0));
     my $ignore_errors = _def($opt->{ignore_errors}, 0);
-    
+
     my $pipeerr = $this->{"err-$suffix"};
 
     # string containing various options to this function
     my $flags = shift;
-    
+
     # I have no way of knowing if the child process has sent its error data
     # yet. It may be that an error has already occurred, but the message hasn't
     # yet arrived. I thus print out a checkpoint message and keep reading the
@@ -7476,14 +7480,14 @@ sub _checkpoint {
     # been printed before this
     $cp_serial++;
     my $checkpoint = "xxxxxxx Synchronizing gnuplot i/o $cp_serial xxxxxxx";
-    
+
     _printGnuplotPipe( $this, $suffix, "\n\nprint \"$checkpoint\"\n" );
-    
-    
+
+
     # if no error pipe exists, we can't check for errors, so we're done. Usually
     # happens if($dump)
     return "" unless defined $pipeerr;
-    
+
     my $fromerr = '';
 
     if( !($this->{dumping}) ) {
@@ -7492,7 +7496,7 @@ sub _checkpoint {
 
 	# Queue up a SIGINT handler, with passthrough...
 	unless($MS_io_braindamage) {
-	    $SIG{INT} = 
+	    $SIG{INT} =
 		sub {
 		    kill 'INT', $this->{"pid-$suffix"};
 		    if(ref $int eq 'CODE') {
@@ -7501,7 +7505,7 @@ sub _checkpoint {
 		    die "^C received during PDL::Graphics::Gnuplot checkpoint operation\n";
 	    };
 	}
-	
+
 	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
 
 	my $terminal =$this->{options}->{terminal};
@@ -7517,7 +7521,7 @@ sub _checkpoint {
 	local($SIG{PIPE}) = sub { $subproc_gone = 1; };
 
 	do
-	{ 
+	{
 	    # if no data received in a few seconds, the gnuplot
 	    # process is stuck. This usually happens if the gnuplot
 	    # process is not in a command mode, but in a
@@ -7529,8 +7533,8 @@ sub _checkpoint {
 	    # work on Microsoft Windows, since that OS doesn't have a
 	    # working asynchronous read, and can_read doesn't work
 	    # either.
-	    
-	    if( $MS_io_braindamage or 
+
+	    if( $MS_io_braindamage or
 		$this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay )
 		)
 	    {
@@ -7549,7 +7553,7 @@ sub _checkpoint {
 		barf <<"EOM";
 Hmmm, my $suffix Gnuplot process didn't respond for $delay seconds.
 I've kicked it with an interrupt signal, which should help with the
-next thing you try to do.  If you expect slow response fron gnuplot, 
+next thing you try to do.  If you expect slow response fron gnuplot,
 you can adjust the timeout with the "wait" terminal option.
 EOM
 	    }
@@ -7567,19 +7571,19 @@ EOM
 
 	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
 
-	# Discard prompt-and-command lines up to the last prompt seen. 
-	# This is necessary for MS Windows support: MS Windows doesn't have 
-	# a notion of a tty versus other kind of pipe, so gnuplot always 
-	# prints prompts and echoes commands.  Since there isn't much in the 
+	# Discard prompt-and-command lines up to the last prompt seen.
+	# This is necessary for MS Windows support: MS Windows doesn't have
+	# a notion of a tty versus other kind of pipe, so gnuplot always
+	# prints prompts and echoes commands.  Since there isn't much in the
 	# way of error syntax, we might miss a few errors this way.  Oh well.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/[\s\n\r]*(gnu|multi)plot\>[^\n\r]*$//msg;
 	    $fromerr =~ s/[\s\n\r]*input data \(\'e\' ends\) \>[^\n\r]*$//msg;
 	}
-	
+
 	# Strip the checkpoint message.
 	$fromerr =~ s/\s*(.*?)\s*$checkpoint.*$/$1/ms;
-	
+
 	# Replace non-printable ASCII characters with '?'
 	# (preserve ^I [tab], ^J [newline], and ^M [return])
 	$fromerr =~ s/[\000-\010\013-\014\016-\037\200-\377]/\?/g;
@@ -7601,7 +7605,7 @@ EOM
 
 	}
 
-	# Anything else is an error -- except on Microsoft Windows where we 
+	# Anything else is an error -- except on Microsoft Windows where we
 	# get additional chaff on the channel.  Try to take it out.
 	if($MS_io_braindamage) {
 	    $fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
@@ -7609,13 +7613,13 @@ EOM
 	    # Hack to avoid spurious the pdfcairo errors in MacOS 10.5 - strip out obsolete-function errors.
 	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//o ) {
 		# do nothing
-	    } 
+	    }
 	}
 
-	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or 
+	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or
 	    # This is really stupid -- many error messages from gnuplot aren't labeled as such, so we can't mark
 	    # them as errors.  Try some common keywords for genuine error messages.
-	    $fromerr =~ m/(fail(ed|s)?)|(error)|(expected \w+ driver)/io 
+	    $fromerr =~ m/(fail(ed|s)?)|(error)|(expected \w+ driver)/io
 	   )
 	    ) {
 	    if($this->{early_gnuplot}) {
@@ -7624,7 +7628,7 @@ EOM
 	        barf "PDL::Graphics::Gnuplot: ERROR: the gnuplot backend issued an error:\n$fromerr\n";
 	    }
 	}
-		       
+
 	# strip whitespace
 	$fromerr =~ s/^\s*//s;
 	$fromerr =~ s/\s*$//s;
@@ -7731,10 +7735,10 @@ sub _obj_or_global {
 # coordinates from a FITS file.  Ideally, we would simply produce an (x,y) grid
 # that supplies scientific coordinates for each pixel -- but that doesn't work
 # in the general case due to shortcomings with gnuplot itself: the three-element
-# tuple form of "with image" only works for affine transformations between 
+# tuple form of "with image" only works for affine transformations between
 # pixel coordinates and scientific plane coordinates.
 #
-#  
+#
 our $fitsmap_size = 1024;
 sub _with_fits_prefrobnicator {
     my( $with, $this, $chunk, @data ) = @_;
@@ -7760,14 +7764,14 @@ sub _with_fits_prefrobnicator {
 
     barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if(@data != 1);
     my $data = $data[0];
-    
+
     my $h = $data->gethdr();
     unless($h   and   ref $h eq 'HASH'   and   $h->{NAXIS}   and   $h->{NAXIS1}   and   $h->{NAXIS2}) {
 	if($data->ndims==2 or ($data->ndims==3 && ($data->dim(3)==3 || $data->dim(3)==1))) {
 	    warn("PDL::Graphics::Gnuplot: 'with fits' expected a FITS header.  Using pixel coordinates...\n");
 		 $h = {
 		     NAXIS=>2,
-		     NAXIS1 => $data->dim(0), 
+		     NAXIS1 => $data->dim(0),
 		     NAXIS2 => $data->dim(1),
 		     CRPIX1=>1,		         CRPIX2=>1,
 		     CRVAL1=>0,   		 CRVAL2=>0,
@@ -7808,7 +7812,7 @@ sub _with_fits_prefrobnicator {
     if($xmin > $xmax) {
 	my $a = $xmin; $xmin = $xmax; $xmax = $a;
     }
-    
+
     our $dest_hdr = {NAXIS=>2,
 		    NAXIS1=> $resample_dims[0],     NAXIS2=>$resample_dims[1],
 		    CRPIX1=> 0.5,                   CRPIX2=>0.5,
@@ -7903,7 +7907,7 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =item some plot and curve options need better parsing:
 
-=over 3 
+=over 3
 
 =item - Hash values should be accepted (and parsed properly) for all plot options for which they work.
 
