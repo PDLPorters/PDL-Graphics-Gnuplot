@@ -4256,7 +4256,7 @@ sub end_multi {
 
 Get a mouse click or keystroke from the active interactive plot window.
 
-For interactive devices (e.g. x11, xwt, aqua), get_click lets you accept a 
+For interactive devices (e.g. x11, xwt, aqua), read_mouse lets you accept a
 keystroke or mouse button input from the gnuplot window.  In list context, it
 returns four arguments containing the reported X, Y, keystroke character, and 
 modifiers packed in a string.  In scalar context, it returns a hash ref containing
