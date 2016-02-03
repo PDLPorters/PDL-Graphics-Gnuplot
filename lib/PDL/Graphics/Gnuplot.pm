@@ -413,7 +413,7 @@ The GNuplot plot styles supported are:
 
 The plot options are parameters that affect the whole plot, like the title of
 the plot, the axis labels, the extents, 2d/3d selection, etc. All the plot
-options are described below in L</"Plot options">.  Plot options can be set 
+options are described below in L<"Plot Options"|/"PLOT OPTIONS">.  Plot options can be set
 in the plot object, or passed to the plotting methods directly.  Plot options can
 be passed in as a leading interpolated hash, as a leading hash ref, or as a trailing
 hash ref in the argument list to any of the main plotting routines (C<gplot>, C<plot>,
@@ -434,7 +434,7 @@ the default), $b vs. $x plotted with points on the secondary y axis, and $c
 vs. $x plotted with lines on the main y-axis (the default). Note that the curve
 options can be supplied as either an inline hash or a hash ref.
 
-All the curve options are described below in L</"Curve options">.
+All the curve options are described below in L<"Curve Options"|/"CURVE OPTIONS">.
 
 If you want to plot multiple curves of the same type without setting
 any curve options explicitly, you must include an empty hash ref
@@ -904,12 +904,12 @@ ticks (see C<POs for time data values> below).
 
 By default, gnuplot will automatically place major and minor ticks.
 You can turn off ticks on an axis by setting the appropriate {foo}tics
-option to a defined, false scalar value (e.g. C<< xtics=>0 >>).  If you 
-want to set major tics to happen at a regular specified intervals, you can set the 
-appropriate tics option to a nonzero scalar value (e.g. C<< xtics=>2 >> to 
-specify a tic every 2 units on the X axis).  To use default values for the 
-tick positioning, specify an empty hash or array ref (e.g. C<< xtics=>{} >>), or 
-a string containing only whitespace (e.g. C<<xtics=>' '>>).
+option to a defined, false scalar value (e.g. C<< xtics=>0 >>).  If you
+want to set major tics to happen at a regular specified intervals, you can set the
+appropriate tics option to a nonzero scalar value (e.g. C<< xtics=>2 >> to
+specify a tic every 2 units on the X axis).  To use default values for the
+tick positioning, specify an empty hash or array ref (e.g. C<< xtics=>{} >>), or
+a string containing only whitespace (e.g. C<< xtics=>' ' >>).
 
 If you prepend an 'm' to any tics option, it affects minor tics instead of
 major tics (major tics typically show units; minor tics typically show fractions
@@ -948,8 +948,8 @@ If you pass in undef, tics get the default length.  If you pass in a scalar, maj
 =item * labels - sets tic locations explicitly, with text labels for each. If you specify both C<locations> and C<labels>, you get both sets of tics on the same axis.
 
 The labels should be a nested list ref that is a collection of duals
-or triplets.  Each dual or triplet should contain [label, position, minorflag], 
-as in C<<labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]]>>.
+or triplets.  Each dual or triplet should contain [label, position, minorflag],
+as in C<< labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]] >>.
 
 =item * format - printf-style format string for tic labels.  There are
 some extensions to the gnuplot format tags -- see the gnuplot manual.
@@ -1026,13 +1026,13 @@ with conventional formatting. There are three main methods, which are mutually e
 
 You can set any axis to plot timestamps rather than numeric values by
 setting the corresponding "data" plot option to "time",
-e.g. C<<xdata=>"time">>.  If you do so, then numeric values in the
+e.g. C<< xdata=>"time" >>.  If you do so, then numeric values in the
 corresponding data are interpreted as UNIX time (seconds since the
 UNIX epoch, neglecting leap seconds).  No provision is made for
 UTC<->TAI conversion.  You can format how the times are plotted with
 the "format" option in the various "tics" options(above).  Output
 specifiers should be in UNIX strftime(3) format -- for example,
-C<<xdata=>"time",xtics=>{format=>"%Y-%b-%dT%H:%M:%S"}>>
+C<< xdata=>"time",xtics=>{format=>"%Y-%b-%dT%H:%M:%S"} >>
 will plot UNIX times as ISO timestamps in the ordinate.
 
 Due to limitations within gnuplot, the time resolution in this mode is
