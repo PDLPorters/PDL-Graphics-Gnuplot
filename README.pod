@@ -1349,10 +1349,10 @@ The <object-type> is one of four words: "rectangle", "ellipse", "circle", or "po
 You can specify a rectangle with C<< from=>$pos1, [r]to=>$pos2 >>, with C<< center=>$pos1, size=>"$w,$h" >>,
 or with C<< at=>$pos1,size=>"$w,$h" >>.
 
-You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed
+You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos, size=>"$w,$h" >>, followed
 by C<< angle=>$a >>.
 
-You can specify a circle with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos size=>"$w,$h" >>, followed
+You can specify a circle with C<< at=>$pos, >> or C<< center=>$pos,  >>, followed
 by C<< size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
 
 You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with
