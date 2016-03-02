@@ -510,7 +510,7 @@ As a special case, if you supply as data a (WxHx3) PDL it is treated as an RGB
 image and displayed with the "rgbimage" style (below).  For quick
 image display there is also an "image" method:
 
- use PDL::Graphics::Gnuplot qw/image/;
+ use PDL::Graphics::Gnuplot qw/image gplot/;
  $im = sin(rvals(51,51)/2);
  image( $im );                # display the image
  gplot( with=>'image', $im );  # display the image (longer form)
@@ -531,8 +531,8 @@ Some additional plot styles exist to specify RGB and RGB transparent forms
 directly.  These are the "with" styles "rgbimage" and "rgbalpha".  For each
 of them you must specify the channels as separate PDLs:
 
- gplot( with=>'rgbimage', $rgbim->dog );           # RGB  the long way
- gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way
+ gplot( with=>'rgbimage', $rgbim->dog );               # RGB  the long way
+ gplot( with=>'rgbalpha', $rgbim->dog, 255*($im>0) );  # RGBA the long way
 
 According to the gnuplot specification you can also give X and Y
 values for each pixel, as in
@@ -4259,7 +4259,7 @@ sub end_multi {
 
 Get a mouse click or keystroke from the active interactive plot window.
 
-For interactive devices (e.g. x11, xwt, aqua), read_mouse lets you accept a
+For interactive devices (e.g. x11, wxt, aqua), read_mouse lets you accept a
 keystroke or mouse button input from the gnuplot window.  In list context, it
 returns four arguments containing the reported X, Y, keystroke character, and
 modifiers packed in a string.  In scalar context, it returns a hash ref containing
