@@ -62,15 +62,15 @@ $w->options(globalwith => 'linespoints', xmin => -10);
 
 $w->plot( title => 'Error bars and other things',
 	  y2tics=>10,
-	  with => 'lines lw 4',
+	  {with => 'lines', 'lw' => 4},
 	  legend => ['Parabola A','Parabola B','Parabola C'],
 	  axes => 'x1y2',
 	  PDL::cat($x, $x*2, $x*3), $x**2 - 300,
-	  
+
 	  with => 'xyerrorbars',
 	  axes=>'x1y1',
 	  $x**2 * 10, $x**2/40, $x**2/2, # implicit domain
-	  
+
 	  {with => 'line', legend => 'cubic', tuplesize => 2},
 	  {legend => ['shifted cubic A','shifted cubic B']},
 	  $x, PDL::cat($x**3, $x**3 - 100) );
@@ -81,7 +81,7 @@ prompt("Error bars and other things");
 # a way to control the point size
 
 $w->plot(cbmin => -600, cbmax => 600, title=>"Variable pointsize",
-     {with => 'points pointtype 7 pointsize variable'},
+     {with => qw(points pointtype 7 pointsize variable)},
 	 $x, $x/2, (10-abs($x))/2);
 prompt("Variable pointsize");
 
@@ -155,7 +155,7 @@ prompt("A sphere and an ellipsoid");
  $w->plot3d( 
 	     title => 'double helix',
 	     
-	     { with => 'linespoints pointsize variable pointtype 7 palette', tuplesize => 5,
+	     { with => 'linespoints', pointsize => 'variable', pointtype => 7, palette => 1, tuplesize => 5,
 	       legend => ['spiral 1','spiral 2'],cdim=>1},
 	     # 2 sets of x, y, z:
 	     cos($theta)->cat(-cos($theta)),
@@ -175,6 +175,7 @@ prompt("A sphere and an ellipsoid");
   $w->plot3d(
          title  => 'Paraboloid heat map',
          extracmds => 'set view 0,0',
+         zrange => [-1,1],
          with => 'image', inner($xy, $xy));
   prompt("An image");
 }
