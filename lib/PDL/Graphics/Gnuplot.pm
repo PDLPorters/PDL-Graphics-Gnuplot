@@ -1859,6 +1859,58 @@ change of output device or a call to C<reset>, C<restart>, or C<close>.
 This is because those devices support multipage output and also require
 and end-of-file marker to close the file.
 
+=head2 Managing Gnuplot warnings and errors
+
+Gnuplot offers a lot of feedback to the user via STDOUT and STDERR.
+When a specific, unrecoverable error in the interaction with Gnuplot
+is detected, Gnuplot's screen messages are reported and the program is
+terminated using L<PDL>'s C<barf> function.  All other sorts of
+feedback, are reported using C<carp> from L<Carp>.  Typically, this
+means that error messages are sent to STDERR, which usually means that
+messages are written to the screen.
+
+For interactive applications, for instance those using a GUI toolset
+like L<Wx>, the default behavior of C<barf> and C<carp> may not be the
+best choice.  Here's an example.  An application is built using L<PDL>
+for numerical analysis, this module for data visualization, L<Wx> for
+the GUI, and the qt terminal for Gnuplot.  In certain situations, the
+qt terminal will report the following alarming but harmless message:
+
+   Reading ras files from sequential devices not supported
+
+In this application, it is desirable to filter the stream of text
+going to C<barf> or C<carp> so that this harmless message is not
+reported.  Here is a way of doing that in the context of L<Wx>.
+
+First, capture and filter the output of C<carp> by setting the
+appropriate signals.
+
+   use Wx::Perl::Carp qw(verbose);
+   $SIG{__WARN__} = sub { if ($_[0] =~ m{Reading ras files from sequential devices not supported}) {
+                             1
+                          } else {
+                             Wx::Perl::Carp::warn($_[0])
+                          } };
+   $SIG{__DIE__}  = sub { if ($_[0] =~ m{Reading ras files from sequential devices not supported}) {
+                             1
+                          } else {
+                             Wx::Perl::Carp::warn($_[0])
+                          } };
+
+In the situations where the spurious warning is captured by C<barf>,
+C<barf> can be overloaded locally to PDL::Graphics::Gnuplot in a way
+that uses the signal handler defined above.  This is done by appending
+the following  to the end of the L<Wx> program:
+
+   package PDL::Graphics::Gnuplot;
+   {
+     no warnings 'redefine';
+     sub barf { goto &Carp::cluck };
+   }
+
+This solution will display the warning or error message to the user in
+a Wx dialog box without terminating the program.
+
 =head1 Plotting examples
 
 =head2 A simple example
@@ -1946,6 +1998,7 @@ package PDL::Graphics::Gnuplot;
 
 use strict;
 use warnings;
+use Carp;
 use PDL;
 use List::Util qw(first);
 use Storable qw(dclone);
@@ -2178,7 +2231,7 @@ in the constructor.
 
 If you don't specify an output device, plots will go to sequentially-numbered
 files of the form C<Plot-E<lt>nE<gt>.E<lt>sufE<gt>> in your current working
-directory.  In that case, PDL::Graphics::Gnuplot will report (on STDERR)
+directory.  In that case, PDL::Graphics::Gnuplot will report (via L<Carp>)
 where the plot ended up.
 
 =item enhanced
@@ -2765,7 +2818,7 @@ sub plot
 	    my($x,$y) = ($1,$2);
 	    ($xax,$yax) = ( ($x==1 ? 'x' : 'x2') , ($y==1 ? 'y' : 'y2'));
 	} else {
-	    print STDERR "WARNING: axes specifier '$axis_str' doesn't make sense.  Continuing anyway...\n";
+	    carp("WARNING: axes specifier '$axis_str' doesn't make sense.  Continuing anyway...\n");
 	    ($xax,$yax) = ('x','y');
 	}
 	$axes_by_chunkno[$i] = [$xax,$yax];
@@ -2866,7 +2919,7 @@ sub plot
 		    $cxr = [0, $chunks->[$i]->{data}->[0]->dim(0)];
 		    $cyr = [$chunks->[$i]->{data}->[0]->minmax];
 		} else {
-		    print STDERR "Warning - found an 'impossible' case in autoranging.  Your plot is probably OK.\n\tplease file a bug report for PDL::Graphics::Gnuplot version $VERSION\n";
+		    carp("Warning - found an 'impossible' case in autoranging.  Your plot is probably OK.\n\tplease file a bug report for PDL::Graphics::Gnuplot version $VERSION\n");
 		    next;
 		}
 	    } else {
@@ -3163,7 +3216,7 @@ POS
 	} else {
 	    # Used to barf here, but now we just issue an announcement, since
 	    # some messages are warnings (rather than errors).
-	    print STDERR "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
+	    carp("WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n");
 	}
     }
 
@@ -3451,11 +3504,11 @@ POS
 		@with = @{$chunk{options}{with}};
 	    }
 	    if(@with > 1) {
-		print STDERR q{
+		carp(q{
 WARNING: deprecated usage of complex 'with' detected.  Use a simple 'with'
 specifier and curve options instead.  This will fail in future releases of
 PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
-} unless($ENV{'PGG_DEP'});
+}) unless($ENV{'PGG_DEP'});
 	    }
 
 	    # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
@@ -3504,12 +3557,12 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 
 	      if( $got ne $asked  and  !($this->{binary_flag_defaulted}))
 	      {
-		print STDERR <<EOF;
+		carp('
 PDL::Graphics::Gnuplot warning: user asked for $asked data transfer, but
-'$with[0]' plots are ALWAYS sent in $got. Ignoring '$asked' request.
+\'$with[0]\' plots are ALWAYS sent in $got. Ignoring \'$asked\' request.
 Set environment variable PGG_SUPPRESS_BINARY_MISMATCH_WARNING to suppress
 this warning.
-EOF
+');
 	      $ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} = 1;
 	      }
 	    }
@@ -3556,7 +3609,7 @@ EOF
 		# No match -- barf unless you really meant it
 		if($chunk{options}->{tuplesize}) {
 		    $chunk{ArrayRec} = 'record';
-		    print STDERR "WARNING: forced disallowed tuplesize with a curve option...\n";
+		    carp("WARNING: forced disallowed tuplesize with a curve option...\n");
 		} else {
 		    my $pl = ($NdataPiddles==1)?"":"s";
 		    my $s = "Found $NdataPiddles PDL$pl for $ND plot type 'with ".($with[0])."', which needs ";
@@ -3700,15 +3753,15 @@ EOF
 		# Speed bump for weird case
 		our $bigthreads;
 		if($ncurves >= 100 and !$bigthreads) {
-		    print STDERR <<"FOO"
+		    print '
 PDL::Graphics::Gnuplot: WARNING - you seem to be plotting $ncurves
 curves in a single threaded collection.  This could be because you fed
 in a 2-D (or higher) data set when you meant to plot a single curve.
 If so, you may want to flatten your data and try again. (To disable
 this message, set \$PDL::Graphics::Gnuplot::bigthreads to be true).
-If you are trying to plot a surface, you might try setting 'trid=>1'
+If you are trying to plot a surface, you might try setting \'trid=>1\'
 in the plot options.
-FOO
+'
 		}
 
 		if($chunk{options}->{legend} and
@@ -4163,7 +4216,7 @@ sub multiplot {
     my @params = @_;
 
     if($this->{options}->{multiplot}) {
-	print STDERR "Warning: multiplot: object is already in multiplot mode!\n  Exiting multiplot mode first...\n";
+	carp("Warning: multiplot: object is already in multiplot mode!\n  Exiting multiplot mode first...\n");
 	end_multi($this);
     }
 
@@ -4297,7 +4350,7 @@ sub read_mouse {
     $mouse_serial++;
     my $string = _checkpoint($this, "main", {notimeout=>1});
 
-    print STDERR $message;
+    carp($message);
 
     my($ch,$x,$y,$b,$sft,$alt,$ctl);
 
@@ -4758,9 +4811,9 @@ our $pOptionsTable =
     'dump'      => [
 	sub { my $newval = $_[1];
 	      if($newval && !$_[2]->{dump}) {
-		  print STDERR "WARNING - dumping ON - gnuplot commands go to the terminal only.\n";
+		  carp("WARNING - dumping ON - gnuplot commands go to the terminal only.\n");
 	      } elsif($_[2]->{dump} && !$newval) {
-		  print STDERR "WARNING - dumping OFF - gnuplot commands will be used for plotting.\n";
+		  carp("WARNING - dumping OFF - gnuplot commands will be used for plotting.\n");
 	      }
 	      return $newval;
 	},
@@ -4973,7 +5026,7 @@ our $pOptionsTable =
 			      $vv = $vvn;
 			  }
 			  if($vv ne $v) {
-			      print STDERR "Plotting to '$vv'\n";
+			      carp("Plotting to '$vv'\n");
 			  }
 			  return "set $k \"$vv\"\n";
 		    },
@@ -5013,7 +5066,7 @@ our $pOptionsTable =
 		    'Control tick mark formatting (deprecated; <axis>tics recommended instead)'    ],
     'timestamp' => ['l','l',undef,undef,
 		    'creates a timestamp in the left margin of the plot (see docs)'    ],
-    'timefmt'   => [sub { print STDERR "Warning: timefmt doesn't work well in formats other than '%s'.  Proceed with caution!\n"
+    'timefmt'   => [sub { carp("Warning: timefmt doesn't work well in formats other than '%s'.  Proceed with caution!\n")
 			      if(  defined($_[1])   and    $_[1] ne '%s');
 			  return ( (defined $_[1]) ? "$_[1]" : undef );
 		    },'q',undef,undef,
@@ -5684,7 +5737,7 @@ $_pOHInputs = {
 		      if( @list == 0 ) {
 			  return {};
 		      } elsif(@list > 3) {
-			  print STDERR "Warning - explicit string or array refs are deprecated in tic specs\n";
+			  carp("Warning - explicit string or array refs are deprecated in tic specs\n");
 			  return [@list];
 		      }
 		      my $num_ok = 0;
@@ -5695,7 +5748,7 @@ $_pOHInputs = {
 			  # Hashify the form if possible
 			  return {locations=>\@list};
 		      } else {
-			  print STDERR "Warning - explicit list or string gnuplot commands are deprecated in tic specs\n";
+			  carp("Warning - explicit list or string gnuplot commands are deprecated in tic specs\n");
 			  return \@list;
 		      }
 		      barf "This can't happen!";
@@ -6441,7 +6494,7 @@ our $_OptionEmitters = {
 		      my $c = substr($k,0,1);
 
 		      if( (_def($this and $this->{options} and $this->{options}->{$c."data"}), "" ) =~ m/time/ ) {
-			  print STDERR "WARNING: gnuplot-4.6.1 date range bug triggered.  Check the date scale.\n";
+			  carp("WARNING: gnuplot-4.6.1 date range bug triggered.  Check the date scale.\n");
 			  return sprintf(" [%s:%s] ",((defined $v->[0])?"\"$v->[0]\"":""), ((defined $v->[1])?"\"$v->[1]\"":""));
 		      }
 		      return sprintf(" [%s:%s] ",((defined $v->[0])?$v->[0]:""), ((defined $v->[1])?$v->[1]:""));
@@ -6583,7 +6636,7 @@ our $termTabSource = {
 			   ['size',  'l', sub { my( $k, $v, $h) = @_;
 						my $conv = 1;
 						if(@$v > 2) {
-						    printf STDERR "Warning: cgm device ignores height spec; using width only.";
+						    carp("Warning: cgm device ignores height spec; using width only.");
 						}
 						if(@$v >= 2) {
 						    if($lConv->{$v->[$#$v]}) {
@@ -6910,14 +6963,14 @@ sub terminfo {
 		$s = "PDL::Graphics::Gnuplot doesn't support '$terminal'.\n  $terminal: $termTabSource->{$terminal}\n";
 	    }
 	}
-	print STDERR $s unless($dont_print);
+	carp($s) unless($dont_print);
 	return $s;
     }
 
     if($terminal && $this->{unknown_terms}->{$terminal}) {
 	$s = "terminfo: terminal '$terminal' was reported by gnuplot but isn't supported.\n";
 	$s .= "   $terminal: $this->{unknown_terms}->{$terminal}\n";
-	print STDERR $s unless($dont_print);
+	carp($s) unless($dont_print);
 	return $s;
     }
 
@@ -6970,7 +7023,7 @@ sub terminfo {
 
 	$s .= (($this==$globalPlot) ? "The default P::G::G" : "This") . " window is currently using the '$this->{terminal}' terminal.\n\n";
 
-	print STDERR $s unless($dont_print);
+	carp($s) unless($dont_print);
 	return $s;
     }
 
@@ -7118,7 +7171,7 @@ sub _startGnuplot
 		    $zcount = 0;
 		}
 	    } else {
-		print STDERR <<"EOM";
+		carp('
 WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read
    a version number.  Carry on, but don\'t be surprised if it doesn\'t work.
 
@@ -7126,8 +7179,7 @@ WARNING: Hmmm,  gnuplot didn\'t respond promptly.  I was expecting to read
    $s
 -
 
-EOM
-;
+');
 		return $this;
 	    }
 	} until($s =~ m/^FfFinished$/m || $zcount > 100);
@@ -7158,36 +7210,35 @@ EOM
 		}
 	    }
 
-	    print STDERR <<"EOM"
+	    carp('
 WARNING: I couldn\'t parse a version number from gnuplot\'s output.  I\'m
    returning the object anyway - but don\'t be surprised if it  doesn\'t work.
    I\'m marking it with an internal \"obsolete\" flag, which may help.
-EOM
-;
+');
 	    $this->{early_gnuplot} = 1;
 	    return $this;
 	}
 
 	if($gp_pl =~ m/[a-z]+/) {
 	    unless($PDL::Graphics::Gnuplot::non_numeric_patch_warned) {
-		print STDERR "WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution.\n(warning will not be repeated)\n";
+		carp("WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution.\n(warning will not be repeated)\n");
 		$PDL::Graphics::Gnuplot::non_numeric_patch_warned = 1;
 	    }
 	} else {
 	    $PDL::Graphics::Gnuplot::non_numeric_patch_warned = 0;
 	    if( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
-		print STDERR <<"EOM";
+		carp("
 WARNING: we found gnuplot version '$gp_version' pl '$gp_pl' but Alien::Gnuplot reported
 a different version ('$Alien::Gnuplot::version' pl '$Alien::Gnuplot::pl').  Reloading Alien::Gnuplot...
-EOM
+");
 		Alien::Gnuplot::load_gnuplot();
 		_load_alien_gnuplot();
 		if( $gp_version ne $Alien::Gnuplot::version or $gp_pl ne $Alien::Gnuplot::pl ) {
-		    print STDERR <<"EOM"
+		  carp("
 Hmmm, that\'s funny.  Reloading Alien::Gnuplot gave version '$Alien::Gnuplot::version' pl '$Alien::Gnuplot::pl',
 which still doesn\'t match.  Proceed with caution!
 
-EOM
+")
 		}
 	    }
 	}
@@ -7195,7 +7246,7 @@ EOM
 	if( $gp_version < $gnuplot_dep_v  and  !$PDL::Graphics::Gnuplot::deprecated_this_session ) {
             $PDL::Graphics::Gnuplot::deprecated_this_session = 1;
 	    unless($ENV{GNUPLOT_DEPRECATED}){
-	    print STDERR <<"EOM";
+	    carp("
 
 ***************************************************************************
 WARNING: Your gnuplot version ($gp_version) is deprecated and may cause
@@ -7203,17 +7254,16 @@ plotting errors or random behavior.  It is suggested you upgrade to v$gnuplot_de
 To silence this warning, set the GNUPLOT_DEPRECATED environment variable.
 ***************************************************************************
 
-EOM
+")
 	    }
 	    $this->{early_gnuplot} = 1;
 	}
 
 
     } else {
-	print STDERR <<"EOM"
+	carp("
 WARNING: Gnuplot commands are being dumped to stdout.
-EOM
-;
+");
 	$this->{early_gnuplot} = 0;
     }
 
@@ -7347,9 +7397,9 @@ sub _printGnuplotPipe
       $this->restart(1);
 
       if($this->{dumping}) {
-	  print STDERR "(killed gnuplot)\n";
+	  carp("(killed gnuplot)\n");
       } else {
-	  print STDERR "(restarted gnuplot)\n";
+	  carp("(restarted gnuplot)\n");
       }
   }
 
@@ -7390,7 +7440,7 @@ sub _printGnuplotPipe
 		  _startGnuplot($this,'syntax') if($check_syntax);
 		  my $str = "PDL::Graphics::Gnuplot:  interrupted while sending data; restarted gnuplot.\n";
 		  if(ref($s) eq 'CODE') {
-		      print STDERR $str;
+		      carp($str);
 		      &$s;
 		  }
 		  die $str;
@@ -7404,7 +7454,7 @@ sub _printGnuplotPipe
 	      _startGnuplot($this, 'syntax') if($check_syntax);
 	      my $str = "PDL::Graphics::Gnuplot:  interrupted while sending data; restarted gnuplot.\n";
 	      if(ref($s) eq 'CODE') {
-		  print STDERR $str;
+		  carp($str);
 		  &$s;
 	      }
 	      die $str;
@@ -7597,10 +7647,10 @@ EOM
 	      last WARN unless($fromerr =~ s/^((gnu|multi)plot\>.*\n\s*\^\s*\n\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
 	      my $a = $1;
 	      $a =~ s/^\s*line \d+\:/Gnuplot:/m;
-	      print STDERR $a if($printwarnings);
+	      carp($a) if($printwarnings);
 	  } else {
 	      last WARN unless($fromerr =~ s/^(\s*(line \d+\:\s*)?[wW](arning\:.*(\n|$)))//m);
-	      print STDERR "Gnuplot w$3\n" if($printwarnings);
+	      carp("Gnuplot w$3\n") if($printwarnings);
 	  }
 
 	}
