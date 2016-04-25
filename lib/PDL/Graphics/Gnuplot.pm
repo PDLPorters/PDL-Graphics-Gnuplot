@@ -1821,6 +1821,94 @@ Complicated 3D plot with fancy styling:
          with => 'image',
          $xy );
 
+=head3 Replicating Gnuplot's matix data file format
+
+This recipe replicates the sort of surface plot made using Gnuplot's
+C<splot> command with an ASCII data file in Gnuplot's matrix format.
+The example of this data file format given in the Gnuplot manual is
+
+     # The valley of the Gnu.
+     0 0 10
+     0 1 10
+     0 2 10
+
+     1 0 10
+     1 1 5
+     1 2 10
+
+     2 0 10
+     2 1 1
+     2 2 10
+
+     3 0 10
+     3 1 0
+     3 2 10
+
+This defines a 4 by 3 grid ( 4 rows of 3 points each ).  Rows
+(datablocks) are separated by blank records.
+
+A perl script generating this data file might look something like
+this:
+
+   open(my $D, '>', 'datafile.dat');
+   print $D, "# The valley of the Gnu.\n";
+   foreach my $x (0 .. 3) {
+     printf $D "  %d   %d  %d\n", $x, y($x), z($x);
+   }
+   close $D;
+
+where C<y()> and C<z()> are some kind of function that return the
+second and third columns.
+
+The Gnuplot script that plots this would include this line:
+
+   splot 'datafile.dat' u 1:2:3
+
+To make the equivalent plot using PDL::Graphics::Gnuplot requires
+packing the data into piddles in the correct manner.  First accumulate
+the data into perl arrays:
+
+   use PDL::Core qw(pdl);
+
+   my @x_values = ();
+   foreach my $x (0 .. 3) {
+      push $x, @x_values;
+      my (@y_of_x, @z_of_x);
+      foreach my $x_value (0 .. 3) {
+         push @y_of_x, y($x_value);
+         push @x_of_x, x($x_value);
+      }
+   }
+
+   my $x_pdl = pdl(\@x_values);
+   my $y_pdl = pdl(\@y_of_x) -> inplace -> transpose;
+   my $z_pdl = pdl(\@z_of_x) -> inplace -> transpose;
+
+   image({<plot options>}, $x_pdl, $y_pdl, $z_pdl);
+
+The nested C<foreach> loops pack up the data matrix into suitable perl
+arrays with program logic equivalent to the loop above that writes the
+matrix data file.  C<$x_pdl> is a 1 dimensional piddle with the
+abscissa values of the surface plot:
+
+  print $x_pdl -> shape;
+  #  ==> prints [4]
+
+The other two piddles are 2 dimensional and contain the ordinate
+(i.e. y-axis) and intensity (i.e. color axis) values for each abscissa
+value.  The transpositions are necessary to orient the 2 dimensional
+piddle in the way that PDL::Graphics::Gnuplot expects when
+constructing the binary record passed to the Gnuplot process.
+Examining either 2 dimensional piddle:
+
+  print $y_pdl -> shape;
+  #  ==> prints [3 4]
+
+The call to the C<image> method with these three piddles as its
+arguments will produce the same plot as as the C<splot> command in
+Gnuplot on the equivalent matrix data file.
+
+
 =head2 Hardcopies
 
 To send any plot to a file, instead of to the screen, one can simply do
