@@ -2549,6 +2549,8 @@ sub plot
 
     my $this = _obj_or_global(\@_);
 
+    delete $this->{last_dashtype}; # implement dashtype state function for gnuplot>=5.0
+    
     ##############################
     # Parse optional plot options - must be an array or hash ref, if present.
     # Cheesy but hopefully effective method (from Dima): parse as plot options
@@ -3408,6 +3410,14 @@ POS
 		$chunk{options} = dclone( 
 		    _parseOptHash( $lastWith, $cOpt, @args[$argIndex..$nextDataIdx-1] )
 		    );
+		### As of Gnuplot 5.0, some curve options (dashtype) require a default value to maintain legacy
+		### behavior in the default case.  This is the place where curve options are parsed, so we
+		### hand-tweak a couple of default values here.  
+
+		# dashtype doesn't have to have a defined value it only has to exist in the curve options hash,
+		# to trigger emission of a dashtype.
+		$chunk{options}{dashtype} = undef unless(defined($chunk{options}{dashtype}));
+		  
 	    };
 	    if($@){
 		unless(@chunks){
@@ -5185,6 +5195,7 @@ our $cOptionsTable = {
 # so the only benefit would be delivering a cleaner error message.
     'linestyle'=> ['s', 'cs',  undef, 10],
     'linetype' => ['s', 'cs',  undef, 11],
+    'dashtype' => ['s', 'dt',  undef, 11.5],  # dashtype is new with Gnuplot 5
     'linewidth'=> ['s', 'cs',  undef, 12],
     'linecolor'=> ['l', 'ccolor',  undef, 13],
     'textcolor'=> ['l', 'ccolor',  undef, 14],
@@ -5205,6 +5216,7 @@ our $cOptionsAbbrevs = _gen_abbrev_list(keys %$cOptionsTable);
 {
     my $officialAbbrevs = {
 	lt => ["linetype"],
+	dt => ["dashtype"],
 	ls => ["linestyle"],
 	lw => ["linewidth"],
 	lc => ["linecolor"],
@@ -5919,6 +5931,23 @@ our $_OptionEmitters = {
     'cs' => sub { my($k,$v,$h) = @_;
 		  return "" unless(defined($v));
 		  return " $k $v ";
+    },
+
+    #### The dashtype curve option
+    'dt' => sub { my($k,$v,$h, $w) = @_;
+		  return "" unless($gp_version >= 5.0);
+		  unless($v) {
+		      if($w->{options}->{terminal} =~ m/dashed/) {
+			  $w->{last_dashtype} = 0 unless(defined($w->{last_dashtype}));
+			  return " dt ".(++$w->{last_dashtype})." ";
+		      } else {
+			  return " dt solid ";
+		      }
+		  }
+		  return " dt solid " unless($v);
+		  return " dt (".(join(@$v,",")).") " if(ref($v) eq 'ARRAY');
+		  return " dt $v " if($v=~ m/\d+/);
+		  return " dt \"$v\" ";
     },
 
     ### A curve flag in one word
