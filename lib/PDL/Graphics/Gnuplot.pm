@@ -5935,20 +5935,23 @@ our $_OptionEmitters = {
     'q' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
 		 return "unset $k\n" unless(length($v));
+		 $v = quote_escape($v);
 		 return "set $k \"$v\"\n";
                 },
 
     #### A quoted scalar value as a plot option, not emitted in multiplot mode
     'qnm' => sub { my($k,$v,$h) = @_;
-		 return "" unless((defined($v) and !($h->{multiplot})));
-		 return "unset $k\n" unless(length($v));
-		 return "set $k \"$v\"\n";
+		   return "" unless((defined($v) and !($h->{multiplot})));
+		   return "unset $k\n" unless(length($v));
+		   $v = quote_scape($v);
+		   return "set $k \"$v\"\n";
                 },
 
     #### A quoted scalar value as a curve option
     'cq' => sub { my($k,$v,$h) = @_;
 		  return "" unless(defined($v));
-		  return " $k \"$v\" ";
+		  my($vv) = quote_escape($v);
+		  return " $k \"$vv\" ";
     },
 
     #### A value with no associated keyword
@@ -5985,6 +5988,7 @@ our $_OptionEmitters = {
 		  return " dt solid " unless($v);
 		  return " dt (".(join(@$v,",")).") " if(ref($v) eq 'ARRAY');
 		  return " dt $v " if($v=~ m/\d+/);
+		  $v = quote_escape($v);
 		  return " dt \"$v\" ";
     },
 
@@ -6177,7 +6181,7 @@ our $_OptionEmitters = {
 		      delete $h{labels};
 
 
-		      push(@l,'format',"\"$h{format}\"") if(defined($h{format})); delete $h{format};
+		      push(@l,'format',"\"".quote_escape($h{format})."\"") if(defined($h{format})); delete $h{format};
 
 		      if(defined $h{font}) {
 			  if(ref($h{font}) eq 'ARRAY'){
@@ -6208,9 +6212,10 @@ our $_OptionEmitters = {
 		    sub { my($k,$v,$h) = @_;
 			  return "" unless defined($v);
 			  unless(ref $v eq 'ARRAY') {
+			      $v = quote_escape($v);
 			      return ( (length($v) eq 0) ? "unset $k\n" : "set $k \"$v\"\n");
 			  }
-			  my $quoted = $v->[0];
+			  my $quoted = quote_escape($v->[0]);
 			  return sprintf('set %s "%s" %s%s',$k,$quoted,join(" ",@{$v}[1..$#$v]),"\n");
 		    },
 
@@ -6412,7 +6417,7 @@ our $_OptionEmitters = {
 					if(defined($v->[$_])) {
 					    $l = "set   $k ".($_+1)." ";
 					    if(ref $v->[$_] eq 'ARRAY') {                      # It's an array
-						$v->[$_]->[0] = "\"$v->[$_]->[0]\""            # quote the first element
+						$v->[$_]->[0] = "\"".quote_escape($v->[$_]->[0])."\"" # quote the first element
 						    unless($v->[$_]->[0] =~ m/^\".*\"$/);      # unless it's already quoted
 						$l .= join(" ", map {
 						    (ref($_) eq 'ARRAY') ? join(",",@$_) : $_; # Nested arrays get connected with ','
@@ -7943,6 +7948,17 @@ sub _def {
     return (defined($val)?$val : $or);
 }
 
+##########
+# Helper routine to escape backslashes and such for gnuplot double-quote strings
+sub quote_escape {
+    my $s = shift;
+    $s =~ s/\\/\\\\/g;
+    $s =~ s/\"/\\\"/g;
+    $s =~ s/\012/\\n/g;
+    $s =~ s/\013/\\r/g;
+    return $s;
+}
+    
 
 =head1 COMPATIBILITY
 
