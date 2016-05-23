@@ -1581,6 +1581,24 @@ This is a numeric selector from the default collection of line styles.
 It includes automagic selection of dash style, color, and width from the
 default set of linetypes for your current output terminal.
 
+=item dashtype (abbrev 'dt')
+
+This is can be either a numeric type selector (0 for no dashes) or 
+an ARRAY ref containing a list of up to 5 pairs of (dash length,
+space length).  The C<dashtype> curve option is only supported for 
+Gnuplot versions 5.0 and above.  
+
+If you don't specify a C<dashtype> curve option, the default behavior
+matches the behavior of earlier gnuplots: many terminals support a
+"dashed" terminal/output option, and if you have set that option (with
+the constructor or with the C<output> method) then lines are uniquely
+dashed by default.  To make a single curve solid, specify C<dt=>0> as
+a curve option for it; or to make all curves solid, use the constructor
+or the C<output> method to set the terminal option C<dashed=>0>.
+
+If your gnuplot is older than v5.0, the dashtype curve option is 
+ignored (and causes a warning to be emitted).
+
 =item linestyle (abbrev 'ls')
 
 This works exactly like C<< linetype >> above, except that you can modify
@@ -5201,7 +5219,7 @@ our $cOptionsTable = {
 # so the only benefit would be delivering a cleaner error message.
     'linestyle'=> ['s', 'cs',  undef, 10],
     'linetype' => ['s', 'cs',  undef, 11],
-    'dashtype' => ['s', 'dt',  undef, 11.5],  # dashtype is new with Gnuplot 5
+    'dashtype' => ['dt', 'dt',  undef, 11.5],  # dashtype is new with Gnuplot 5
     'linewidth'=> ['s', 'cs',  undef, 12],
     'linecolor'=> ['l', 'ccolor',  undef, 13],
     'textcolor'=> ['l', 'ccolor',  undef, 14],
@@ -5724,7 +5742,20 @@ $_pOHInputs = {
 		  } else {
 		      barf("Error: <foo>tics options require a scalar or a hash ref");
 		  }
+    },
+
+    ## dashtype option
+    'dt' => sub { my($old, $new, $h, $fieldname) = @_;
+		  if($gp_version < 5.0) {
+		      print STDERR "WARNING: 'dashtype' is not supported by your <5.0 gnuplot.  Ignoring...\n";
+		      return $old;
+		  }
+		  if(ref $new  and   ref $new ne 'ARRAY') {
+		      barf "Error:  dashtype curve option requires a scalar or an array ref";
+		  }
+		  return $new;
     }
+
 };
 
 
