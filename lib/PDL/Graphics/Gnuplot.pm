@@ -664,7 +664,7 @@ for 2-D plots.  The C<zlabel> works for 3-D plots.  The C<cblabel> option
 sets the label for the color box, in plot types that have one (e.g.
 image display).
 
-(Don't be confused by C<clabel>, which doesnt' set a label at all, rather
+(Don't be confused by C<clabel>, which doesn't set a label at all, rather
 specifies the printf format used by contour labels in contour plots.)
 
 C<key> controls where the plot key (that relates line/symbol style to label)
