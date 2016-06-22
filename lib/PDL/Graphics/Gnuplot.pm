@@ -6880,6 +6880,7 @@ our $termTabSource = {
     'tikz'    =>"TikZ package via Lua                   [NS: obsolete]",
     'tkcanvas'=>"Tcl/Tk canvas widget design            [NS: weird]",
     'tpic'    =>"Latex picture (use 'latex' or 'eepic') [NS: obsolete]",
+    'unknown' =>"Unknown term (gnuplot final default)   [NS: not a terminal]",		 
     'unixpc'  =>"AT&T 3b1 and AT&T 7300 UNIX PC display [NS: ancient]",
     'unixplot'=>"UNIX plot(1) language (non-GNU version)[NS: obsolete]",
     'vgagl'   =>"Output to a VGA screen under linux     [NS: obsolete]",
