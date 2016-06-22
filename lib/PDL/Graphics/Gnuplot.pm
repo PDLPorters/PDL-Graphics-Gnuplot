@@ -6042,7 +6042,13 @@ our $_OptionEmitters = {
     'b' => sub { my($k,$v,$h) = @_;
 		 return "" unless defined($v);
 		 return $v ? "set $k\n" : "unset $k\n";
-                },
+    },
+
+    #### A boolean value as an inline option (e.g. curve, terminal)
+    'byn' => sub { my($k,$v,$g) = @_;
+		  return "" unless defined($v);
+		   return $v ? " $k " : " no$k ";
+    },
 
     #### A boolean or 'time' (for <foo>data plot options)
     'bt' => sub { my($k,$v,$h) = @_;
@@ -6630,6 +6636,25 @@ our $termTabSource = {
     'aqua'     => { unit=>'pt', desc=> 'Aqua terminal program on MacOS X (MacOS default device)', int=>1, ok=>1, disp=>1,
 		  opt=>[ qw/ output_ title size font enhanced / ]},
     'be'       => "BeOS/X11 (Ah, Be, how we miss thee)    [NS: ancient]",
+    'cairolatex'=> { unit=>'in', desc=>'Cairo support for .eps or .pdf output with LaTeX text rendering', 
+		     opt=> [
+			 ['mode', 's', 'cv', 'terminal mode: set to "eps" or "pdf"'],
+			 ['textmode', 's', 'cv', 'text mode: set to "black" or "color"'],
+			 ['header', 's', sub { $_[1] ? " header '$_[1]' " : " noheader " }, 
+			  "LaTeX source for header text"],
+			 ['color', 'b', sub { _def($_[1], 1) ? " color " : " mono " },
+			  "Set to true for color output, false for mono (default: color)"
+			 ],
+			 ['transparent', 'b', 'byn', "Set TRUE for transparent output", ],
+			 ['crop',        'b', 'byn', "Set TRUE to crop output", ],
+			 ['background',  'b', 'ccolor', "Set background color with gnuplot colorspec"],
+			 ['font',        's', 'cq','Font ("<fontname>,<size>") - NOT system fonts - see manual for list'],
+			 ['scale',       'n', 'cs','Font scale beyond the size in the font option'],
+			 ['linewidth',   'n', 'cs','Line width in points'],
+			 ['endstyle',    's', 'cv','Line end style (set to "rounded", "butt", or "square")'],
+			 'size'
+			 ],
+			 default_output=>'%s%d-cairolatex.eps'},
     'canvas'   => { unit=>'pt', desc=> "Output Javascript Canvas rendering code.",
 		    opt=>[ 'size',
 			       # custom line shields user from "fsize/fontsize"
@@ -6643,7 +6668,6 @@ our $termTabSource = {
 			   'title'],
 		    default_output=>'%s%d.js'},
 
-    'cgi'      => "SCO CGI drivers.                       [NS: ancient/evil]",
     'cgm'      => { unit=>'pt', desc=> "Computer Graphic Metafile format (ANSI X3.122-1986)",
 		    opt=>[ qw/ color monochrome solid dashed rotate /,
 			   ['size',  'l', sub { my( $k, $v, $h) = @_;
@@ -6669,7 +6693,6 @@ our $termTabSource = {
     },
     'corel'  => "Corel Draw                             [NS: ancient]",
     'debug'  => "Gnuplot internal debugging mode        [NS: not useful]",
-    'dospc'  => "Generic PC VESA/VGA/XGA direct display [NS: obsolete]",
     'dumb'   => {
 	unit=>'char',desc=>"dumb terminal (ASCII output)",ok=>1,
 	opt=>[ ['feed','b','cf',"Issue (or not) a formfeed at the end of each plot"],
@@ -6690,7 +6713,9 @@ our $termTabSource = {
 			['noproportional','b','cff',"(only with 'enhanced') - disable proportional font spacing"],
 			qw/ linewidth dashlength size output /],
 		 default_output=>'%s%d.emf'
-                },
+},
+    'emxvga' =>  "EMXVGA terminal                        [NS: bizarre]",
+    'emxvesa'=>  "EMXVESA terminal                       [NS: bizarre]",
     'epscairo'=>{unit=>'in',desc=>"Encapsulated Postscript output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b', sub{return $_[1]?" mono ":""},
@@ -6702,7 +6727,8 @@ our $termTabSource = {
 		 opt=>[ qw/standalone input oldstyle newstyle level1 leveldefault color monochrome/,
 			qw/solid dashed dashlength linewidth rounded butt clip size font output/],
 		 default_output=>'%s%d-latex.eps'
-    },
+      },
+    'epson_180dpi' => "Epson 180dpi amily of 9-pin printers   [NS: ancient]",
     'excl'   => "Talaris printer support                [NS: ancient]",
     'fig'    => {unit=>'in',desc=>"Fig graphics language output",
 		 opt=>[ qw/ color monochrome landscape portrait small big size /,
@@ -6763,10 +6789,9 @@ our $termTabSource = {
 		 default_output=>'%s%d.tex'
                  },
     'linux'  =>  "Render to a Linux display dev (non-X)  [NS: obsolete]",
-    'lua'    =>  "Lua script output                      [NS: obsolete]",
+    'lua'    =>  "Lua script output                      [NS: bizarre]",
     'macintosh'=>"Direct rendered MacOS < 10 window      [NS: ancient]",
     'mf'     =>  "Metafont output (plot as TeX glyph)    [NS: crazy]",
-    'mgr'    =>  "MGR window system                      [NS: obsolete]",
     'mif'    =>  "FrameMaker MIF format v3.0             [NS: obsolete]",
     'mp'     =>  "MetaPost metaformat for graphice       [NS: obsolete]",
     'next'   =>  "NeXT (NeXTstep) file format (RIP Jobs) [NS: ancient]",
@@ -6875,7 +6900,9 @@ our $termTabSource = {
 			qw/enhanced font linewidth solid dashed persist raise/,
 			['ctrlq',  'b','cf','enable (or disable) control-Q to quit window'],
 			'size']},
-    'xlib'    =>"Xlib command file (for debugging X11)  [NS: useless here]"
+			'xlib'    =>"Xlib command file (for debugging X11)  [NS: useless here]",
+    'vgal'=>     "VGAL terminal                          [NS: bizarre]",
+
 };
 
 ##############################
@@ -7024,7 +7051,7 @@ sub terminfo {
 		$s .= sprintf("%12s: %s\n", $k, $termTab->{$k}->{desc});
 	    }
 
-	    $s .= "\nThese terminals are supported by your gnuplot but not by PDL::Graphics::Gnuplot\n";
+	    $s .= "\nThese terminals are supported by your gnuplot but not by PDL::Graphics::Gnuplot:\n";
 	    for my $k(sort keys %{$this->{unknown_terms}}) {
 		$s .= sprintf("%12s: %s\n",$k,$this->{unknown_terms}->{$k});
 	    }
