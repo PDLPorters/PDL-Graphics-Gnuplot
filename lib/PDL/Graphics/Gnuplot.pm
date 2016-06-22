@@ -6641,13 +6641,13 @@ our $termTabSource = {
 			 ['mode', 's', 'cv', 'terminal mode: set to "eps" or "pdf"'],
 			 ['textmode', 's', 'cv', 'text mode: set to "black" or "color"'],
 			 ['header', 's', sub { $_[1] ? " header '$_[1]' " : " noheader " }, 
-			  "LaTeX source for header text"],
-			 ['color', 'b', sub { _def($_[1], 1) ? " color " : " mono " },
-			  "Set to true for color output, false for mono (default: color)"
+			  "LaTeX source for header text"
 			 ],
-			 ['transparent', 'b', 'byn', "Set TRUE for transparent output", ],
+			 "color",
+			 "monochrome",
+			 "transparent",
 			 ['crop',        'b', 'byn', "Set TRUE to crop output", ],
-			 ['background',  'b', 'ccolor', "Set background color with gnuplot colorspec"],
+			 "background",
 			 ['font',        's', 'cq','Font ("<fontname>,<size>") - NOT system fonts - see manual for list'],
 			 ['scale',       'n', 'cs','Font scale beyond the size in the font option'],
 			 ['linewidth',   'n', 'cs','Line width in points'],
@@ -6688,9 +6688,11 @@ our $termTabSource = {
 			                   ],
 			   'linewidth',
 			   ['font',   's','cq','Font ("<fontname>,<size>") - NOT system fonts - see manual for list'],
+			   "background",
 			   'output'],
                       default_output=>'%s%d.cgm'
     },
+    'context'=> "ConTeXt: Metapost macros for TeX       [NS: TBD]",
     'corel'  => "Corel Draw                             [NS: ancient]",
     'debug'  => "Gnuplot internal debugging mode        [NS: not useful]",
     'dumb'   => {
@@ -6711,7 +6713,7 @@ our $termTabSource = {
     'emf'    => {unit=>'pt',desc=>"Microsoft Windows Enhanced Metafile Format",
 		 opt=>[ qw/ color monochrome solid dashed enhanced /,
 			['noproportional','b','cff',"(only with 'enhanced') - disable proportional font spacing"],
-			qw/ linewidth dashlength size output /],
+			qw/ linewidth dashlength size background font output /],
 		 default_output=>'%s%d.emf'
 },
     'emxvga' =>  "EMXVGA terminal                        [NS: bizarre]",
@@ -6720,12 +6722,12 @@ our $termTabSource = {
 		 opt=>[ 'enhanced',
 			['monochrome','b', sub{return $_[1]?" mono ":""},
 			                         "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed font linewidth rounded butt dashlength size output/ ],
+			qw/color solid dashed font linewidth rounded butt dashlength background size output/ ],
 		 default_output=>'%s%d.eps'
                 },
     'epslatex'=>{unit=>'in',desc=>"Encapsulated PostScript with LaTeX text segments",
 		 opt=>[ qw/standalone input oldstyle newstyle level1 leveldefault color monochrome/,
-			qw/solid dashed dashlength linewidth rounded butt clip size font output/],
+			qw/solid dashed background dashed dashlength linewidth rounded butt clip size font output/],
 		 default_output=>'%s%d-latex.eps'
       },
     'epson_180dpi' => "Epson 180dpi amily of 9-pin printers   [NS: ancient]",
@@ -6808,7 +6810,7 @@ our $termTabSource = {
 		 opt=>[ 'enhanced',
 			['monochrome','b', sub{return $_[1]?" mono ":""},
 			                         "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed font linewidth rounded butt dashlength size output/ ],
+			qw/color solid dashed font linewidth rounded butt dashlength background size output/ ],
 		 default_output=>'%s%d.c.pdf'
                 },
     'pm'     => "OS/2 presentation manager              [NS: ancient]",
@@ -6822,7 +6824,7 @@ our $termTabSource = {
 		 opt=>[ 'enhanced',
 			['monochrome','b',sub{return $_[1]?" mono ":""},
 			                          "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed transparent crop font linewidth rounded butt dashlength size output/ ],
+			qw/color solid dashed transparent crop background font linewidth rounded butt dashlength size output/ ],
                  default_output=>'%s%d.c.png'
                 },
     'postscript'=>{unit=>'in',desc=>"Postscript file output",ok=>1,
@@ -6836,7 +6838,7 @@ our $termTabSource = {
 						  return " $k add \"$v\" "}
 			                   ,      'add font file to prologue'],
 			 ['adobeglyphnames','b','cf','enable or disable Adobe style glyph names'],
-			 qw/level1 leveldefault color monochrome solid dashed dashlength linewidth rounded butt clip size/,
+			 qw/level1 leveldefault color monochrome background solid dashed dashlength linewidth rounded butt clip size/,
 			 ['blacktext',  'b','cff','force text to be B/W even in color plots (see "colortext")'],
 			 ['colortext',  'b','cff','force text to be color even in B/W plots (see "blacktext")'],
 			 'font','output'],
@@ -6848,7 +6850,7 @@ our $termTabSource = {
                     default_output=>'%s%d-latex.ps'
                   },
     'pstex'   => {unit=>'in',desc=>"Postscript file tailored for inclusion in raw TeX documents",
-		  opt=>[ qw/rotate oldstyle newstyle auxfile level1 leveldefault color monochrome /,
+		  opt=>[ qw/rotate oldstyle newstyle auxfile level1 leveldefault color monochrome background /,
 			 qw/solid dashed dashlength linewidth rounded butt clip size fontsize output/],
 		  default_output=>'%s%d-tex.ps'
                  },
@@ -6866,7 +6868,7 @@ our $termTabSource = {
     'svg'     =>{unit=>'in',desc=>"Scalable Vector Graphics (SVG) output",ok=>1,
 		 opt=>[ qw/size enhanced font/,
 			['fontfile','s','cq','Font file to copy into the <defs> section of the SVG'],
-			qw/rounded butt solid dashed linewidth output/],
+			qw/rounded butt solid dashed linewidth background output/],
                  default_output=>'%s%d.svg'
                 },
     'svga'    =>"Output direct to a PC SVGA screen      [NS: obsolete]",
@@ -6887,11 +6889,11 @@ our $termTabSource = {
     'vws'     =>"VAX Windowing System                   [NS: ancient]",
     'vx384'   =>"Vectrix 384 and Tandy color printers   [NS: ancient]",
     'windows' =>{unit=>"px",desc=>"Microsoft Windows display window",
-		 opt=>[ qw/color monochrome font title size/,
+		 opt=>[ qw/color monochrome font background title size/,
 			['position','l','csize','pixel location of the window'],
 			'output']},
     'wxt'     =>{unit=>"px", desc=>"WxWidgets display", mouse=>0,ok=>1,disp=>2,int=>1,
-		 opt=>[ qw/size enhanced font title dashed solid dashlength persist raise/,
+		 opt=>[ qw/size background enhanced font title dashed solid dashlength persist raise/,
 			['ctrl',  'b','cf','enable (or disable) control-Q to quit window'],
 			['close', 'b','cf','close window on completion?']
                  ]},
