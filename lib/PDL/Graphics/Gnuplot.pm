@@ -2301,7 +2301,7 @@ FOO
 	    # Although 'output' is strictly speaking a terminal option, gnuplot treats it as a plot option -- so
 	    # we copy it into the main plot options hash to be emitted as part of the plot operation.
 	    $this->{options}->{output} = $termOptions->{output};
-	    $this->{wait} = $termOptions->{wait};
+	    $this->{wait} = $termOptions->{wait} if defined $termOptions->{wait};
 	    delete $termOptions->{output};
 
 	    ## Emit the terminal options line for this terminal.
