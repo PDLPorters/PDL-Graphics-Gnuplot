@@ -2007,7 +2007,7 @@ my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
 # globalPlot holds state when methods are called with non-object
 # syntax.  (If you want more than one plot at once, you have to use
 # the object syntax).
-my $globalPlot;
+our $globalPlot;
 
 # get a list of all the -- options that this gnuplot supports
 my %gnuplotFeatures = _getGnuplotFeatures();
@@ -7950,6 +7950,10 @@ sub _with_fits_prefrobnicator {
 				       )];
     }
 
+    ##
+    # Debugging Gnuplot's horrible indexing problem
+    # $PDL::Graphics::Gnuplot::prefrobnicated = [$ndc->mv(0,-1)->dog, $d2];
+    
     if($d2->ndims == 2) {
 	$with->[0] = 'image';
 	$chunk->{options}->{with} = [@$with];
