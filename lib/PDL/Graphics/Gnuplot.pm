@@ -4866,7 +4866,7 @@ our $pOptionsTable =
 			      die "justify: positive value needed\n";
 			  } else {
 			      if(defined($opt->{'size'}) and $opt->{'size'}->[0] =~ m/ratio/) {
-				  $opt->['size'] = undef;
+				  $opt->{'size'} = undef;
 			      }
 			      return undef;
 			  }
