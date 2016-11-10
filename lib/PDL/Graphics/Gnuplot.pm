@@ -1779,7 +1779,7 @@ Plotting with variable-size circles (size given in plot units, requires Gnuplot 
 
   gplot(with => 'circles', $x, $y, $radii);
 
-Plotting with an variably-sized arbitrary point type (size given in multiples of
+Plotting with a variably-sized arbitrary point type (size given in multiples of
 the "default" point size)
 
   gplot(with => 'points', pointtype=>7, pointsize=>'variable',
@@ -1990,7 +1990,7 @@ our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on 
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.006';
+our $VERSION = '2.006_001';
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -2007,10 +2007,10 @@ my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
 # globalPlot holds state when methods are called with non-object
 # syntax.  (If you want more than one plot at once, you have to use
 # the object syntax).
-my $globalPlot;
+our $globalPlot;
 
 # get a list of all the -- options that this gnuplot supports
-my %gnuplotFeatures = _getGnuplotFeatures();
+our %gnuplotFeatures = _getGnuplotFeatures();
 
 # Declare the parse tables for plot and curve options.  (They're populated below).
 our($pOpt, $cOpt);
