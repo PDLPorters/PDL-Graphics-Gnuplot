@@ -1987,6 +1987,7 @@ our $gnuplot_req_v = 4.4; # Versions below this are not supported.
 # Compile time config flags...
 our $check_syntax = 0;
 our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
+our $echo_eating = 0;                             # Older versions of gnuplot on windows echo commands
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
@@ -3248,7 +3249,7 @@ POS
 
 		    for my $line(@lines) {
 			_printGnuplotPipe($this, "main", $line."\n", {data => 1 });
-			unless($this->{dumping}) {
+			if( !$this->{dumping} && $echo_eating ) {
 			    do {
 				sysread $pipe, $byte, 1;
 				if( $byte eq \004 or $byte eq \000 ) {
@@ -7286,6 +7287,11 @@ which still doesn\'t match.  Proceed with caution!
 EOM
 		}
 	    }
+            
+            # On windows, gnuplot versions 4.6.5 and older echo back commands.
+            if ( $gp_version <= '4.6' && $gp_pl <= 5 ) {
+                $echo_eating = 1;
+            }
 	}
 
 	if( $gp_version < $gnuplot_dep_v  and  !$PDL::Graphics::Gnuplot::deprecated_this_session ) {
