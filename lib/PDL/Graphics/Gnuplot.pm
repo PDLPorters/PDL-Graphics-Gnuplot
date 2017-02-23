@@ -2456,10 +2456,12 @@ sub reset {
     }
     my $checkpointMessage;
     if($check_syntax) {
-	_printGnuplotPipe( $this, "syntax", "reset\n");
+	# Send multiple newlines to avoid bugs in certain gnuplots, which
+	# appear to lose a character after reset.
+	_printGnuplotPipe( $this, "syntax", "reset\n\n\n"); 
 	$checkpointMessage = _checkpoint($this,"syntax");
     }
-    _printGnuplotPipe($this, "main", "reset\n");
+    _printGnuplotPipe($this, "main", "reset\n\n\n");
     $checkpointMessage = _checkpoint($this, "main");
 
     $this->{replottable} = 0;
@@ -3026,8 +3028,8 @@ unset ylabel
 unset cblabel
 POS
     } else {
-	# In single-plot mode, just issue a reset.
-	$plotOptionsString .= "reset\n";
+	# In single-plot mode, just issue a reset.  Multiple newlines to work around a gnuplot problem.
+	$plotOptionsString .= "reset\n\n\n";
     }
 
     $plotOptionsString .= _emitOpts($this->{options}, $pOpt);
