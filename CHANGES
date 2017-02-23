@@ -2,7 +2,12 @@
 
  - More fixes to documentation (d-lamb's description of transparent fill)
 
- - Fix whitespace in the makefile.pl 
+ - Fix whitespace in the makefile.pl
+
+ - Fix issues 57 & 61 (freezing on newer windows releases); probably also fixes 56.
+
+ - fix issue 60 (problems with reset command making gnuplot5rc2 fail)
+
 
 2.06 Codename: Fall released 1-Nov-2015
 

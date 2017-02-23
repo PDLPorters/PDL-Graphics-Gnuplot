@@ -505,10 +505,12 @@ the two curves -- in this case, zero of them.
 PDL::Graphics::Gnuplot supports four styles of image plot, via the "with" curve option.
 
 The "image" style accepts a single image plane and displays it using
-the palette (pseudocolor map) that is specified in the plot options for that plot.
-As a special case, if you supply as data a (WxHx3) PDL it is treated as an RGB
-image and displayed with the "rgbimage" style (below).  For quick
-image display there is also an "image" method:
+the palette (pseudocolor map) that is specified in the plot options
+for that plot.  As a special case, if you supply as data a (3xWxH) or
+(WxHx3) PDL it is treated as an RGB image and displayed with the
+"rgbimage" style (below), provided there are at least 5 pixels in each of the
+other two dimensions (just to be sure).  For quick image display there
+is also an "image" method:
 
  use PDL::Graphics::Gnuplot qw/image gplot/;
  $im = sin(rvals(51,51)/2);
@@ -3623,23 +3625,35 @@ EOF
 	    }
 
 	    ##############################
-	    # A little aside:  streamline the common optimization case --
+	    # A little aside:  streamline the common optimization cases --
 	    # if the user specified "image" but handed in an RGB or RGBA image,
 	    # bust it up into components and update the 'with' accordingly.
+	    # This happens if RGB or RGBA is in dim 0 or in dim 2.
+	    # The other dimensions have to have at least five elements.
 	    if( $cdims==2 ) {
 		if($chunk{options}->{with}->[0] eq 'image') {
 
 		    my $dp = $dataPiddles[$#dataPiddles];
 
 		    if($dp->ndims==3) {
-			if($dp->dim(2)==3) {
-			    $chunk{options}->{with}->[0] = 'rgbimage';
-			    pop @dataPiddles;
-			    push(@dataPiddles,$dp->dog);
-			} elsif($dp->dim(2)==4) {
-			    $chunk{options}->{with}->[0] = 'rgbalpha';
-			    pop @dataPiddles;
-			    push(@dataPiddles,$dp->dog);
+			if($dp->dim(1) >= 5) {
+			    if($dp->dim(0) ==3 && $dp->dim(2) >= 5) {
+				$chunk{options}->{with}->[0] = 'rgbimage';
+				pop @dataPiddles;
+				push(@dataPiddles,$dp->dog);
+			    } elsif($dp->dim(2)==3 && $dp->dim(1)==5) {
+				$chunk{options}->{with}->[0] = 'rgbimage';
+				pop @dataPiddles;
+				push(@dataPiddles,$dp->using(0,1,2));
+			    } elsif($dp->dim(2)==4 && $dp->dim(2) >= 5) {
+				$chunk{options}->{with}->[0] = 'rgbalpha';
+				pop @dataPiddles;
+				push(@dataPiddles,$dp->dog);
+			    } elsif($dp->dim(0)==4 && $dp->dim(0) >= 5) {
+				$chunk{options}->{with}->[0] = 'rgbalpha';
+				pop @dataPiddles;
+				push(@dataPiddles, $dp->using(0,1,2,3));
+			    }
 			}
 		    }
 		}
@@ -8027,10 +8041,6 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 =item some plot and curve options need better parsing:
 
 =over 3
-
-=item - Hash values should be accepted (and parsed properly) for all plot options for which they work.
-
-Currently many of the more complicated plot options accept array refs only.  Hash ref parsing is needed for regularity.
 
 =item - labels need attention (plot option labels)
 
