@@ -70,7 +70,7 @@ WriteMakefile(
     ),
     MIN_PERL_VERSION          => 5.006,
     CONFIGURE_REQUIRES => {
-        'ExtUtils::Makemaker' => 6.48,
+        'ExtUtils::MakeMaker' => 6.48,
     },
     PREREQ_PM => { 
         'Alien::Gnuplot'      => 0,
