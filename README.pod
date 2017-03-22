@@ -4,6 +4,8 @@ This is a Gnuplot-based plotter for PDL. This repository stores the history for
 the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
 page at L<http://search.cpan.org/~zowie/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>.
 
+=cut
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -440,12 +442,14 @@ the two curves -- in this case, zero of them.
 PDL::Graphics::Gnuplot supports four styles of image plot, via the "with" curve option.
 
 The "image" style accepts a single image plane and displays it using
-the palette (pseudocolor map) that is specified in the plot options for that plot.
-As a special case, if you supply as data a (WxHx3) PDL it is treated as an RGB
-image and displayed with the "rgbimage" style (below).  For quick
-image display there is also an "image" method:
+the palette (pseudocolor map) that is specified in the plot options
+for that plot.  As a special case, if you supply as data a (3xWxH) or
+(WxHx3) PDL it is treated as an RGB image and displayed with the
+"rgbimage" style (below), provided there are at least 5 pixels in each of the
+other two dimensions (just to be sure).  For quick image display there
+is also an "image" method:
 
- use PDL::Graphics::Gnuplot qw/image/;
+ use PDL::Graphics::Gnuplot qw/image gplot/;
  $im = sin(rvals(51,51)/2);
  image( $im );                # display the image
  gplot( with=>'image', $im );  # display the image (longer form)
@@ -466,8 +470,8 @@ Some additional plot styles exist to specify RGB and RGB transparent forms
 directly.  These are the "with" styles "rgbimage" and "rgbalpha".  For each
 of them you must specify the channels as separate PDLs:
 
- gplot( with=>'rgbimage', $rgbim->dog );           # RGB  the long way
- gplot( with=>'rgbalpha', $rgbim->dog, ($im>0) );  # RGBA the long way
+ gplot( with=>'rgbimage', $rgbim->dog );               # RGB  the long way
+ gplot( with=>'rgbalpha', $rgbim->dog, 255*($im>0) );  # RGBA the long way
 
 According to the gnuplot specification you can also give X and Y
 values for each pixel, as in
@@ -1352,7 +1356,7 @@ or with C<< at=>$pos1,size=>"$w,$h" >>.
 You can specify an ellipse with C<< at=>$pos, size=>"$w,$h" >> or C<< center=>$pos, size=>"$w,$h" >>, followed
 by C<< angle=>$a >>.
 
-You can specify a circle with C<< at=>$pos, >> or C<< center=>$pos,  >>, followed
+You can specify a circle with C<< at=>$pos, >> or C<< center=>$pos, >>, followed
 by C<< size=>$radius >> and (optionally) C<< arc=>"[$begin:$end]" >>.
 
 You can specify a polygon with C<< from=>$pos1,to=>$pos2,to=>$pos3,...to=>$posn >> or with
@@ -1515,6 +1519,24 @@ and will disappear in a future version of PDL::Graphics::Gnuplot.
 This is a numeric selector from the default collection of line styles.
 It includes automagic selection of dash style, color, and width from the
 default set of linetypes for your current output terminal.
+
+=item dashtype (abbrev 'dt')
+
+This is can be either a numeric type selector (0 for no dashes) or 
+an ARRAY ref containing a list of up to 5 pairs of (dash length,
+space length).  The C<dashtype> curve option is only supported for 
+Gnuplot versions 5.0 and above.  
+
+If you don't specify a C<dashtype> curve option, the default behavior
+matches the behavior of earlier gnuplots: many terminals support a
+"dashed" terminal/output option, and if you have set that option (with
+the constructor or with the C<output> method) then lines are uniquely
+dashed by default.  To make a single curve solid, specify C<dt=>0> as
+a curve option for it; or to make all curves solid, use the constructor
+or the C<output> method to set the terminal option C<dashed=>0>.
+
+If your gnuplot is older than v5.0, the dashtype curve option is 
+ignored (and causes a warning to be emitted).
 
 =item linestyle (abbrev 'ls')
 
@@ -1696,7 +1718,7 @@ Plotting with variable-size circles (size given in plot units, requires Gnuplot 
 
   gplot(with => 'circles', $x, $y, $radii);
 
-Plotting with an variably-sized arbitrary point type (size given in multiples of
+Plotting with a variably-sized arbitrary point type (size given in multiples of
 the "default" point size)
 
   gplot(with => 'points', pointtype=>7, pointsize=>'variable',
@@ -1875,6 +1897,8 @@ options for the second curve).
 
 =head1 FUNCTIONS
 
+=cut
+=pod
 
 =head2 gpwin
 
@@ -1895,6 +1919,8 @@ can also give it the name of a Gnuplot terminal type (e.g. 'x11') and
 some terminal and output options (see "output").
 
 
+=cut
+=pod
 
 =head2 new
 
@@ -1947,6 +1973,8 @@ other than this default, check the C<Alien::Gnuplot> documentation.
   $plot->plot( legend => 'curve', sequence(5) );
 
 
+=cut
+=pod
 
 =head2 output
 
@@ -2019,6 +2047,8 @@ As with plot options, terminal options can be abbreviated to the shortest
 unique string -- so (e.g.) "size" can generally be abbreviated "si" and
 "monochrome" can be abbreviated "mono" or "mo".
 
+=cut
+=pod
 
 =head2 close
 
@@ -2040,6 +2070,8 @@ restart operation.
 The object preserves the plot state, so C<replot> and similar methods
 still work with the new subprocess.
 
+=cut
+=pod
 
 =head2 restart
 
@@ -2059,6 +2091,8 @@ with the new subprocess).
 
 Called with no arguments, C<restart> applies to the global plot object.
 
+=cut
+=pod
 
 =head2 reset
 
@@ -2077,6 +2111,8 @@ gnuplot itself, and in fact it also causes a "reset" to be sent to
 gnuplot.
 
 
+=cut
+=pod
 
 =head2 options
 
@@ -2096,6 +2132,8 @@ cumulative basis, and returns the resultant options hash.
 If called as a sub rather than a method, options() changes the
 global gnuplot object.
 
+=cut
+=pod
 
 =head2 gplot
 
@@ -2144,6 +2182,8 @@ For debugging and curiosity purposes, the last plot command issued to gnuplot
 is maintained in a package global: C<$PDL::Graphics::Gnuplot::last_plotcmd>, and also
 in each object as the {last_plotcmd} field.
 
+=cut
+=pod
 
 =head2 replot
 
@@ -2164,6 +2204,8 @@ element list, and maintained for subsequent replots.
 
 (Compare to 'markup').
 
+=cut
+=pod
 
 =head2 markup
 
@@ -2176,6 +2218,8 @@ new arguments are not added to the replot list - so you can
 add temporary markup to a plot and regenerate the plot later
 without it.
 
+=cut
+=pod
 
 =head2 plot3d
 
@@ -2183,6 +2227,8 @@ without it.
 
 Generate 3D plots. Synonym for C<plot(trid =E<gt> 1, ...)>
 
+=cut
+=pod
 
 =head2 splot
 
@@ -2190,6 +2236,8 @@ Generate 3D plots. Synonym for C<plot(trid =E<gt> 1, ...)>
 
 Generate 3D plots.  Synonym for C<plot(trid =E<gt> 1, ...)>
 
+=cut
+=pod
 
 =head2 lines
 
@@ -2197,6 +2245,8 @@ Generate 3D plots.  Synonym for C<plot(trid =E<gt> 1, ...)>
 
 Generates plots with lines, by default. Shorthand for C<plot(globalwith =E<gt> 'lines', ...)>
 
+=cut
+=pod
 
 =head2 points
 
@@ -2204,6 +2254,8 @@ Generates plots with lines, by default. Shorthand for C<plot(globalwith =E<gt> '
 
 Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 'points', ...)>
 
+=cut
+=pod
 
 =head2 image
 
@@ -2211,6 +2263,8 @@ Generates plots with points, by default. Shorthand for C<plot(globalwith =E<gt> 
 
 Displays an image (either greyscale or RGB).  Shorthand for C<plot(globalwith =E<gt> 'image', ...)>
 
+=cut
+=pod
 
 =head2 imag
 
@@ -2218,6 +2272,8 @@ Displays an image (either greyscale or RGB).  Shorthand for C<plot(globalwith =E
 
 Synonym for "image", for people who grew up with PDL::Graphics::PGPLOT and can't remember the closing 'e'
 
+=cut
+=pod
 
 =head2 fits
 
@@ -2225,6 +2281,8 @@ Synonym for "image", for people who grew up with PDL::Graphics::PGPLOT and can't
 
 Displays a FITS image.  Synonym for C<plot(globalwith =E<gt> 'fits', ...)>.
 
+=cut
+=pod
 
 =head2 multiplot
 
@@ -2298,6 +2356,8 @@ of each plot within the grid.
 
 Ends a multiplot block (i.e. a block of plots that are meant to render to a single page).
 
+=cut
+=pod
 
 =head2 read_mouse
 
@@ -2310,7 +2370,7 @@ Ends a multiplot block (i.e. a block of plots that are meant to render to a sing
 
 Get a mouse click or keystroke from the active interactive plot window.
 
-For interactive devices (e.g. x11, xwt, aqua), read_mouse lets you accept a
+For interactive devices (e.g. x11, wxt, aqua), read_mouse lets you accept a
 keystroke or mouse button input from the gnuplot window.  In list context, it
 returns four arguments containing the reported X, Y, keystroke character, and
 modifiers packed in a string.  In scalar context, it returns a hash ref containing
@@ -2318,6 +2378,8 @@ those things.
 
 read_mouse blocks execution for input, but responds gracefully to interrupts.
 
+=cut
+=pod
 
 =head2 read_polygon
 
@@ -2399,6 +2461,8 @@ The routine will call markup after each click.
 
 =back
 
+=cut
+=pod
 
 =head2 terminfo
 
@@ -2419,6 +2483,7 @@ The "terminfo" routine is a reference tool to describe the Gnuplot
 terminal types and the options they accept.  It's mainly useful in
 interactive sessions.  It outputs information directly to the terminal.
 
+=cut
 =head1 COMPATIBILITY
 
 Everything should work on all platforms that support Gnuplot and Perl.
@@ -2445,10 +2510,6 @@ Craig DeForest, C<< <craig@deforest.org> >> and Dima Kogan, C<< <dima@secretsauc
 
 =over 3
 
-=item - Hash values should be accepted (and parsed properly) for all plot options for which they work.
-
-Currently many of the more complicated plot options accept array refs only.  Hash ref parsing is needed for regularity.
-
 =item - labels need attention (plot option labels)
 
 They need to be handled as hashes, not just as array refs.  Also, they don't seem to be working with timestamps.
@@ -2474,3 +2535,4 @@ the Perl language.
 
 See http://dev.perl.org/licenses/ for more information.
 
+=cut

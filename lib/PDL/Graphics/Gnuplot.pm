@@ -1978,9 +1978,9 @@ use Safe::Isa;
 use Carp;
 
 use Alien::Gnuplot 4.4;  # Ensure gnuplot exists and is recent, and get ancillary info about it.
-if($Alien::Gnuplot::VERSION < 1.001) {
+if($Alien::Gnuplot::VERSION < 1.031) {
     # Have to check explicitly since we use the version hack to check the *gnuplot* version.
-    die "PDL::Graphics::Gnuplot requires Alien::Gnuplot version 1.001 or higher\n (v$Alien::Gnuplot::VERSION found). You can pull the latest from CPAN.\n";
+    die "PDL::Graphics::Gnuplot requires Alien::Gnuplot version 1.031 or higher\n (v$Alien::Gnuplot::VERSION found). You can pull the latest from CPAN.\n";
 }
 
 our $gnuplot_dep_v = 4.6; # Versions below this are deprecated.
@@ -1993,7 +1993,7 @@ our $echo_eating = 0;                             # Older versions of gnuplot on
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.007_000';
+our $VERSION = '2.009';
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -3637,22 +3637,22 @@ EOF
 
 		    if($dp->ndims==3) {
 			if($dp->dim(1) >= 5) {
-			    if($dp->dim(0) ==3 && $dp->dim(2) >= 5) {
-				$chunk{options}->{with}->[0] = 'rgbimage';
-				pop @dataPiddles;
-				push(@dataPiddles,$dp->dog);
-			    } elsif($dp->dim(2)==3 && $dp->dim(1)==5) {
+			    if($dp->dim(0) ==3 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
 				$chunk{options}->{with}->[0] = 'rgbimage';
 				pop @dataPiddles;
 				push(@dataPiddles,$dp->using(0,1,2));
-			    } elsif($dp->dim(2)==4 && $dp->dim(2) >= 5) {
+			    } elsif($dp->dim(2)==3 && $dp->dim(1)>=5 && $dp->dim(0) >= 5) {
+				$chunk{options}->{with}->[0] = 'rgbimage';
+				pop @dataPiddles;
+				push(@dataPiddles,$dp->mv(2,0)->using(0,1,2));
+			    } elsif($dp->dim(0)==4 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
 				$chunk{options}->{with}->[0] = 'rgbalpha';
 				pop @dataPiddles;
-				push(@dataPiddles,$dp->dog);
-			    } elsif($dp->dim(0)==4 && $dp->dim(0) >= 5) {
+				push(@dataPiddles,$dp->using(0,1,2,3));
+			    } elsif($dp->dim(2)==4 && $dp->dim(0) >= 5 && $dp->dim(1) >= 5) {
 				$chunk{options}->{with}->[0] = 'rgbalpha';
 				pop @dataPiddles;
-				push(@dataPiddles, $dp->using(0,1,2,3));
+				push(@dataPiddles, $dp->mv(2,0)->using(0,1,2,3));
 			    }
 			}
 		    }
@@ -6909,7 +6909,7 @@ our $termTabSource = {
 		 opt=>[ qw/color monochrome font background title size/,
 			['position','l','csize','pixel location of the window'],
 			'output']},
-    'wxt'     =>{unit=>"px", desc=>"WxWidgets display", mouse=>0,ok=>1,disp=>2,int=>1,
+    'wxt'     =>{unit=>"px", desc=>"WxWidgets display", mouse=>1,ok=>1,disp=>2,int=>1,
 		 opt=>[ qw/size background enhanced font title dashed solid dashlength persist raise/,
 			['ctrl',  'b','cf','enable (or disable) control-Q to quit window'],
 			['close', 'b','cf','close window on completion?']
