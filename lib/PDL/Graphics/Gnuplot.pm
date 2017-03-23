@@ -1163,7 +1163,7 @@ C<clip> controls the border between the plotted data and the border of the plot.
 There are three clip types supported:   points, one, and two.  You can set them
 independently by passing in booleans with their names: C<< clip=>[points=>1,two=>0] >>.
 
-=head2 POs for Color: colorbox, palette, clut
+=head2 POs for Color: colorbox, palette, clut, pseudocolor, pc, perceptual, pcp
 
 Color plots are supported via RGB and pseudocolor.  Plots that use pseudcolor or
 grayscale can have a "color box" that shows the photometric meaning of the color.
@@ -1200,6 +1200,29 @@ maps.  (from "Color Look Up Table").  A few existing color maps are:
 "default", "gray", "sepia", "ocean", "rainbow", "heat1", "heat2", and
 "wheel".  To see a complete list, specify an invalid table,
 e.g. C<< clut=>'xxx' >>.  (This should be improved in a future version).
+
+C<pseudocolor> (synonym C<pc>) gives access to the color tables built
+in to the C<PDL::Transform::Color> package, if that package is
+available.  It takes either a color table name or a list ref which 
+is a collection of arguments that get sent to the 
+C<PDL::Transform::Color::t_pc> transform definition method. Sending
+the empty string or undef will generate a list of allowable color
+table names.  Many of the color tables are "photometric" and 
+will render photometric data correctly without gamma correction.
+
+C<perceptual> (synonym C<pcp>) gives the same access to 
+C<PDL::Transform::Color> as does C<pseudocolor>, but the 
+"equal-perceptual-difference" scaling is used -- i.e. input
+values are gamma-corrected by the module so that uniform
+shifts in numeric value yield approximately uniform perceptual
+shifts.
+
+If you use C<pseudocolor> or C<perceptual>, and if
+C<PDL::Transform::Color> can be loaded, then the external module
+is used to define a custom Gnuplot palette by linear interpolation
+across 256 values.  That palette is then used to translate your
+monochrome data to a color image.  The Gnuplot output is assumed
+to be sRGB.  This is probably OK for most output devices.
 
 =head2 POs for 3D: trid, view, pm3d, hidden3d, dgrid3d, surface, xyplane, mapping
 
@@ -4842,6 +4865,85 @@ our $pOptionsTable =
 		    '[pseudo] default plot style (overridden by "with" in curve options)'    ],
 
 
+    'perceptual'=>[sub { my($old,$new,$this) = @_;
+			  eval "use PDL::Transform::Color";
+			  barf("pseudocolor option requires PDL::Transform::Color, which is not present")
+			      unless($PDL::Transform::Color::VERSION);
+			  return $new;
+		    },
+		    sub { my($k, $v, $h) = @_;
+			  my $s = "";
+			  my $t;
+			  eval {
+			      if(ref($v) eq 'ARRAY') {
+				  $t = PDL::Transform::Color::t_pcp(@$v);
+			      } else {
+				  $t = PDL::Transform::Color::t_pcp($v);
+			      }
+			  };
+			  if($@){
+			      my $a=$@;
+			      $@=undef;
+			      $a =~ s/Usage\:.*input value\)//s;
+			      # not barf -- no traceback
+			      die("PDL::Transform::Color palettes for the 'perceptual'/'pcp' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option)\n".$a."\n");
+			  }
+			  my $grey = xvals(256)/255;
+			  my $rgb = $grey->apply($t);
+
+			  my @s = map {
+			      sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list)
+			  } (0..$grey->dim(0)-1);
+
+			  $s .= "set palette defined ( ".join(",", @s)." )\n";
+			  $s;
+		    },
+		    ['clut'],undef,
+		    '[pseudo] Use PDL::Transform::Color photometric palette: "pseudocolor=>\'heat\'"' ],
+
+    'pseudocolor'=>[sub { my($old,$new,$this) = @_;
+			  eval "use PDL::Transform::Color";
+			  barf("pseudocolor option requires PDL::Transform::Color, which is not present")
+			      unless($PDL::Transform::Color::VERSION);
+			  return $new;
+		    },
+		    sub { my($k, $v, $h) = @_;
+			  my $s = "";
+			  my $t;
+			  eval {
+			      if(ref($v) eq 'ARRAY') {
+				  $t = PDL::Transform::Color::t_pcp(@$v);
+			      } else {
+				  $t = PDL::Transform::Color::t_pcp($v);
+			      }
+			  };
+			  if($@){
+			      my $a = $@;
+			      $@ = undef;
+			      $a =~ s/Usage\:.*value\)//s;
+			      # die not barf - no traceback.
+			      die("PDL::Transform::Color palettes for the 'pseudocolor'/'pc' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option)\n".$a."\n");
+			  }
+
+			  if(ref($v) eq 'ARRAY') {
+			      $t = PDL::Transform::Color::t_pc(@$v);
+			  } else {
+			      $t = PDL::Transform::Color::t_pc($v);
+			  }
+			  my $grey = xvals(256)/255;
+			  my $rgb = $grey->apply($t);
+
+			  my @s = map {
+			      sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list)
+			  } (0..$grey->dim(0)-1);
+
+			  $s .= "set palette defined ( ".join(",", @s)." )\n";
+			  $s;
+		    },
+		    ['clut'],undef,
+		    '[pseudo] Use PDL::Transform::Color photometric palette: "pseudocolor=>\'heat\'"' ],
+			  
+    
     'clut'      => [sub { my($old, $new, $this) = @_;
 			  $new = ($new ? lc $new : "default");
 			  if($palettesTab->{$new}) {
@@ -5194,6 +5296,8 @@ our $pOptionsTable =
 our $pOptionsAbbrevs = _gen_abbrev_list(keys %$pOptionsTable);
 $pOptionsAbbrevs->{'term'} = ['terminal'];         # frequently-used case
 $pOptionsAbbrevs->{'time'} = ['timestamp'];        # compat. with gnuplot's alt. spelling
+$pOptionsAbbrevs->{'pc'}   = ['pseudocolor'];
+$pOptionsAbbrevs->{'pcp'}  = ['perceptual'];
 
 $pOpt = [$pOptionsTable, $pOptionsAbbrevs, "plot option"];
 
@@ -7729,7 +7833,7 @@ EOM
 	    $fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
 	} else {
 	    # Hack to avoid spurious the pdfcairo errors in MacOS 10.5 - strip out obsolete-function errors.
-	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//o ) {
+	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//s ) {
 		# do nothing
 	    }
 	}
