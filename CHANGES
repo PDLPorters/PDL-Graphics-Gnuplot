@@ -1,4 +1,10 @@
-2.009 (24-Feb-2017
+2.010 (pending)
+
+ - Add support for PDL::Transform::Color, including photometric palettes
+     (new "pseudocolor" and "perceptual" plot options)
+ - Fix a regexp typo that was preventing some chatter from being suppressed under MS Windows
+
+2.009 (released 24-Feb-2017)
 
  - fix typo in Makefile.PL metadata (issue #63/64)
 
