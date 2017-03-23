@@ -4912,9 +4912,9 @@ our $pOptionsTable =
 			  my $t;
 			  eval {
 			      if(ref($v) eq 'ARRAY') {
-				  $t = PDL::Transform::Color::t_pcp(@$v);
+				  $t = PDL::Transform::Color::t_pc(@$v);
 			      } else {
-				  $t = PDL::Transform::Color::t_pcp($v);
+				  $t = PDL::Transform::Color::t_pc($v);
 			      }
 			  };
 			  if($@){
@@ -4925,11 +4925,6 @@ our $pOptionsTable =
 			      die("PDL::Transform::Color palettes for the 'pseudocolor'/'pc' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option)\n".$a."\n");
 			  }
 
-			  if(ref($v) eq 'ARRAY') {
-			      $t = PDL::Transform::Color::t_pc(@$v);
-			  } else {
-			      $t = PDL::Transform::Color::t_pc($v);
-			  }
 			  my $grey = xvals(256)/255;
 			  my $rgb = $grey->apply($t);
 
