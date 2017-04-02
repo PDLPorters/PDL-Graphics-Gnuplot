@@ -2018,7 +2018,7 @@ our $echo_eating = 0;                             # Older versions of gnuplot on
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.009';
+our $VERSION = '2.011';
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -4886,9 +4886,9 @@ our $pOptionsTable =
 			  if($@){
 			      my $a=$@;
 			      $@=undef;
-			      $a =~ s/Usage\:.*input value\)//s;
+			      $a =~ s/Usage\:.*\.\)//s;
 			      # not barf -- no traceback
-			      die("PDL::Transform::Color palettes for the 'perceptual'/'pcp' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option)\n".$a."\n");
+			      die("PDL::Transform::Color palettes for the 'perceptual'/'pcp' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option;\n  Append the suffix '-c<n>', n in [0..5], to a name to get RGB combinatorics.)\n".$a."\n");
 			  }
 			  my $grey = xvals(256)/255;
 			  my $rgb = $grey->apply($t);

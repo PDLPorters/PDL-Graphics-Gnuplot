@@ -73,16 +73,17 @@ WriteMakefile(
         'ExtUtils::MakeMaker' => 6.48,
     },
     PREREQ_PM => { 
-        'Alien::Gnuplot'      => 0,
-        'Test::More'          => 0,
-        'PDL'                 => 0,
-        'IPC::Run'            => 0,
-        'List::Util'          => 0,
-        'Storable'            => 0,
-        'IPC::Open3'          => 0,
-        'IO::Select'          => 0,
-        'Time::HiRes'         => 0,
-        'Safe::Isa'           => 0
+            'Alien::Gnuplot'      => 0,
+	    'Test::More'          => 0,
+	    'PDL'                 => 0,
+	    'PDL::Transform::Color' => 0,
+	    'IPC::Run'            => 0,
+	    'List::Util'          => 0,
+	    'Storable'            => 0,
+	    'IPC::Open3'          => 0,
+	    'IO::Select'          => 0,
+	    'Time::HiRes'         => 0,
+	    'Safe::Isa'           => 0
     },
     META_ADD => {
         resources => {
