@@ -1199,7 +1199,9 @@ For simple color maps, C<clut> gives access to a set of named color
 maps.  (from "Color Look Up Table").  A few existing color maps are:
 "default", "gray", "sepia", "ocean", "rainbow", "heat1", "heat2", and
 "wheel".  To see a complete list, specify an invalid table,
-e.g. C<< clut=>'xxx' >>.  (This should be improved in a future version).
+e.g. C<< clut=>'xxx' >>.  C<clut> is maintained but is superseded
+by C<pc> and C<pcp> (below), which give access to a better variety
+of color tables, and have better support for scientific images.
 
 C<pseudocolor> (synonym C<pc>) gives access to the color tables built
 in to the C<PDL::Transform::Color> package, if that package is
