@@ -4876,6 +4876,7 @@ our $pOptionsTable =
 		    sub { my($k, $v, $h) = @_;
 			  my $s = "";
 			  my $t;
+			  return unless (defined($v));
 			  eval {
 			      if(ref($v) eq 'ARRAY') {
 				  $t = PDL::Transform::Color::t_pcp(@$v);
@@ -4912,6 +4913,11 @@ our $pOptionsTable =
 		    sub { my($k, $v, $h) = @_;
 			  my $s = "";
 			  my $t;
+			  return unless(defined($v));
+			  if(defined($h->{'perceptual'})){
+			      print STDERR "Warning: 'perceptual'/'pcp' pseudocolor option overriding 'pseudocolor'/'pc'\n";
+			      return;
+			  }
 			  eval {
 			      if(ref($v) eq 'ARRAY') {
 				  $t = PDL::Transform::Color::t_pc(@$v);
@@ -4958,6 +4964,10 @@ our $pOptionsTable =
 		    },
 		    sub { my($k, $v, $h) = @_;
 			  my $s = "";
+			  if(defined($h->{'pseudocolor'}) || defined($h->{'perceptual'})) {
+			      print "Warning: 'pseudocolor'/'pc' or 'perceptual'/'pcp' plot option overriding 'clut'\n";
+			      return;
+			  }
 			  unless($palettesTab->{$v}) { die "Color table lookup failed -- this should never happen" }
 			  if(defined($palettesTab->{$v}->[0])) {
 			      $s .= "set palette model $palettesTab->{$v}->[0]\n";

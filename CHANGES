@@ -1,5 +1,7 @@
-2.011 (released 2-April-2017)
+2.012
+ - Add collision logic for 'clut', 'pc', and 'pcp' plot options
 
+2.011 (released 2-April-2017)
  - Add support for PDL::Transform::Color, including photometric palettes
      (new "pseudocolor" and "perceptual" plot options)
  - Fix a regexp typo that was preventing some chatter from being suppressed under MS Windows
