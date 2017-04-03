@@ -4964,6 +4964,7 @@ our $pOptionsTable =
 		    },
 		    sub { my($k, $v, $h) = @_;
 			  my $s = "";
+			  return unless(defined($v));
 			  if(defined($h->{'pseudocolor'}) || defined($h->{'perceptual'})) {
 			      print "Warning: 'pseudocolor'/'pc' or 'perceptual'/'pcp' plot option overriding 'clut'\n";
 			      return;
