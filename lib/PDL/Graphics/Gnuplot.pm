@@ -3054,6 +3054,8 @@ set view 60,30,1.0,1.0
 unset xlabel
 unset ylabel
 unset cblabel
+unset xrange
+unset yrange
 POS
     } else {
 	# In single-plot mode, just issue a reset.  Multiple newlines to work around a gnuplot problem.

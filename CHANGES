@@ -1,5 +1,7 @@
 2.012
  - Add collision logic for 'clut', 'pc', and 'pcp' plot options
+ - Reset more state in multiplots (xrange & yrange), avoiding a problem
+     where image axis range state leaked into subsequent panels
 
 2.011 (released 2-April-2017)
  - Add support for PDL::Transform::Color, including photometric palettes
