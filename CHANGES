@@ -1,4 +1,4 @@
-2.012
+2.011_01 - development release toward 2.012
  - Add collision logic for 'clut', 'pc', and 'pcp' plot options
  - Reset more state in multiplots (xrange & yrange), avoiding a problem
      where image axis range state leaked into subsequent panels
