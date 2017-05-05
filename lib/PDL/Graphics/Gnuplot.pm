@@ -2235,6 +2235,14 @@ processing (e.g. for superscripts and subscripts).  Set it to a false
 value for plain text, to a true value for enhanced text (which includes
 LaTeX-like markup for super/sub scripts and fonts).
 
+=item aa
+
+For certain pixel-grid terminals (currently only C<pncairo> and
+C<png>, as of v2.012), you can specify an antialiasing factor for the
+output.  The output is rendered oversized by a factor of C<aa>, then
+scaled down using C<PDL::Transform>.  Fixed font sized, line widths,
+and point sizes are autoscaled -- but you must handle variable ones
+explicitly.
 
 =back
 
