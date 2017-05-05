@@ -2365,6 +2365,14 @@ FOO
 		$this->{aa} = 1;
 	    }
 
+	    ### Set a default font size for better control
+	    print STDERR "termOptions->{font} is '$termOptions->{font}'\n";
+	    unless(defined $termOptions->{font}) {
+		if($termTab->{$terminal}->{opt}->[0]->{font}){
+		    $termOptions->{font} = ',10';
+		}
+	    }
+
 	    ### Terminals that support anti-aliasing all broadcast their format so that rpic can handle them.
 	    if( defined $termTab->{terminal}->{image_format}) {
 		$this->{image_format}= $termTab->{$terminal}->{image_format};
@@ -2377,6 +2385,7 @@ FOO
 
 	    ## Emit the terminal options line for this terminal.
 	    $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
+	    print STDERR "terminal options parsed to '$this->{options}->{terminal}'\n";
 	    $this->{terminal} = $terminal;
 	    $this->{mouse} = $termTab->{$terminal}->{mouse} || 0;
 	} else {
@@ -2434,9 +2443,9 @@ sub close
 	    $im = $im->mv(0,-1);
 	}
 	# gamma-correct before scaling, and put back after.
-	my $imf = ((float $im)/255.0)->clip(0,1) ** 1/2.2;
+	my $imf = ((float $im)/255.0)->clip(0,1) ** 2.2;
 	$imf = $imf->match( [ $im->dim(0)/$this->{aa}, $im->dim(1)/$this->{aa} ], {method=>'h',blur=>0.5});
-	$im .= ($imf ** 2.2) * 255;
+	$im = byte(($imf ** (1/2.2)) * 255);
 	if($im->ndims==3){
 	    $im = $im->mv(-1,0);
 	}
@@ -7033,7 +7042,7 @@ our $termTabSource = {
 			                          "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
 			qw/aa color solid dashed transparent crop background font linewidth rounded butt dashlength size output/ ],
                  default_output=>'%s%d.c.png',
-		 image_format=>'PNG'
+		 image_format=>'PNG',
                 },
     'postscript'=>{unit=>'in',desc=>"Postscript file output",ok=>1,
 		   opt=>[qw/landscape portrait/,
