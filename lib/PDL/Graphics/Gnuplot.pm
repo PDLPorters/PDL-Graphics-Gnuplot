@@ -6846,6 +6846,13 @@ our $termTab_types = {
 #               -input parser (as for $pOptionsTable)
 #               -output parser (as for $pOptionsTable)
 #               -description string
+#
+# To enable anti-aliasing on a given terminal:
+#  - make sure that the "standard" 'aa' option is one of the options it takes
+#  - make sure that the 'font' or 'fontsize' option scales with aa (the 'cqf' option type does this)
+#  - set the "image_format" key in the terminal description hash (see 'pngcairo' as an example)
+#     (the image_format must be one of the formats recognized by PDL::IO::Pic)
+#
 
 our $termTabSource = {
     'aed767'   => "AED graphics terminal                  [NS: ancient]",
