@@ -779,7 +779,7 @@ e.g. C<< grid=>["noxtics","ymtics"] >> draws no X gridlines and draws
 C<< grid=>["xtics","ytics"] >> or C<< grid=>["xtics ytics"] >> will draw both
 vertical (X) and horizontal (Y) grid lines on major tics.
 
-To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more
+vTo draw a coordinate grid with default values, set C<< grid=>1 >>.  For more
 control, feed in a list ref with zero or more of the following parameters, in order:
 
 The C<zeroaxis> keyword indicates whether to actually draw each axis
@@ -2018,7 +2018,7 @@ our $echo_eating = 0;                             # Older versions of gnuplot on
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.011';
+our $VERSION = '2.012';
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -2349,6 +2349,22 @@ FOO
 	    # we copy it into the main plot options hash to be emitted as part of the plot operation.
 	    $this->{options}->{output} = $termOptions->{output};
 	    $this->{wait} = $termOptions->{wait} if defined $termOptions->{wait};
+
+	    ### Deal with anti-aliasing scaling factors
+	    if( defined $termOptions->{aa}) {
+		$this->{aa}   = $termOptions->{aa}                     
+	    } else {
+		$this->{aa} = 1;
+	    }
+
+	    ### Terminals that support anti-aliasing all broadcast their format so that rpic can handle them.
+	    if( defined $termTab->{terminal}->{image_format}) {
+		$this->{image_format}= $termTab->{$terminal}->{image_format};
+	    } else {
+		delete($this->{image_format});
+	    }
+
+									      
 	    delete $termOptions->{output};
 
 	    ## Emit the terminal options line for this terminal.
@@ -2403,6 +2419,19 @@ sub close
 {
     my $this = shift;
     restart($this);
+    if(defined $this->{aa} && $this->{aa} && $this->{aa} != 1 && $this->{aa_ready}) {
+	eval "use PDL::Transform; use PDL::IO::Pic;";  # load when needed
+	my $im = rpic($this->{options}->{output},{FORMAT=>$this->{image_format}});
+	if($im->ndims==3) {
+	    $im = $im->mv(0,-1);
+	}
+	$im = $im->match( [ $im->dim(0)/$this->{aa}, $im->dim(1)/$this->{aa} ], {method=>'h',blur=>0.5});
+	if($im->ndims==3){
+	    $im = $im->mv(-1,0);
+	}
+	wpic($im, $this->{options}->{output}, {FORMAT=>$this->{image_format}});
+    }
+    $this->{aa_ready} = 0;
 }
 
 =pod
@@ -3399,8 +3428,12 @@ POS
 	}
     }
 
+    # Flag the output as rescalable if anti-aliasing is in effect
+    if($this->{aa} && $this->{aa} != 1) {
+	$this->{aa_ready} = 1;
+    }
+    
     # read and report any warnings that happened during the plot
-
     return $plotWarnings;
 
     #####################
@@ -4308,8 +4341,8 @@ sub end_multi {
 	    barf("Gnuplot error: unset multiplot failed!\n$checkpointMessage");
 	}
     }
-
     $this->{options}->{multiplot} = 0;
+    $this->close;
 }
 
 
@@ -5352,11 +5385,11 @@ our $cOptionsTable = {
     'linestyle'=> ['s', 'cs',  undef, 10],
     'linetype' => ['s', 'cs',  undef, 11],
     'dashtype' => ['dt', 'dt',  undef, 11.5],  # dashtype is new with Gnuplot 5
-    'linewidth'=> ['s', 'cs',  undef, 12],
+    'linewidth'=> ['s', 'css',  undef, 12],
     'linecolor'=> ['l', 'ccolor',  undef, 13],
     'textcolor'=> ['l', 'ccolor',  undef, 14],
     'pointtype'=> ['s', 'cs',  undef, 15],
-    'pointsize'=> ['s', 'cs',  undef, 16],
+    'pointsize'=> ['s', 'css',  undef, 16],
     'fillstyle'=> ['l', 'cl',  undef, 17],
     'nohidden3d'=>['b', 'cff', undef, 18],
     'nohidden3d'=>['b', 'cff', undef, 19],
@@ -6085,6 +6118,22 @@ our $_OptionEmitters = {
 		  return " $k \"$vv\" ";
     },
 
+    #### A quoted scalar font value as a curve option.
+    #### This differs from cq alone in that it parses font size,
+    #### scaling it for anti-aliasing as necessary.
+    #### the 'aa' parameter is passed in $h since this is called
+    #### by the term option emitter in output().	
+    'cqf' => sub { my($k,$v,$h) = @_;
+		   return "" unless(defined($v));
+		   if($h->{aa} && $v =~ m/(.*)\,(.*)/) {
+		       my ($name,$size) = ($1,$2);
+		       $size *= $h->{aa};
+		       $v = "$name,$size";
+		   }
+		   my($vv) = quote_escape($v);
+		   return " $k \"$vv\" ";
+    },
+
     #### A value with no associated keyword
     'cv' => sub { my($k,$v,$h) = @_;
 		  return " $v " if(defined($v));
@@ -6104,6 +6153,16 @@ our $_OptionEmitters = {
 		  return "" unless(defined($v));
 		  return " $k $v ";
     },
+
+    #### A nonquoted antialias-scaled scalar value as a curve option
+    'css' => sub { my($k,$v,$h,$this) = @_;
+		   return "" unless(defined($v));
+		   if($this->{aa} && $v=~m/^[\+\-0-9,.E]+$/i) {
+		       $v *= $this->{aa};
+		   }
+		   return " $k $v ";
+    },
+	
 
     #### The dashtype curve option
     'dt' => sub { my($k,$v,$h, $w) = @_;
@@ -6157,6 +6216,10 @@ our $_OptionEmitters = {
 		    }
 		    if(@v > 2) {
 			die "Too many values, or an unrecognized unit, in size spec '".join(",",@$v)."'\n";
+		    }
+		    # Deal with anti-aliasing: oversize the window if aa exists.
+		    if($h->{aa}){
+			$conv *= $h->{aa};
 		    }
 		    return( " size ".($v[0]*$conv).",".$v[1]*$conv." " );
 
@@ -6705,19 +6768,20 @@ our $lConv = {
 # These are keyed descriptors for options that are used in at least two devices. They are invoked by name in the
 # $termTab_source table below, which describes all the known gnuplot device specification options.
 our $termTab_types = {
+    aa         => ['n',sub{''},   "Anti-aliasing factor"],                 # implemented in output(), plot(), close(), and DESTROY().
     output     => ['s','q',     "File name for output"],                 # autocopied to a plot option when present for a device
     output_    => ['s','cv',    "Window number for persistent windows"], # trailing '_' prevents autocopy to a plot option
     title      => ['s','cq',    "Window title"],
     size       => ['ln','csize', "Window size (default unit is %u)"],
-    font       => ['s','cq',    "Font to use ('<fontname>,<size>')"],
-    fontsize   => ['s','cs',    "Font size (points)"],                      # use for devices that use no keyword for font size
+    font       => ['s','cqf',   "Font to use ('<fontname>,<size>')"],
+    fontsize   => ['s','css',    "Font size (points)"],                      # use for devices that use no keyword for font size
     enhanced   => ['b','cf',    "Enable or disable gnuplot enhanced text escapes for markup"],
     color      => ['b','cff',   "Generate a color plot (see 'monochrome') if true"],
     monochrome => ['b','cff',   "Generate a B/W plot (see 'color') if true"],
     solid      => ['b','cff',   "Plot only solid lines (see 'dashed') if true"],
     dashed     => ['b','cff',   "Plot dashed lines (see 'solid') if true"],
     rotate     => ['b','cf',    "Enable or disable true rotated text (90 degrees)"],
-    linewidth  => ['s','cs',    "Multiplier on line width (typ. default 1 pt)"],
+    linewidth  => ['s','css',    "Multiplier on line width (typ. default 1 pt)"],
     dashlength => ['s','cs',    "Multiplier on dash length for dashed plots"],
     standalone => ['b','cff',   "Generate postscript that can render alone (see 'input')"], # for LaTeX devices
     input      => ['b','cff',   "Generate postscript to be combined with LaTeX output"],    # for LaTeX devices
@@ -6948,15 +7012,17 @@ our $termTabSource = {
     'png'    => {unit=>"px",desc=>"PNG image output",ok=>1,
 		 opt=>[ qw/transparent interlace/,
 			['truecolor','b','cf','Enable or disable true color (RGB) output'],
-			qw/rounded butt linewidth dashlength tiny small medium large giant font enhanced size crop background output/],
-		 default_output=>'%s%d.png'
+			qw/aa rounded butt linewidth dashlength tiny small medium large giant font enhanced size crop background output/],
+		 default_output=>'%s%d.png',
+		 image_format=>'PNG'
                  },
     'pngcairo'=>{unit=>'px',desc=>"PNG image output via Cairo 2-D plotting library",ok=>1,
 		 opt=>[ 'enhanced',
 			['monochrome','b',sub{return $_[1]?" mono ":""},
 			                          "Generate a B/W plot (see 'color') if true"], # shield user from mono/monochrome
-			qw/color solid dashed transparent crop background font linewidth rounded butt dashlength size output/ ],
-                 default_output=>'%s%d.c.png'
+			qw/aa color solid dashed transparent crop background font linewidth rounded butt dashlength size output/ ],
+                 default_output=>'%s%d.c.png',
+		 image_format=>'PNG'
                 },
     'postscript'=>{unit=>'in',desc=>"Postscript file output",ok=>1,
 		   opt=>[qw/landscape portrait/,
