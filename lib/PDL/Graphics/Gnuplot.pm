@@ -2244,6 +2244,10 @@ scaled down using C<PDL::Transform>.  Fixed font sized, line widths,
 and point sizes are autoscaled -- but you must handle variable ones
 explicitly.
 
+Antialiasing is done in the gamma=2.2 approximation, to match the sRGB
+coding that most pixel image files use.  (See PDL::Transform::Color
+for more information).
+
 =back
 
 For a brief description of the terminal options that any one device supports,
