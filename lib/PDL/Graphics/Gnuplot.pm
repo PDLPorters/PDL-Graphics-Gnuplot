@@ -6982,8 +6982,9 @@ our $termTabSource = {
     'gif'    => {unit=>'px',desc=>"Graphics Interchange Format (venerable but supported)",ok=>1,
 		 opt=>[ qw/ transparent rounded butt linewidth dashlength font enhanced size crop /,
 			['animate','l','cl',"syntax: animate=>[delay=>\$d, loop=>\$n, (no)?optimize]"],
-			qw/ background output / ],
-		 default_output=>'%s%d.gif'
+			qw/ aa background output / ],
+		 default_output=>'%s%d.gif',
+		 image_format=>'GIF'
                 },
     'excl'   => "Talaris printer support                [NS: ancient]",
     'gnugraph'=>"Gnu plotutils metalanguage output      [NS: obsolete]",
@@ -7002,8 +7003,9 @@ our $termTabSource = {
     'hppj'   => "HP PaintJet and HP3630 printers        [NS: obsolete]",
     'imagen' => "Imagen laser printers                  [NS: obsolete]",
     'jpeg'   => {unit=>"px",desc=>"JPEG image file output",ok=>1,
-		 opt=>[ qw/ interlace linewidth dashlength rounded butt font enhanced size crop background output /],
-		 default_output=>'%s%d.jpg'
+		 opt=>[ qw/aa interlace linewidth dashlength rounded butt font enhanced size crop background output /],
+		 default_output=>'%s%d.jpg',
+		 image_format=>"JPEG"
                 },
     'kyo'    => "Kyocera laserprinter native format     [NS: obsolete]",
     'latex'  => {unit=>'in',desc=>"EPS output tailored for LaTeX (see also 'epslatex')",
