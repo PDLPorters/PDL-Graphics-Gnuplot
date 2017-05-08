@@ -3323,7 +3323,7 @@ POS
 	    # out, which would probably be a better way to do it.
 
 	    my $emitter;
-	    if($MS_io_braindamage || $ENV{CYGWIN}) {
+	    if($MS_io_braindamage) {
 		$emitter = sub {
 		    my @lines = split /\n/, shift;
 		    my $byte;
