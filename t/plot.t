@@ -203,7 +203,7 @@ eval { $w->plot( xvals(5), xvals(5)**2 ); };
 ok(!$@, "ascii plot succeeded");
 
 eval { $w->plot( xvals(10000), xvals(10000)->sqrt ); };
-ok(!$@, "looong ascii plot succeeded");
+ok(!$@, "looong ascii plot succeeded ".($@?"($@)":""));
 
 
 ##############################

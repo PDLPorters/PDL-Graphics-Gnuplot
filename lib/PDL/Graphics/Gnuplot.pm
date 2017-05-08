@@ -2013,12 +2013,12 @@ our $gnuplot_req_v = 4.4; # Versions below this are not supported.
 
 # Compile time config flags...
 our $check_syntax = 0;
-our $MS_io_braindamage = ($^O =~ m/MSWin32/i);    # Do some different things on Losedows
+our $MS_io_braindamage = ($^O =~ m/MSWin32/i || $ENV{CYGWIN});    # Do some different things on Losedows
 our $echo_eating = 0;                             # Older versions of gnuplot on windows echo commands
 our $debug_echo = 0;                              # If set, mock up Losedows half-duplex pipes
 
 
-our $VERSION = '2.011_01';
+our $VERSION = '2.011_02';
 $VERSION = eval $VERSION;
 
 our $gp_version = undef;   # eventually gets the extracted gnuplot(1) version number.
@@ -2370,7 +2370,6 @@ FOO
 	    }
 
 	    ### Set a default font size for better control
-	    print STDERR "termOptions->{font} is '$termOptions->{font}'\n";
 	    unless(defined $termOptions->{font}) {
 		if($termTab->{$terminal}->{opt}->[0]->{font}){
 		    $termOptions->{font} = ',10';
@@ -2389,7 +2388,6 @@ FOO
 
 	    ## Emit the terminal options line for this terminal.
 	    $this->{options}->{terminal} = join(" ", ($terminal, _emitOpts( $termOptions, $termTab->{$terminal}->{opt} )));
-	    print STDERR "terminal options parsed to '$this->{options}->{terminal}'\n";
 	    $this->{terminal} = $terminal;
 	    $this->{mouse} = $termTab->{$terminal}->{mouse} || 0;
 	} else {
@@ -3325,7 +3323,7 @@ POS
 	    # out, which would probably be a better way to do it.
 
 	    my $emitter;
-	    if($MS_io_braindamage) {
+	    if($MS_io_braindamage || $ENV{CYGWIN}) {
 		$emitter = sub {
 		    my @lines = split /\n/, shift;
 		    my $byte;
