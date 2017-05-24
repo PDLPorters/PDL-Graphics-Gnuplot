@@ -4948,7 +4948,7 @@ our $pOptionsTable =
 			      # not barf -- no traceback
 			      die("PDL::Transform::Color palettes for the 'perceptual'/'pcp' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option;\n  Append the suffix '-c<n>', n in [0..5], to a name to get RGB combinatorics.)\n".$a."\n");
 			  }
-			  my $grey = xvals(256)/255;
+			  my $grey = xvals(2049)/2048;
 			  my $rgb = $grey->apply($t);
 
 			  my @s = map {
@@ -4990,7 +4990,7 @@ our $pOptionsTable =
 			      die("PDL::Transform::Color palettes for the 'pseudocolor'/'pc' plot option are:\n  (palettes marked 'phot' respond differently with the 'perceptual' option)\n".$a."\n");
 			  }
 
-			  my $grey = xvals(256)/255;
+			  my $grey = xvals(2049)/2048;
 			  my $rgb = $grey->apply($t);
 
 			  my @s = map {
