@@ -7493,8 +7493,8 @@ EOM
 	}
 
 	if($gp_pl =~ m/[a-z]+/) {
-	    unless($PDL::Graphics::Gnuplot::non_numeric_patch_warned) {
-		carp "WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution.\n(warning will not be repeated)\n";
+	    unless($PDL::Graphics::Gnuplot::non_numeric_patch_warned || $ENV{PGG_RC_OK}) {
+		carp "WARNING: your gnuplot has a non-numeric patchlevel '$gp_pl'.  Use with caution.\n(warning will not be repeated; set env. var. PGG_RC_OK to suppress)\n";
 		$PDL::Graphics::Gnuplot::non_numeric_patch_warned = 1;
 	    }
 	} else {
