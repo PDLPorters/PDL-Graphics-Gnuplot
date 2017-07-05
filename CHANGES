@@ -1,4 +1,5 @@
 - fix for pre-5.20
+- Fix documentation for linecolor to reflect actual usage - thanks @d-lamb
 
 2.012 (released 2-Dec-2019)
  - Stabilization release incorporates many smaller bug fixes
