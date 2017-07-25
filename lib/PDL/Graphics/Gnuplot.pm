@@ -5188,6 +5188,7 @@ our $pOptionsTable =
 			  if($vv ne $v) {
 			      carp "INFO: Plotting to '$vv'\n";
 			  }
+			  $vv = quote_escape($vv);
 			  return "set $k \"$vv\"\n";
 		    },
 		    undef,3,
