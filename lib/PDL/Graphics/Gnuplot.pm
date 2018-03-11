@@ -4993,8 +4993,18 @@ our $pOptionsTable =
 			  my $grey = xvals(2049)/2048;
 			  my $rgb = $grey->apply($t);
 
-			  my @s = map {
-			      sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list)
+
+			  my $last_str = "";
+			  my @s = ();
+			  for(0..$grey->dim(0)-1) {
+# Turn off warnings to prevent "redundant argument" warnings on certain sprintfs
+no warnings;				  
+			      my $this_str = sprintf("'#%2.2X%2.2X%2.2X'",$rgb->slice('x',[$_,,0])->list);
+use warnings;
+			      if($_ == $grey->dim(0)-1   or   $this_str ne $last_str) {
+                                  push(@s,sprintf(" %d %s",$_,$this_str));
+				  $last_str = $this_str;
+			      }
 			  } (0..$grey->dim(0)-1);
 
 			  $s .= "set palette defined ( ".join(",", @s)." )\n";
