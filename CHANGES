@@ -1,3 +1,7 @@
+2.011_04 - development release toward 2.012
+ - be quiet in the case that the gnuplot died before destruction
+   ( makes everything quieter for forked processes )
+
 2.011_03 - development release toward 2.012
  - anti-aliasing for JPEG and GIF terminals
  

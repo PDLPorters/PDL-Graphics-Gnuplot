@@ -2405,7 +2405,6 @@ FOO
 sub DESTROY
 {
   my $this = shift;
-
   _killGnuplot($this);
 }
 
@@ -5005,7 +5004,7 @@ use warnings;
                                   push(@s,sprintf(" %d %s",$_,$this_str));
 				  $last_str = $this_str;
 			      }
-			  } (0..$grey->dim(0)-1);
+			  }
 
 			  $s .= "set palette defined ( ".join(",", @s)." )\n";
 			  $s;
@@ -7577,8 +7576,6 @@ sub _killGnuplot {
     my $suffix = shift;
     my $kill_it_dead = shift;
 
-    local($SIG{PIPE}) = sub { };
-
     unless(defined($suffix)) {
 	for my $k(keys %$this) {
 	    next unless $k =~ m/^pid\-(.*)$/;
@@ -7596,15 +7593,17 @@ sub _killGnuplot {
 	if($kill_it_dead) {
 	    # Just want it dead.
 	    kill 'KILL', $goner;
-
 	    $z = waitpid($goner,0);
 
 	} else {
-	    # Try Mr. Nice Guy first.
+	    ### Use HUP as the Mr. Nice Guy solution.  
+	    ### This is to avoid a problem of error message jabbering in
+	    ### perl processes that use fork() and IPC. 
+	    #_printGnuplotPipe($this,$suffix,"exit\n");
 
-	    _printGnuplotPipe($this,$suffix,"exit\n");
+	    kill 'HUP', $goner;
 
-	    # Give it 1 second to quit, then interrupt it again.
+	    # Give it 2 seconds to quit, then interrupt it again.
 	    # If that doesn't work kill it dead.
 	    my $countdown = 2;
 
@@ -7612,7 +7611,7 @@ sub _killGnuplot {
 	    local($SIG{INT}) = sub {
 		kill 'KILL', $goner;
 		alarm(0);
-		$countdown = -1;
+		$countdown = -5;
 	    };
 
 	    local($SIG{ALRM}) = sub {
@@ -7623,11 +7622,10 @@ sub _killGnuplot {
 		if($countdown > 0) {
 		    alarm(1);
 		} else {
-		    kill 'KILL', $goner unless($countdown > 0);
+		    kill 'KILL', $goner unless($countdown > 0 or $countdown < -4);
 		    alarm(0);
 		}
 	    };
-
 	    alarm(1);
 
 	    $z = waitpid($goner, 0);
