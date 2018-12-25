@@ -2971,8 +2971,8 @@ sub plot
 		    next;
 		}
 	    } else {
-		$cxr = [$chunks->[$i]->{data}->[0]->minmax];
-		$cyr = [$chunks->[$i]->{data}->[1]->minmax];
+		$cxr = [ PDL::topdl('PDL',$chunks->[$i]->{data}->[0])->minmax ];
+		$cyr = [ PDL::topdl('PDL',$chunks->[$i]->{data}->[1])->minmax ];
 	    }
 
 	    my $xax = $axes_by_chunkno[$i]->[0];
@@ -3530,7 +3530,19 @@ POS
 		# dashtype doesn't have to have a defined value it only has to exist in the curve options hash,
 		# to trigger emission of a dashtype.
 		$chunk{options}{dashtype} = undef unless(defined($chunk{options}{dashtype}));
-		  
+
+		## Even worse -- some plot types (notably "with labels") barf in newer gnuplots
+		## if you feed them a "dt".  So don't send a dashtype to those.
+		my $with = ( 
+		    ( ref($chunk{options}{'with'}) =~ m/ARRAY/ ) ? 
+		    $chunk{options}{'with'}->[0] : 
+		    $chunk{options}{'with'}
+		    ) // 
+		    $this->{options}->{'globalwith'} //
+		    "";
+		if($with =~ m/^label/) {
+		    $chunk{options}{dashtype} = "INVALID";
+		}
 	    };
 	    if($@){
 		unless(@chunks){
@@ -4951,7 +4963,9 @@ our $pOptionsTable =
 			  my $rgb = $grey->apply($t);
 
 			  my @s = map {
-			      sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list)
+			      no warnings;			      
+			      sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list);
+			      use warnings;
 			  } (0..$grey->dim(0)-1);
 
 			  $s .= "set palette defined ( ".join(",", @s)." )\n";
@@ -6196,9 +6210,13 @@ our $_OptionEmitters = {
     },
 	
 
-    #### The dashtype curve option
+	#### The dashtype curve option
+	#### Supports an INVALID value for "with" types that have to suppress dt emission.
+	#### This is because some "withs" (e.g. "lines") must have dt specifiers for the correct behavior,
+	#### but other "withs" (e.g. "labels") barf if dt is specified.
     'dt' => sub { my($k,$v,$h, $w) = @_;
 		  return "" unless($gp_version >= 5.0);
+		  return "" if(($v//"") eq 'INVALID');
 		  unless($v) {
 		      if($w->{options}->{terminal} =~ m/dashed/) {
 			  $w->{last_dashtype} = 0 unless(defined($w->{last_dashtype}));
