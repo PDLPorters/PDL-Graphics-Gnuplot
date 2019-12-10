@@ -1,3 +1,6 @@
+2.012 (released 2-Dec-2019)
+ - Stabilization release incorporates many smaller bug fixes
+
 2.011_04 - development release toward 2.012
  - be quiet in the case that the gnuplot died before destruction
    ( makes everything quieter for forked processes )
