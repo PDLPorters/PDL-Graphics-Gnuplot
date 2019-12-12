@@ -4962,13 +4962,14 @@ our $pOptionsTable =
 			  my $grey = xvals(2049)/2048;
 			  my $rgb = $grey->apply($t);
 
-			  my @s = map {
+			  {
 			      no warnings;			      
-			      sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list);
-			      use warnings;
-			  } (0..$grey->dim(0)-1);
+			      my @s = map {
+				  sprintf(" %d '#%2.2X%2.2X%2.2X'", $_, $rgb->slice('x',[$_,,0])->list);
+			      } (0..$grey->dim(0)-1);
 
-			  $s .= "set palette defined ( ".join(",", @s)." )\n";
+			      $s .= "set palette defined ( ".join(",", @s)." )\n";
+			  }
 			  $s;
 		    },
 		    ['clut'],undef,
