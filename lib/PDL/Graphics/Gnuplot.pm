@@ -7949,7 +7949,9 @@ EOM
 	# Find, report, and strip warnings. This is complicated by the fact
 	# that some warnings come with a line specifier and others don't.
 
-	WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m ) {
+      WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m or
+		   $fromerr =~ m/^Populating font family aliases took/m     # CED - Quicktime on MacOS Catalina throws a warning marked as an error.  Stupid.
+	    ) {
 	  if($2){
 	      # it's a warning with a line specifier. Break off two more lines before it.
 	      last WARN unless($fromerr =~ s/^((gnu|multi)plot\>.*\n\s*\^\s*\n\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
