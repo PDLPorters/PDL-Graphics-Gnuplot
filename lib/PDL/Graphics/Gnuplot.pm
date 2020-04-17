@@ -7971,7 +7971,9 @@ EOM
 	    $fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
 	} else {
 	    # Hack to avoid spurious the pdfcairo errors in MacOS 10.5 - strip out obsolete-function errors.
-	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//s ) {
+	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//s or
+		   $fromerr =~ s/^.*Populating font family aliases took.*cost\.//s
+		) {
 		# do nothing
 	    }
 	}
