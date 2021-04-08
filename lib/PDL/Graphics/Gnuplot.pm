@@ -7492,7 +7492,7 @@ EOM
 # to get them in sync.
 	if( $s =~ m/Version ((\d+)\.(\d+)(\.(\d+))?) (patchlevel (\w+))?/i ) {
 	    $gp_version = $1;
-            $gp_numversion = $2 + 0.001*$3 + 0.000001*$5;
+            $gp_numversion = $2 + 0.001*$3 + 0.000001*($5||0);
 	    $gp_pl = $7;
 	    $this->{gp_version} = $1;
             $this->{gp_numversion} = $gp_numversion;

@@ -1,4 +1,5 @@
 - Add workaround to shut up some font engines complaining about rendering time
+- allow 3-part Gnuplot version - thanks @akhuettel
 
 2.013 2019-12-12
 - fix for pre-5.20
