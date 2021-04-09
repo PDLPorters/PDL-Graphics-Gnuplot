@@ -1,3 +1,5 @@
+- loosen title-setting test as Gnuplot 5.4 puts on different line
+
 2.014 2021-04-08
 - Add workaround to shut up some font engines complaining about rendering time
 - allow 3-part Gnuplot version - thanks @akhuettel
