@@ -7522,6 +7522,7 @@ WARNING: I couldn\'t parse a version number from gnuplot\'s output.  I\'m
 EOM
 ;
 	    $this->{early_gnuplot} = 1;
+	    $PDL::Graphics::Gnuplot::raw_output = $s;
 	    return $this;
 	}
 

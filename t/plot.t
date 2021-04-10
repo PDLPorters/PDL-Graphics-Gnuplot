@@ -11,10 +11,10 @@ use PDL;
 $ENV{GNUPLOT_DEPRECATED} = 1;   # shut up deprecation warnings
 eval { $w=gpwin() };
 
-ok( (!$@ and defined($w) and ref($w) =~m/PDL::Graphics::Gnuplot/), 
-    "Constructor created a plotting object" );
+is $@, '';
+isa_ok($w, 'PDL::Graphics::Gnuplot', "Constructor created a plotting object");
 
-ok(length($PDL::Graphics::Gnuplot::gp_version), "Extracted a version string from gnuplot");
+ok(length($PDL::Graphics::Gnuplot::gp_version), "Extracted a version string from gnuplot") or diag "Raw output: '$PDL::Graphics::Gnuplot::raw_output'";
 
 diag( "\nP::G::G v$PDL::Graphics::Gnuplot::VERSION, gnuplot v$PDL::Graphics::Gnuplot::gp_version, Perl v$], $^X on $^O #\n" );
 
