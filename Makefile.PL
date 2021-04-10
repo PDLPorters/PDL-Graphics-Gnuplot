@@ -70,11 +70,10 @@ WriteMakefile(
     ),
     MIN_PERL_VERSION          => 5.006,
     CONFIGURE_REQUIRES => {
-        'ExtUtils::MakeMaker' => 6.48,
+        'ExtUtils::MakeMaker' => '6.64', # TEST_REQUIRES
     },
     PREREQ_PM => { 
             'Alien::Gnuplot'      => 0,
-	    'Test::More'          => 0,
 	    'PDL'                 => 0,
 	    'PDL::Transform::Color' => 0,
 	    'IPC::Run'            => 0,
@@ -84,6 +83,9 @@ WriteMakefile(
 	    'IO::Select'          => 0,
 	    'Time::HiRes'         => 0,
 	    'Safe::Isa'           => 0
+    },
+    TEST_REQUIRES => {
+        'Test::More'          => '0.88',
     },
     META_ADD => {
         resources => {

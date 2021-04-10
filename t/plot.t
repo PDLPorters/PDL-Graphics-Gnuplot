@@ -1,6 +1,6 @@
 #!perl
 
-use Test::More tests => 185;
+use Test::More;
 
 BEGIN {
     use_ok( 'PDL::Graphics::Gnuplot', qw(plot) ) || print "Bail out!\n";
@@ -1073,8 +1073,5 @@ unlink($testoutput) or warn "\$!: $!";
      unlink "Plot-1.txt";
      unlink "Plot-2.txt";
 }
-    
 
-
-
-    
+done_testing;
