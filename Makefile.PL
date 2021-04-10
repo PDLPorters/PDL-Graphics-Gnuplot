@@ -1,21 +1,6 @@
 use strict;
 use warnings;
 use ExtUtils::MakeMaker 6.48;
-use 5.006;
-
-sub parseversion
-{
-    my $version;
-    open GP, 'lib/PDL/Graphics/Gnuplot.pm' or die "Couldn't open Gnuplot.pm";
-    for(<GP>){
-        if(m/our \$VERSION = \'([\d\.\_]+b?)\'/) {$version = $1;}
-        last if($version);
-    }
-    die "Couldn't parse version from Gnuplot.pm" unless($version);
-    close GP;
-    return $version;
-}
-
 
 # make sure we can run gnuplot before continuing
 {
@@ -62,7 +47,7 @@ FOO
 WriteMakefile(
     NAME                      => 'PDL::Graphics::Gnuplot',
     AUTHOR                    => 'Craig DeForest <craig@deforest.org>, Dima Kogan <dima@secretsauce.net>',
-    VERSION                   => parseversion(),
+    VERSION_FROM              => 'lib/PDL/Graphics/Gnuplot.pm',
     ABSTRACT_FROM             => 'lib/PDL/Graphics/Gnuplot.pm',
     ( $ExtUtils::MakeMaker::VERSION >= 6.3002
         ? ('LICENSE'          => 'perl')
