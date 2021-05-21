@@ -4727,6 +4727,37 @@ no PDL::NiceSlice;
 
 }
 
+=pod
+
+=head2 pause_until_close
+
+=for usage
+
+  $w->pause_until_close;
+
+=for ref
+
+Wait until the active interactive plot window is closed (e.g., by clicking the
+close button, hitting the close key-binding which defaults to C<q>).
+
+C<pause_until_close> blocks execution until the close event.
+
+=cut
+
+sub pause_until_close {
+    my $this = shift;
+
+    barf "pause_until_close: $this->{terminal} terminal doesn't support mousing\n"
+        unless($this->{mouse});
+
+    _printGnuplotPipe($this, 'main', <<'EOC');
+pause mouse close
+EOC
+    _checkpoint($this, "main", {notimeout=>1});
+
+    return;
+}
+
 ######################################################################
 ######################################################################
 ######################################################################
