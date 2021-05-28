@@ -1,5 +1,6 @@
 CHANGES
 demo.pl
+examples/pause-until-close.pl
 lib/PDL/Graphics/Gnuplot.pm
 LICENSE
 Makefile.PL
