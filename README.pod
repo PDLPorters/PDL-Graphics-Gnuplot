@@ -2072,6 +2072,10 @@ scaled down using C<PDL::Transform>.  Fixed font sized, line widths,
 and point sizes are autoscaled -- but you must handle variable ones
 explicitly.
 
+Antialiasing is done in the gamma=2.2 approximation, to match the sRGB
+coding that most pixel image files use.  (See PDL::Transform::Color
+for more information).
+
 =back
 
 For a brief description of the terminal options that any one device supports,
@@ -2494,6 +2498,22 @@ The routine will call markup after each click.
 =back
 
 =back
+
+=cut
+=pod
+
+=head2 pause_until_close
+
+=for usage
+
+  $w->pause_until_close;
+
+=for ref
+
+Wait until the active interactive plot window is closed (e.g., by clicking the
+close button, hitting the close key-binding which defaults to C<q>).
+
+C<pause_until_close> blocks execution until the close event.
 
 =cut
 =pod
