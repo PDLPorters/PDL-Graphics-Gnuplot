@@ -74,9 +74,9 @@ WriteMakefile(
     },
     META_ADD => {
         resources => {
-            homepage          => 'http://github.com/drzowie/PDL-Graphics-Gnuplot',
-            repository        => 'git://github.com/drzowie/PDL-Graphics-Gnuplot.git',
-            bugtracker        => 'http://rt.cpan.org/Public/Dist/Display.html?Name=PDL-Graphics-Gnuplot'
+            homepage          => 'http://github.com/PDLPorters/PDL-Graphics-Gnuplot',
+            repository        => 'git://github.com/PDLPorters/PDL-Graphics-Gnuplot.git',
+            bugtracker        => 'http://github.com/PDLPorters/PDL-Graphics-Gnuplot/issues'
         }
     },  
 
@@ -91,7 +91,7 @@ my $POD_header = <<EOF;
 
 This is a Gnuplot-based plotter for PDL. This repository stores the history for
 the PDL::Graphics::Gnuplot module on CPAN. Install the module via CPAN. CPAN
-page at L<http://search.cpan.org/~zowie/PDL-Graphics-Gnuplot/lib/PDL/Graphics/Gnuplot.pm>.
+page at L<http://metacpan.org/pod/PDL::Graphics::Gnuplot>.
 
 =cut
 
