@@ -7651,12 +7651,7 @@ sub _killGnuplot {
 	    $z = waitpid($goner,0);
 
 	} else {
-	    ### Use HUP as the Mr. Nice Guy solution.  
-	    ### This is to avoid a problem of error message jabbering in
-	    ### perl processes that use fork() and IPC. 
-	    #_printGnuplotPipe($this,$suffix,"exit\n");
-
-	    kill 'HUP', $goner;
+	    _printGnuplotPipe($this,$suffix,"exit\n");
 
 	    # Give it 2 seconds to quit, then interrupt it again.
 	    # If that doesn't work kill it dead.

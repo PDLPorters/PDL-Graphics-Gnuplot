@@ -8,3 +8,4 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 README.pod
 t/plot.t
+t/pdfcairo-output.t
