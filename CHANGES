@@ -1,3 +1,6 @@
+«NEXT»
+- Fix for pdfcairo terminal not writing to file.
+
 2.017 2021-05-28
 - Add pause_until_close method.
 
