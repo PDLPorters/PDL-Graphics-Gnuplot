@@ -50,7 +50,7 @@ ok($PDL::Graphics::Gnuplot::gp_version, "gp_version is nonzero after first use o
 ##############################
 #
 {
-  # purposely fail.  This one should fail by sensing that "bogus" is bogus, *before* sending 
+  # purposely fail.  This one should fail by sensing that "bogus" is bogus, *before* sending
   # anything to Gnuplot.
 
   eval{ plot ( {terminal => 'dumb 79 24', output => $testoutput, silent=>1}, with => 'bogus', $x); };
@@ -65,7 +65,7 @@ ok($PDL::Graphics::Gnuplot::gp_version, "gp_version is nonzero after first use o
 }
 
 ##############################
-# 
+#
 my $w;
 
 SKIP:{
@@ -94,17 +94,17 @@ ok(1, "destructor worked OK\n");
 
 # Some working variables
 $x = xvals(51);
-my $y = $x*$x; 
+my $y = $x*$x;
 
 do {
  # Object options passed into plot are transient
     $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
     $w->options(xr=>[0,30]);
-    ok( (defined($w->{options}->{xrange}) and  
+    ok( (defined($w->{options}->{xrange}) and
 	((ref $w->{options}->{xrange}) eq 'ARRAY') and
 	($w->{options}->{xrange}->[0] == 0) and
 	($w->{options}->{xrange}->[1] == 30))
-	, 
+	,
 	"xr sets xrange option properly in options call" );
     $w->plot($x);
 
@@ -125,8 +125,8 @@ do {
     $s =~ s/.*\s//; # trim everything before the final X axis label
     ok( $s == 5, "inline xrange option overrides stored xrange option (and dumb terminal behaves as expected)");
 
-    ok( ((defined($w->{options}->{xrange}) and 
-	(ref $w->{options}->{xrange}) eq 'ARRAY' and 
+    ok( ((defined($w->{options}->{xrange}) and
+	(ref $w->{options}->{xrange}) eq 'ARRAY' and
 	$w->{options}->{xrange}->[0] == 0 and
 	$w->{options}->{xrange}->[1] == 30))
 	,
@@ -153,14 +153,14 @@ unlink($testoutput) or warn "\$!: $!";
 #
 # Normally we issue a "reset" before sending options for each plot, to ensure that
 # gnuplot is in a known state -- but in multiplots we can't do that or we'd break the
-# multiplot.  We attempt to eradicate leftover state in gnuplot, so we have to test 
+# multiplot.  We attempt to eradicate leftover state in gnuplot, so we have to test
 # that.  The main thing is that labels should be cleared.
 {
     $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
-    
+
     $w->multiplot(layout=>[1,2]);
     $w->line(xvals(5)**2,{xlabel=>"FOO BAR BAZ"});
-    $w->line(xvals(5)**2); # no xlabel -- should not print one 
+    $w->line(xvals(5)**2); # no xlabel -- should not print one
     $w->end_multi;
     undef $w;
     open FOO,"<$testoutput";
@@ -173,7 +173,7 @@ unlink($testoutput) or warn "\$!: $!";
 eval {$w = gpwin('dumb', size=>[79,24,'ch'],output=>$testoutput);};
 ok((!$@ && !!$w),"opened window for ascii transfer tests");
 
-eval { $w->options( binary=>0 ); }; 
+eval { $w->options( binary=>0 ); };
 ok( !$@, "set binary mode to 0" );
 
 eval { $w->plot( xvals(5), xvals(5)**2 ); };
@@ -333,7 +333,7 @@ eval { $w->plot(ps=>'variable',with=>'points',xvals(10),xvals(10),xvals(10),xval
 ok($@ =~ m/Found 4 PDLs for 2D/, "2-D plot with one variable parameter rejects four PDLs");
 
 SKIP: {
-    skip "Skipping unsupported mode for deprecated earlier gnuplot",1  
+    skip "Skipping unsupported mode for deprecated earlier gnuplot",1
 	if($PDL::Graphics::Gnuplot::gp_version < 4.4);
     eval { $w->plot3d(xvals(10,10))};
     is($@, '', "3-D plot accepts one PDL if it is an image");
@@ -355,7 +355,7 @@ eval { $w->plot3d(with=>'points',ps=>'variable',palette=>1,xvals(10),xvals(10),x
 ok($@ =~ m/Found 4 PDLs for 3D/,"3-D plot rejects four PDLs with two variable elements");
 
 SKIP: {
-    skip "Skipping unsupported mode for deprecated earlier gnuplot",1  
+    skip "Skipping unsupported mode for deprecated earlier gnuplot",1
 	if($PDL::Graphics::Gnuplot::gp_version < 4.4);
     eval { $w->plot3d(with=>'points',ps=>'variable',palette=>1,xvals(10),xvals(10),xvals(10),xvals(10),xvals(10));};
     is($@, '', "3-D plot accepts five PDLs with one variable element");
@@ -422,9 +422,9 @@ sub get_axis_testoutput {
     my $n = shift;
     open FOO,"<$file";
     my @lines = <FOO>;
-    
+
     chomp for @lines;
-    
+
     for my $i(0..$#lines) {
 	last if( $lines[$#lines] =~ m/[^\s]/ );
 	pop @lines;
@@ -503,7 +503,7 @@ unlink($testoutput) or warn "\$!: $!";
 
 
 ##############################
-# Check default-location plotting 
+# Check default-location plotting
 if( -e 'Plot-1.txt' ) {
     unlink 'Plot-1.txt' or warn "Can't delete Plot-1.txt: $!";
 }
@@ -554,14 +554,14 @@ SKIP: {
     is($@, '', "created a wxt or x11 plot object");
 
     ok((ref($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}) eq 'HASH'), "Terminal is a known type");
-    
+
     ok($PDL::Graphics::Gnuplot::termTab->{$w->{terminal}}->{disp}, "Default terminal is a display type");
     print STDERR "\n\nwindow is type ".$w->{terminal}."\n\n";
     $x = sequence(101)-50;
 
     eval { $w->plot($x**2); };
     is($@, '', "plot a parabola to a the display window");
-    
+
     print STDERR "\n\nIs there a display window and does it show a parabola? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "parabola looks OK");
@@ -580,8 +580,8 @@ SKIP: {
 	    $a = <STDIN>;
 	    ok($a !~ m/n/i, "parabola can be scrolled and zoomed");
 	}
-	
-	
+
+
     } else {
 	print STDERR "\n\nThe $w->{terminal} gnuplot terminal has no built-in metrics, skipping that test.\n\n";
 	ok(1,"skipping metrics test");
@@ -615,19 +615,19 @@ SKIP: {
 
     $xy = zeros(21,21)->ndcoords - pdl(10,10);
     $z = inner($xy, $xy);
-    eval {     $w->reset; $w->plot({title  => 'Heat map', 
+    eval {     $w->reset; $w->plot({title  => 'Heat map',
 				    '3d' => 1,
 				    view=>[50,30,1],
 				    zrange=>[-1,1]
 				   },
-				   with => 'image', $z*2); 
+				   with => 'image', $z*2);
     };
     is($@, '', "3-d plot didn't crash");
 
     print STDERR "\n\nDo you see a purple-yellow colormap image of a radial target, in 3-D? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "3-D heat map plot works OK");
-    
+
     print STDERR "\n\nTry to rotate, pan, and zoom the 3-D image.  Work OK? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "Interact with 3-D image");
@@ -650,7 +650,7 @@ SKIP: {
     print STDERR "\n\nSee the labels with words 'one','two','three','four', and 'five'? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "labels plot is OK");
-    
+
     $x = xvals(51)-25; $y = $x**2;
     eval { $w->reset; $w->plot({title=>"Parabolic fit"},
 		 with=>"yerrorbars", legend=>"data", $x, $y+(random($y)-0.5)*2*$y/20, pdl($y/20),
@@ -673,10 +673,10 @@ SKIP: {
 	    legend => 'spiral 2',
 	    -cos($theta), -sin($theta), $z, 0.5 + abs(cos($theta)*2),
 	    sin($theta/3)
-	);};	
+	);};
 
     is($@, '', "double helix plot worked");
-    
+
     print STDERR "\n\nSee a double helix plot with variable point sizes and variable color? (Y/n)";
     $a = <STDIN>;
     ok($a !~ m/n/i, "double helix plot is OK");
@@ -686,15 +686,15 @@ SKIP: {
     print STDERR <<"FOO";
 
 
-You should see a 9x9 rvals image, scaled from -0.5 to 9.0 in X and -0.5 to 
-8.5 in y.  There should be a blank vertical bar 1/2 unit wide at the right 
+You should see a 9x9 rvals image, scaled from -0.5 to 9.0 in X and -0.5 to
+8.5 in y.  There should be a blank vertical bar 1/2 unit wide at the right
 side of the image.  The other sides of the plot should be flush.  Ok? (Y/n)
 FOO
     $a =<STDIN>;
 
     ok($a !~ m/n/i, "image initial ranging plot is OK");
-    
-    eval { $w->plot(with=>'image',rvals(9,9), 
+
+    eval { $w->plot(with=>'image',rvals(9,9),
 		    with=>'image', xvals(9,9)+7, yvals(9,9)+4, rvals(9,9),
 		    with=>'line', xvals(20)->sqrt
 	       );
@@ -704,19 +704,19 @@ FOO
 
 
 You should see two overlapping rvals images, with lower left pixels centered
-on (0,0) and (7,4), respectively, and a square root curve superimposed.  
-The y range should be flush with the top and bottom of the two images.  The 
-x range should be set by the image at left and the curve at right, running 
+on (0,0) and (7,4), respectively, and a square root curve superimposed.
+The y range should be flush with the top and bottom of the two images.  The
+x range should be set by the image at left and the curve at right, running
 from -0.5 to 20.0.  The curve should end at 19.0.  Ok? (Y/n)
 FOO
     $a = <STDIN>;
     ok($a !~ m/n/i, "image/line ranging plot is OK");
 
     if($PDL::Bad::Status) {
-	eval { 
+	eval {
 	    $w = gpwin();
 	    $w->multiplot(layout=>[2,1]);
-	    $a = xvals(11)**2; 
+	    $a = xvals(11)**2;
 	    $a->slice("(5)") .= asin(pdl(1.1));
 	    $b = (xvals(11)**2)->setbadif(xvals(11)==5);
 	    print "a=$a\n";
@@ -730,7 +730,7 @@ FOO
 	is($@, '', "bad value plot succeeded");
 	print STDERR <<"FOO";
 
-The two panels should have the same plot with different titles:  Y=X**2, 
+The two panels should have the same plot with different titles:  Y=X**2,
 with a segment missing from X=4 to X=6.  OK?
 FOO
 $a = <STDIN>;
@@ -754,10 +754,10 @@ $a = <STDIN>;
 	is($@, '', "Mouse test read a click");
 
 	# Try with a new window
-	$w=gpwin($w->{terminal}); 
+	$w=gpwin($w->{terminal});
 	eval { print $w->read_mouse(); };
 	like $@, qr/no existing/,"Trying to read the mouse input on an empty window doesn't work";
-	
+
     } else {
 	ok(1,"Skipping x11 plot");
 	ok(1,"Skipping click test for non-x11 device");
@@ -814,7 +814,7 @@ open FOO,"<$testoutput";
 close FOO;
 
 SKIP:{
-    skip "Skipping title tests due to obsolete version of gnuplot (BSD uses 4.2, which fails these)",3 
+    skip "Skipping title tests due to obsolete version of gnuplot (BSD uses 4.2, which fails these)",3
 	if($w->{gp_version} < $PDL::Graphics::Gnuplot::gnuplot_req_v);
 
     like("@lines[0..3]", qr/This is a plot title/, "Plot title gets placed on plot")
@@ -822,7 +822,7 @@ SKIP:{
 
     eval { $w->plot({title=>""},with=>'points',xvals(5));};
     is($@, '', "Non-title plotting works, no error");
-    
+
     open FOO,"<$testoutput";
     @lines = <FOO>;
     close FOO;
@@ -845,13 +845,13 @@ SKIP:{
     open FOO,"<$testoutput";
     $lines = join("",<FOO>);
     close FOO;
-    
+
     eval { $w->plot({trid=>1,title=>"",yr=>[-1,1]},with=>'lines',cdim=>1,sequence(3,3));};
     is($@, '', "3-d threaded plot with single column succeeded");
     open FOO,"<$testoutput";
     $lines2 = join("",<FOO>);
     close FOO;
-    
+
     ok( $lines2 ne $lines, "the two 3-D plots differ");
 
     if( $w->{gp_version} < 5.0 ) {
@@ -885,7 +885,7 @@ $w = gpwin();
 eval { $w->options(xrange=>pdl(1,2)) };
 is($@, '', "xrange accepts a PDL option");
 
-ok( (ref($w->{options}->{xrange}) eq 'ARRAY'   and 
+ok( (ref($w->{options}->{xrange}) eq 'ARRAY'   and
     $w->{options}->{xrange}->[0] == 1         and
     $w->{options}->{xrange}->[1] == 2
      ),
@@ -897,8 +897,8 @@ ok($@, "xrange rejects a PDL with more than 2 elements");
 eval {$w->options(xrange=>[21]);};
 is($@, '', "xrange accepts a single list element");
 
-ok( (  ref($w->{options}->{xrange}) eq 'ARRAY'   and 
-       $w->{options}->{xrange}->[0] == 21        and 
+ok( (  ref($w->{options}->{xrange}) eq 'ARRAY'   and
+       $w->{options}->{xrange}->[0] == 21        and
        !defined($w->{options}->{xrange}->[1])
     ), "xrange parses single list element correctly");
 
@@ -1009,7 +1009,7 @@ bless($a,'MyPackage');
 eval { $w->plot( $a ); };
 is $@, '', "subclass of PDL plots OK";
 
-# Test terminal defaulting 
+# Test terminal defaulting
 eval { $w=PDL::Graphics::Gnuplot::new(size=>[9,9]); undef($w);};
 is $@, '', "default terminal is selected OK";
 
@@ -1025,7 +1025,7 @@ unlink($testoutput) or warn "\$!: $!";
 	 print STDERR "\n***********\nSkipping default-plot-output tests:  files 'Plot-1.txt' and/or 'Plot-2.txt' exist.\n***********\n";
 	 skip "Plot-1.txt and/or Plot-2.txt exist, can't check default plotting", 4;
      }
-	 
+
      $w=gpwin(dumb);
      eval { $w->line(xvals(20)**3); };
      ok( !$@, "default-output plot succeeded" );
