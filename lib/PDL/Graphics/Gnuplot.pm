@@ -2479,7 +2479,7 @@ Called with no arguments, C<restart> applies to the global plot object.
 
 =cut
 
-# reset - tops and restarts the underlying gnuplot process for an object
+# reset - stops and restarts the underlying gnuplot process for an object
 *grestart = \&restart;
 sub restart {
     my $this = _obj_or_global(\@_);
