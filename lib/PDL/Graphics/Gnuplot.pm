@@ -7211,35 +7211,35 @@ our $termTabSource = {
 $termTab = {};
 
 for my $k(keys %$termTabSource) {
-    next unless(ref($termTabSource->{$k}));   # names aren't supported -- eliminate
+    next unless(ref(my $v = $termTabSource->{$k}));   # names aren't supported -- eliminate
     my $terminalOpt = {};   #this will hold the _parseOptHash control structure we generate
     my $i = 1;              #this is a sort order counter
 
-    for my $n(@{$termTabSource->{$k}->{opt}}) {
+    for my $n(@{$v->{opt}}) {
 	my $name = $n;
 	my $line;
 	if(ref $name) {
 	    $name = $n->[0];
-	    $line = [@{$n}[1..3]];
+	    $line = [@$n[1..3]];
 	} else {
 	    $line = $termTab_types->{$name}
 	       or die "Bug in parse table build! ('$name' inside terminal '$k')";
 	}
-	$terminalOpt->{$name} = [ $line->[0], $line->[1], undef, $i++, $line->[2]];
+	$terminalOpt->{$name} = [ @$line[0, 1], undef, $i++, $line->[2]];
     }
     $terminalOpt->{"wait"} = [ 's' , sub { return "" }, undef, $i++, "wait time before throwing an error (default 5s)" ];
-    my $desc = $termTabSource->{$k}->{desc};
-    $desc =~ s/\%u/$termTabSource->{$k}->{unit}/;
+    my $desc = $v->{desc};
+    $desc =~ s/\%u/$v->{unit}/;
     $termTab->{$k} = { desc => $desc,
-		       unit => $termTabSource->{$k}->{unit},
-		       mouse => _def( $termTabSource->{$k}->{mouse}, 0),
-		       disp  => _def( $termTabSource->{$k}->{disp},  0),
-		       int   => _def( $termTabSource->{$k}->{int},   0),
+		       unit => $v->{unit},
+		       mouse => _def( $v->{mouse}, 0),
+		       disp  => _def( $v->{disp},  0),
+		       int   => _def( $v->{int},   0),
 		       opt  => [ $terminalOpt,
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
 			   ],
-		       default_output=> $termTabSource->{$k} ->{default_output}
+		       default_output=> $v->{default_output}
                      };
 }
 
