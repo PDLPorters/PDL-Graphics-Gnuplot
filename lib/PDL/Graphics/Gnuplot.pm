@@ -4354,7 +4354,6 @@ sub multiplot {
 
 sub end_multi {
     my $this = _obj_or_global(\@_);
-
     unless($this->{options}->{multiplot}) {
 	barf("end_multi: you can't, you're not in multiplot mode\n");
     }
@@ -4366,7 +4365,6 @@ sub end_multi {
 	    barf("Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage");
 	}
     }
-
     _printGnuplotPipe($this, "main", "unset multiplot\n");
     $checkpointMessage = _checkpoint($this, "main");
     if($checkpointMessage) {
@@ -4377,10 +4375,8 @@ sub end_multi {
 	}
     }
     $this->{options}->{multiplot} = 0;
-    $this->close;
+    $this->close if !$termTab->{$this->{terminal}}{disp};
 }
-
-
 
 ######################################################################
 ##
