@@ -30,8 +30,8 @@ jobs:
             os: ubuntu-latest
             release-test: true
             coverage: true
-          #- perl-version: '5.30'
-          #  os: windows-latest
+          - perl-version: '5.30'
+            os: windows-latest
           - perl-version: '5.30'
             os: macos-latest
     steps:
