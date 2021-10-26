@@ -44,7 +44,6 @@ jobs:
       - name: Install Gnuplot
         uses: PDLPorters/devops/github-actions/install-dep-gnuplot@master
       - name: Install PDL dependencies
-        if: matrix.os == 'ubuntu-latest'
         uses: PDLPorters/devops/github-actions/install-dep-pdl-dep@master
       - name: 'ci-dist: target-all'
         uses: PDLPorters/devops/github-actions/ci-dist@master
