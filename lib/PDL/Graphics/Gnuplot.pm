@@ -1999,6 +1999,7 @@ use IPC::Open3;
 use IPC::Run;
 use IO::Select;
 use Symbol qw(gensym);
+use File::Temp ();
 use Time::HiRes qw(gettimeofday tv_interval);
 use Safe::Isa;
 use Carp;
@@ -7465,6 +7466,12 @@ sub _startGnuplot
     my $in  = gensym();
     my $err = gensym();
 
+    my $XDG_RUNTIME_DIR_global = $ENV{XDG_RUNTIME_DIR};
+    local $ENV{XDG_RUNTIME_DIR} = $XDG_RUNTIME_DIR_global;
+    if( exists $ENV{DISPLAY} && ! $XDG_RUNTIME_DIR_global ) {
+        $this->{"_XDG_RUNTIME_DIR-tempdir-$suffix"} = File::Temp->newdir();
+        $ENV{XDG_RUNTIME_DIR} = '' . $this->{"_XDG_RUNTIME_DIR-tempdir-$suffix"};
+    }
     my $pid = open3($in,$err,$err, $Alien::Gnuplot::executable, @gnuplot_options);
 
     unless($pid) {
