@@ -7945,7 +7945,7 @@ sub _checkpoint {
 		barf <<"EOM";
 Hmmm, my $suffix Gnuplot process didn't respond for $delay seconds.
 I've kicked it with an interrupt signal, which should help with the
-next thing you try to do.  If you expect slow response fron gnuplot,
+next thing you try to do.  If you expect slow response from gnuplot,
 you can adjust the timeout with the "wait" terminal option.
 EOM
 	    }
