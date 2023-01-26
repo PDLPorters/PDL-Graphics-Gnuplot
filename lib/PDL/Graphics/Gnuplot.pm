@@ -4490,23 +4490,14 @@ EOC
 	}
     }
 
-
-    if(wantarray) {
-	return ($x,$y, ($ch>=32)?chr($ch):undef,
-		{
-		    'b'=>$b,
-		    'm'=>($sft?"S":"").($alt?"A":"").($ctl?"C":"")
-		}
-	    );
-    } else {
-	return {
+    my $bm = { b=>$b, m=>($sft?"S":"").($alt?"A":"").($ctl?"C":"") };
+    return wantarray ? ($x,$y, ($ch>=32)?chr($ch):undef, $bm) :
+	{
 	    'x' => $x,
 	    'y' => $y,
-            'b' => $b,
 	    'k' => ($ch<0) ? "" : ($ch > 32 && $ch != 127) ? chr($ch) : sprintf("#%3.3d",$ch),
-	    'm' => ($sft?"S":"").($alt?"A":"").($ctl?"C":"")
+            %$bm,
 	};
-    }
 }
 
 =pod
