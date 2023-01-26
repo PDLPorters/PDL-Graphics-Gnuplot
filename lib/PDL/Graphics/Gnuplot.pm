@@ -6110,7 +6110,7 @@ our $_OptionEmitters = {
     'qnm' => sub { my($k,$v,$h) = @_;
 		   return "" unless((defined($v) and !($h->{multiplot})));
 		   return "unset $k\n" unless(length($v));
-		   $v = quote_scape($v);
+		   $v = quote_escape($v);
 		   return "set $k \"$v\"\n";
                 },
 
