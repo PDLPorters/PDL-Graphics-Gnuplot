@@ -4878,12 +4878,10 @@ our $pOptionsTable =
                     '[pseudo] Antonym for "binary" (default is 0 for non-Microsoft platforms).'    ],
     'device'     => [ sub { my ($old, $new, $hash) = @_;
 			    barf "Can't set device while in multiplot mode!\n" if($hash->{multiplot});
-			    if( $new =~ m/^(.*)\/([^\/]*)$/ ) {
-				$hash->{terminal} = $2;
-				$hash->{output}   = $1 || undef;
-			    } else {
-				barf("Device option format: [<filename>]/<terminal-type>\n");
-			    }
+			    barf "Device option format: [<filename>]/<terminal-type>\n"
+				if $new !~ m/^(.*)\/([^\/]*)$/;
+			    $hash->{terminal} = $2;
+			    $hash->{output}   = $1 || undef;
 			    return undef;
 		      },
 		      sub { "" }, undef, undef,
@@ -4891,18 +4889,14 @@ our $pOptionsTable =
 
     'hardcopy'  => [ sub { my ($old, $new, $hash) = @_;
 			   barf "Can't set hardcopy while in multiplot mode!\n" if($hash->{multiplot});
-			   if( $new =~ m/\.([a-z]+)$/i) {
-			       my $suffix = lc $1;
-			       if($hardCopySuffixes->{$suffix}) {
-				   $hash->{terminal} = $hardCopySuffixes->{$suffix};
-				   $hash->{output} = $new;
-				   return undef;
-			       } else {
-				   die "hardcopy: couldn't identify file type from '$new'\n";
-			       }
-			   } else {
-			       die "hardcopy: need a file suffix to infer file type\n";
-			   }
+			   die "hardcopy: need a file suffix to infer file type\n"
+			       if $new !~ m/\.([a-z]+)$/i;
+			   my $suffix = lc $1;
+			   die "hardcopy: couldn't identify file type from '$new'\n"
+			       if !$hardCopySuffixes->{$suffix};
+			   $hash->{terminal} = $hardCopySuffixes->{$suffix};
+			   $hash->{output} = $new;
+			   return undef;
 		     }, sub {""},undef,undef,
 		     '[pseudo] Shorthand for device spec.: standard image formats inferred by suffix'    ],
 
