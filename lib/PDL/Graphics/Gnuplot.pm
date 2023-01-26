@@ -5059,20 +5059,16 @@ use warnings;
 		    '[pseudo] marker for the global plot object'    ],
 
     'justify'   => [sub { my($old,$new,$opt) = @_;
-			  if(!defined($new)){
-			      return undef;
-			  }
+			  return undef if !defined $new;
 			  if($new > 0) {
 			      $opt->{'size'} = ["ratio ".(-$new)];
 			      return undef;
-			  } elsif($new<0) {
-			      die "justify: positive value needed\n";
-			  } else {
-			      if(defined($opt->{'size'}) and $opt->{'size'}->[0] =~ m/ratio/) {
-				  $opt->{'size'} = undef;
-			      }
-			      return undef;
 			  }
+			  die "justify: positive value needed\n" if $new<0;
+			  if(defined($opt->{'size'}) and $opt->{'size'}->[0] =~ m/ratio/) {
+			      $opt->{'size'} = undef;
+			  }
+			  return undef;
 		    },
 		    sub { '' }, undef, undef,
 		    '[pseudo] Set aspect ratio (equivalent to: size=>["ratio",<r>])'    ],
@@ -5082,10 +5078,8 @@ use warnings;
 			      $opt->{'view'} = [] unless defined($opt->{'view'});
 			      @{$opt->{'view'}}[2..5] = ($new, $new, "equal", "xyz");
 			      return undef;
-                          } else {
-			      delete($opt->{'size'}) if(exists($opt->{'size'}));
-			      delete $opt->{'view'} if(exists($opt->{'view'}));
-			  }
+                          }
+			  delete @$opt{qw(size view)};
 		    },
                     sub { return '' }, undef, undef,
 		    '[pseudo] Set aspect ratio to square (equivalent to: size=["ratio",1])'    ],
