@@ -5708,15 +5708,11 @@ sub _parseOptHash {
 	    } elsif (  0+@$parser == 1 )  {
 		# A list ref with a single element - it's a regexp to match
 		my $a = $parser->[0];
-		my $p = sub {
+		$parser = sub {
 		    my ($old, $newparam, $hash) = @_;
-		    if($newparam =~ m/$a/) {
-			return $newparam;
-		    } else {
-			barf("Unknown field $newparam (must match m/$a/)\n");
-		    }
+		    barf("Unknown field $newparam (must match m/$a/)\n") if $newparam !~ m/$a/;
+		    return $newparam;
 		};
-		$parser = $p;
 	    } else {
 		# A list ref with multiple elements - they are enums.
 		# Make a temporary abbrev list for 'em.
