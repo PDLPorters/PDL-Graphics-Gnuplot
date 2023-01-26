@@ -4703,10 +4703,9 @@ EOMSG
 
     return $poly;
 
-use PDL::NiceSlice;
     sub __del { my($w, $c, $p) = @_;
 	   return unless( ($$p)->$_isa('PDL')  and  (($$p)->dim(1)>0) );
-	   $$p = $$p->(:,xvals($$p->dim(1)-1))->sever;
+	   $$p = $$p->slice(',0:-2')->sever;
 	   return;
     }
 
@@ -4715,9 +4714,6 @@ use PDL::NiceSlice;
     sub __add { my($w,$c,$p,$x,$y,$m) = @_;
 		$$p = $$p->glue(1,pdl($x,$y));
     }
-
-no PDL::NiceSlice;
-
 }
 
 =pod
