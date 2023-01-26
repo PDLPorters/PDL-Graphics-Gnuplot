@@ -5393,11 +5393,8 @@ our $cOptionsTable = {
          # the output string just specifies STDIN.   The magic output string gets replaced post facto with the test and
          # real output format specifiers.
     'cdims'     => [sub { my $s = _def($_[1], 0);  # Number of dimensions in a column
-			  if($s==0 or $s==1 or $s==2) {
-			      return $s;
-			  } else {
-			      barf "Curve option 'cdims' must be one of 0, 1, or 2\n";
-			  }
+			  barf "Curve option 'cdims' must be one of 0, 1, or 2\n" unless $s==0 or $s==1 or $s==2;
+			  return $s;
 		    },
 		    sub { return ""}],
     'data'     => [sub { barf "mustn't specify data as a curve option...\n" },
