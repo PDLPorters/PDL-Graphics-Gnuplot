@@ -5763,12 +5763,9 @@ $_pOHInputs = {
 		 return "" unless(length($_[1]));                                 # false value yields false
 		 return $_[1] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
 		 # Not setting a boolean value - it's a list (or a trivial list).
-		 if(ref $_[1] eq 'ARRAY') {
-		     return $_[1];
-		 } else {
-		     # anything that's not an array ref (and not a number) gets put in the array
-		     return [$_[1]];
-		 }
+		 return $_[1] if ref $_[1] eq 'ARRAY';
+		 # anything that's not an array ref (and not a number) gets put in the array
+		 return [$_[1]];
     },
 
     ## one-line list (no booleanity: scalars always get copied to the list)
@@ -5783,12 +5780,8 @@ $_pOHInputs = {
 		 return "" unless(length($_[1]));                                 # false value yields false
 		 return $_[1] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
 		 # Not setting a boolean value - it's a list (or a trivial list).
-		 if(ref $_[1] eq 'ARRAY'   or   ref $_[1] eq 'HASH') {
-		     return $_[1];
-		 } else {
-#		     return [ split( /\s+/, $_[1] ) ];
-		     return [$_[1]];
-		 }
+		 return $_[1] if ref $_[1] eq 'ARRAY' or ref $_[1] eq 'HASH';
+		 return [$_[1]];
                 },
 
     ## list or 2-PDL for a range parameter
@@ -5796,16 +5789,11 @@ $_pOHInputs = {
 		 return "" unless(length($_[1]));                                 # false value yields false
 		 return $_[1] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
 		 # Not setting a boolean value - it's a list (or a trivial list).
-		 if(ref $_[1] eq 'ARRAY') {
-		     return $_[1];
-		 } elsif( $_[1]->$_isa('PDL') ) {
-		     barf "PDL::Graphics::Gnuplot: range parser found a PDL, but it wasn't a 2-PDL (max,min)"
-			 unless( $_[1]->dims==1 and $_[1]->nelem==2 );
-		     return [$_[1]->list];
-		 } else {
-#		     return [ split( /\s+/, $_[1] ) ];
-		     return [$_[1]];
-		 }
+		 return $_[1] if ref $_[1] eq 'ARRAY';
+		 return [$_[1]] if !$_[1]->$_isa('PDL');
+		 barf "PDL::Graphics::Gnuplot: range parser found a PDL, but it wasn't a 2-PDL (max,min)"
+		     unless( $_[1]->dims==1 and $_[1]->nelem==2 );
+		 return [$_[1]->list];
                 },
 
     ## cumulative list (delete on "undef")
@@ -5814,11 +5802,7 @@ $_pOHInputs = {
 		 return 1 if( $_[1] && "$_[1]" =~ m/^\s*-?\d+\s*$/); # nonzero integers yield true
 		 # Not setting a boolean value - it's a list, so append it.
 		 my $out = (ref $_[0] eq 'ARRAY') ? $_[0] : [];
-		 if(ref $_[1] eq 'ARRAY') {
-		     push( @$out, $_[1] );
-		 } else {
-		     push( @$out, [ split ( /\s+/, $_[1] ) ] );
-		 }
+		 push @$out, ref $_[1] eq 'ARRAY' ? $_[1] : [ split ( /\s+/, $_[1] ) ];
 		 return $out;
                 },
 
