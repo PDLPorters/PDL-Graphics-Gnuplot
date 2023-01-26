@@ -4942,21 +4942,16 @@ our $pOptionsTable =
 
 
     'perceptual'=>[sub { my($old,$new,$this) = @_;
-			  eval "use PDL::Transform::Color";
+			  eval { require PDL::Transform::Color };
 			  barf("pseudocolor option requires PDL::Transform::Color, which is not present")
 			      unless($PDL::Transform::Color::VERSION);
 			  return $new;
 		    },
 		    sub { my($k, $v, $h) = @_;
-			  my $s = "";
-			  my $t;
 			  return unless (defined($v));
-			  eval {
-			      if(ref($v) eq 'ARRAY') {
-				  $t = PDL::Transform::Color::t_pcp(@$v);
-			      } else {
-				  $t = PDL::Transform::Color::t_pcp($v);
-			      }
+			  my $s = "";
+			  my $t = eval {
+			      PDL::Transform::Color::t_pcp(ref($v) eq 'ARRAY' ? @$v : $v);
 			  };
 			  if($@){
 			      my $a=$@;
@@ -4982,25 +4977,20 @@ our $pOptionsTable =
 		    '[pseudo] Use PDL::Transform::Color photometric palette: "pseudocolor=>\'heat\'"' ],
 
     'pseudocolor'=>[sub { my($old,$new,$this) = @_;
-			  eval "use PDL::Transform::Color";
+			  eval { require PDL::Transform::Color };
 			  barf("pseudocolor option requires PDL::Transform::Color, which is not present")
 			      unless($PDL::Transform::Color::VERSION);
 			  return $new;
 		    },
 		    sub { my($k, $v, $h) = @_;
-			  my $s = "";
-			  my $t;
 			  return unless(defined($v));
 			  if(defined($h->{'perceptual'})){
 			      print STDERR "Warning: 'perceptual'/'pcp' pseudocolor option overriding 'pseudocolor'/'pc'\n";
 			      return;
 			  }
-			  eval {
-			      if(ref($v) eq 'ARRAY') {
-				  $t = PDL::Transform::Color::t_pc(@$v);
-			      } else {
-				  $t = PDL::Transform::Color::t_pc($v);
-			      }
+			  my $s = "";
+			  my $t = eval {
+			      PDL::Transform::Color::t_pc(ref($v) eq 'ARRAY' ? @$v : $v);
 			  };
 			  if($@){
 			      my $a = $@;
@@ -5012,7 +5002,6 @@ our $pOptionsTable =
 
 			  my $grey = xvals(2049)/2048;
 			  my $rgb = $grey->apply($t);
-
 
 			  my $last_str = "";
 			  my @s = ();
