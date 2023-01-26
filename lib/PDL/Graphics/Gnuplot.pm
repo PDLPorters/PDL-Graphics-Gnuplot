@@ -6208,11 +6208,9 @@ our $_OptionEmitters = {
 		    my @v = @$v;
 		    my $conv = 1;
 		    if($h->{__unit__}) {
-			if($lConv->{$h->{__unit__}}) {
-			    $conv *= $lConv->{$h->{__unit__}};
-			} else {
-			    die "Uh-oh -- csize parser found an error -- table says default units are '$h->{__unit__}' but that's no unit!\n";
-			}
+			die "Uh-oh -- csize parser found an error -- table says default units are '$h->{__unit__}' but that's no unit!\n"
+			    if !$lConv->{$h->{__unit__}};
+			$conv *= $lConv->{$h->{__unit__}};
 		    }
 		    # If there's a unit spec at the end, pop if off and accumulate the conversion factor
 		    if($lConv->{$v[$#v]}) {
@@ -6247,7 +6245,7 @@ our $_OptionEmitters = {
 
     #### A boolean value as an inline option (e.g. curve, terminal)
     'byn' => sub { my($k,$v,$g) = @_;
-		  return "" unless defined($v);
+		   return "" unless defined($v);
 		   return $v ? " $k " : " no$k ";
     },
 
@@ -6260,13 +6258,9 @@ our $_OptionEmitters = {
     #### A space-separated collection of terms as a plot option
     'l' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
-		 if(ref($v) eq 'ARRAY') {
-		     return "set $k ".join(" ",@$v)."\n";
-		 } elsif(ref($v) eq 'HASH') {
-		     barf "hash value found for comma-separated list option '$k' -- not allowed";
-		 } else {
-		     return $v ? "set $k\n" : "unset $k\n";
-		 }
+		 return "set $k ".join(" ",@$v)."\n" if ref($v) eq 'ARRAY';
+		 barf "hash value found for comma-separated list option '$k' -- not allowed" if ref($v) eq 'HASH';
+		 return $v ? "set $k\n" : "unset $k\n";
                 },
 
     #### Special emitter for ticks that can deal with hashes
@@ -6275,138 +6269,98 @@ our $_OptionEmitters = {
 		  my @l = ();
 		  my @l2= ();
 
-		  unless(ref($v)) {
-		      return $v ? "set $k $v\n" : "unset $k\n";
-		  } elsif(ref($v) eq 'ARRAY') {
+		  return $v ? "set $k $v\n" : "unset $k\n" unless ref $v;
+		  if(ref($v) eq 'ARRAY') {
 		      @l = @$v;
-		  } elsif(ref($v) eq 'HASH') {
-		      my %h = %$v;
-		      push(@l, 'axis')   if($h{axis});   delete $h{axis};
-		      push(@l, 'border') if($h{border}); delete $h{border};
-		      push(@l, $h{mirror}?'mirror':'nomirror') if(defined($h{mirror})); delete $h{mirror};
-		      if($h{in} && $h{out}) {
-			  barf("<foo>tics: you set both the 'in' and 'out' options. Oops.");
-		      }
-		      push(@l, 'in')     if($h{in});     delete $h{in};
-		      push(@l, 'out')    if($h{out});    delete $h{out};
-
-
-
-		      unless($k =~ m/^m/) {
-			  push(@l, 'scale');
-			  if( defined( $h{scale} ) ) {
-			      if( ref($h{scale}) eq 'ARRAY' ) {
-				  push(@l, join(",",@{$h{scale}}));
-			      } else {
-				  push(@l, $h{scale});
-			      }
-			  } else {
-			      push(@l, 'default');
-			  }
-			  delete $h{scale};
-			  if(defined($h{rotate})) {
-			      unless($h{rotate}) {
-				  push(@l,'norotate');
-			      } else {
-				  push(@l, 'rotate by '.$h{rotate});
-			      }
-			  }
-			  delete $h{rotate};
-		      }
-		      if(defined $h{offset}) {
-			  unless($h{offset}){
-			      push(@l,'nooffset');
-			  } else {
-			      if(ref($h{offset}) eq 'ARRAY') {
-				  push(@l, "offset", join(",",@{$h{offset}}));
-			      } else {
-				  barf "<foo>tics option: 'offset' suboption must be a list ref or zero";
-			      }
-			  }
-		      }
-		      delete $h{offset};
-
-		      barf("<foo>tics: you set two or more of 'left','right', and 'center'. Oops.")
-			  if( defined($h{left}) + defined($h{right}) + defined($h{center}) > 1 );
-
-		      push(@l,'left')   if($h{left});   delete $h{left};
-		      push(@l,'right')  if($h{right});  delete $h{right};
-		      push(@l,'center') if($h{center}); delete $h{center};
-
-
-		      ##############################
-		      # Deal with complex add/labels/locations logic.
-		      # If you specify locations *or* labels then that style gets
-		      # emitted.  if you specify both, then the labels get appended
-		      # to the end of the plot command as a *separate* "set <foo>tics"
-		      # gnuplot command with "add" marked.
-
-		      if(defined($h{locations})) {
-			  if(ref($h{locations}) eq 'ARRAY'){
-			      if(@{$h{locations}}) {
-				  push(@l, join(',', @{$h{locations}}));
-			      } else {
-				  push(@l, "autofreq");
-			      }
-			  } elsif(!ref($h{locations})) {
-			      if($h{locations}) {
-				  push(@l, $h{locations});
-			      } else {
-				  push(@l, "autofreq");
-			      }
-			  } else {
-			      barf("<foo>tics: 'locations' elements must be scalar or list ref");
-			  }
-			  # Workaround for bug in gnuplot parser (documented in xtics section of gnuplot manual):
-			  # if the first number in the start/incr/end sequence is negative, subtract it from 0
-			  # to avoid problems with binary subtraction.
-			  $l[$#l] =~ s/^\s*\-/0\-/;
-		      }
-		      if(defined($h{labels})) {
-			  my $line;
-			  if( ref($h{labels}) eq 'ARRAY' ) {
-			      $line =   "(".
-					(join(", ",
-					      map {
-						  barf "<foo>tics: labels list elements must be duals or triples as list refs"  unless(ref $_ eq 'ARRAY');
-						  sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") );
-					      } @{$h{labels}}
-					 )).
-					")"
-					;
-			  } else {
-			      barf("<foo>tics: 'labels' elements must be list refs containing [label, val, flag]");
-			  }
-
-			  if(defined($h{locations})) {
-			      push(@l2, "\nset $k add ",$line);
-			  } else {
-			      push(@l, $line);
-			  }
-		      }
-		      delete $h{locations};
-		      delete $h{labels};
-
-
-		      push(@l,'format',"\"".quote_escape($h{format})."\"") if(defined($h{format})); delete $h{format};
-
-		      if(defined $h{font}) {
-			  if(ref($h{font}) eq 'ARRAY'){
-			      push(@l,"font",'"'.join(',',@{$h{font}}).'"');
-			  } else {
-			      push(@l,"font",'"'.$h{font}.'"');
-			  }
-		      }
-		      delete $h{font};
-
-		      push(@l,'rangelimited') if(defined($h{rangelimited})); delete $h{rangelimited};
-
-		      if(defined $h{textcolor}) {
-			  push(@l,"textcolor", _emit_colorspec($h{textcolor}));
-		      }
-		      delete $h{textcolor};
-		  } else {
+		  } elsif(ref($v) ne 'HASH') {
 		      die "<foo>tics spec must be scalar or hash\n";
+		  }
+		  my %h = %$v;
+		  push(@l, 'axis')   if($h{axis});   delete $h{axis};
+		  push(@l, 'border') if($h{border}); delete $h{border};
+		  push(@l, $h{mirror}?'mirror':'nomirror') if(defined($h{mirror})); delete $h{mirror};
+		  if($h{in} && $h{out}) {
+		      barf("<foo>tics: you set both the 'in' and 'out' options. Oops.");
+		  }
+		  push(@l, 'in')     if delete $h{in};
+		  push(@l, 'out')    if delete $h{out};
+
+		  unless($k =~ m/^m/) {
+		      push(@l, 'scale');
+		      if( defined( my $v = delete $h{scale} ) ) {
+			  push @l, ref($v) eq 'ARRAY' ? join(",",@$v) : $v;
+		      } else {
+			  push(@l, 'default');
+		      }
+		      if( defined( my $v = delete $h{rotate} ) ) {
+			  push @l, $v ? "rotate by $v" : 'norotate';
+		      }
+		  }
+		  if( defined( my $v = delete $h{offset} ) ) {
+		      barf "<foo>tics option: 'offset' suboption must be a list ref or false"
+			if $v and ref($v) ne 'ARRAY';
+		      push @l, $v ? ("offset", join(",",@$v)) : 'nooffset';
+		  }
+
+		  barf("<foo>tics: you set two or more of 'left','right', and 'center'. Oops.")
+		      if( defined($h{left}) + defined($h{right}) + defined($h{center}) > 1 );
+
+		  push(@l,'left')   if delete $h{left};
+		  push(@l,'right')  if delete $h{right};
+		  push(@l,'center') if delete $h{center};
+
+
+		  ##############################
+		  # Deal with complex add/labels/locations logic.
+		  # If you specify locations *or* labels then that style gets
+		  # emitted.  if you specify both, then the labels get appended
+		  # to the end of the plot command as a *separate* "set <foo>tics"
+		  # gnuplot command with "add" marked.
+
+		  if(defined( my $v = $h{locations} )) {
+		      barf "<foo>tics: 'locations' elements must be scalar or list ref"
+			if ref($v) and ref($v) ne 'ARRAY';
+		      if(ref($v) eq 'ARRAY'){
+			  push @l, @$v ? join(',', @$v) : 'autofreq';
+		      } elsif(!ref($v)) {
+			  push @l, $v || 'autofreq';
+		      }
+		      # Workaround for bug in gnuplot parser (documented in xtics section of gnuplot manual):
+		      # if the first number in the start/incr/end sequence is negative, subtract it from 0
+		      # to avoid problems with binary subtraction.
+		      $l[$#l] =~ s/^\s*\-/0\-/;
+		  }
+		  if(defined( my $v = $h{labels} )) {
+		      barf "<foo>tics: 'labels' elements must be list refs containing [label, val, flag]"
+			  if ref($v) ne 'ARRAY';
+		      barf "<foo>tics: labels list elements must be duals or triples as list refs"
+			  if grep ref() ne 'ARRAY', @$v;
+		      my $line =   "(".
+				    join(", ",
+					  map sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") ),
+					  @$v
+				    ).
+				    ")"
+				    ;
+		      if(defined($h{locations})) {
+			  push(@l2, "\nset $k add ",$line);
+		      } else {
+			  push(@l, $line);
+		      }
+		  }
+		  delete $h{locations};
+		  delete $h{labels};
+
+		  push(@l,'format',"\"".quote_escape($h{format})."\"") if(defined(delete $h{format}));
+
+		  if( defined( my $v = delete $h{font} ) ) {
+		      push @l, "font", '"'.join(',', ref($v) eq 'ARRAY' ? @$v : $v).'"';
+		  }
+
+		  push(@l,'rangelimited') if defined(delete $h{rangelimited});
+
+		  if(defined( my $v = delete $h{textcolor})) {
+		      push(@l,"textcolor", _emit_colorspec($v));
 		  }
 
 		  push(@l, @l2);
@@ -6436,10 +6390,10 @@ our $_OptionEmitters = {
     #### A comma-separated (rather than space-separated) collection of terms
     ',' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
+		 barf "hash value found for comma-separated list option '$k' -- not allowed"
+		     if ref $v eq 'HASH';
 		 if(ref $v eq 'ARRAY') {
 		     return "set $k ".join(",",@$v)."\n";
-		 } elsif(ref $v eq 'HASH') {
-		     barf "hash value found for comma-separated list option '$k' -- not allowed";
 		 } else {
 		     return $v ? "set $k\n" : "unset $k\n";
 		 }
@@ -6448,19 +6402,16 @@ our $_OptionEmitters = {
     #### A comma-separated collection of terms as a curve option
     'c,' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
-		 if(ref $v eq 'ARRAY') {
-		     return " ".join(",",@$v)." ";
-		 }
-		 return " $v ";
+		 return " ".join(",", ref($v) eq 'ARRAY' ? @$v : $v)." ";
     },
 
     #### A collection of values, reported one per line
     '1' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined $v);
+		 barf "hash value found for one-per-line list option '$k' -- not allowed"
+		     if ref $v eq 'HASH';
 		 if((ref $v) eq 'ARRAY') {
 		     return join("", map { defined($_) ? "set $k $_\n" : "" } @$v);
-		 } elsif((ref $v) eq 'HASH') {
-		     barf "hash value found for one-per-line list option '$k' -- not allowed";
 		 } else {
 		     return $v ? "set $k\n" : "unset $k\n";
 		 }
@@ -6498,112 +6449,71 @@ our $_OptionEmitters = {
     #### A set of sub-keywords each of which may contain a list of terms, sort-of.
     #### This is used for autoscale -- there's no space between keyword and value, and a missing hash causes "unset" to be emitted.
     "H2" => sub { my($k,$v,$h) = @_;
-		  unless($v) {
-		      return "unset $k\n";
-		  }
-		  if(ref $v eq 'ARRAY') {
-		      # Note list form doesn't allow unsetting.  Such is life - lists are deprecated in most contexts.
-		      return join("", map { defined($_) ? "set $k $_\n" : "" } @$v);
-		  } elsif(ref($v) eq 'HASH') {
-		      return "set $k\n" unless(keys(%$v));
-		      return join("", map { my $l = "";
-					    if(defined($v->{$_})) {
-						unless($v->{$_}) {
-						    $l = "unset $k $_\n";
-						} elsif(ref $v->{$_} eq 'ARRAY') {
-						    $l = "set $k $_ ".join(" ",@{$v->{$_}})."\n";
-						} elsif(ref $v->{$_} eq 'HASH') {
-						    barf "Nested hashes not allowed in hash option '$k'";
-						} else {
-						    $l = "set $k $_$v->{$_}\n";
-						}
-					    }
-					    $l;
-				  }
-				  sort keys %$v
-			  );
-		  } else {
-		      barf "scalar value '$v' not allowed for hash option '$k'";
-		  }
+		  return "unset $k\n" unless $v;
+		  return join("", map { defined($_) ? "set $k $_\n" : "" } @$v)
+		      if ref $v eq 'ARRAY'; # Note list form doesn't allow unsetting.  Such is life - lists are deprecated in most contexts.
+		  barf "scalar value '$v' not allowed for hash option '$k'"
+		      if ref($v) ne 'HASH';
+		  return "set $k\n" unless(keys(%$v));
+		  barf "Nested hashes not allowed in hash option '$k'" if grep ref() eq 'HASH', values %$v;
+		  return join("", map
+		      !$v->{$_} ? "unset $k $_\n" :
+		      ref $v->{$_} ne 'ARRAY' ? "set $k $_$v->{$_}\n" :
+		      "set $k $_ ".join(" ",@{$v->{$_}})."\n",
+		    grep defined($v->{$_}),
+		    sort keys %$v
+		  );
     },
 
     #### Terminal options hash
     "HNM" => sub { my($k,$v,$h) = @_;
 		   return "" unless((defined $v) and !($h->{multiplot}));
-		   if(ref $v eq 'ARRAY') {
-		       barf "array value found for hash option '$k' -- not allowed";
-		   } elsif(ref($v) eq 'HASH') {
-		       return "set $k\n" unless(keys(%$v));
-		       return join("", map { my $l = "";
-					     if(defined($v->{$_})) {
-						 unless($v->{$_}) {
-						     $l = "unset $k $_\n";
-						 } elsif(ref $v->{$_} eq 'ARRAY') {
-						     $l = "set $k $_ ".join(" ",@{$v->{$_}})."\n";
-						 } elsif(ref $v->{$_} eq 'HASH') {
-						     barf "Nested hashes not allowed in hash option '$k'";
-						 } else {
-						     $l = "set $k $_ $v->{$_}\n";
-						 }
-					     }
-					     $l;
-				   }
-				   sort keys %$v
-			   );
-		   } else {
-		       barf "scalar value '$v' not allowed for hash option '$k'";
-		   }
+		   barf "array value found for hash option '$k' -- not allowed"
+		       if ref $v eq 'ARRAY';
+		   barf "scalar value '$v' not allowed for hash option '$k'"
+		       if ref($v) ne 'HASH';
+		   return "set $k\n" unless(keys(%$v));
+		   barf "Nested hashes not allowed in hash option '$k'" if grep ref() eq 'HASH', values %$v;
+		   return join("", map
+		       !$v->{$_} ? "unset $k $_\n" :
+		       ref $v->{$_} ne 'ARRAY' ? "set $k $_ $v->{$_}\n" :
+		       "set $k $_ ".join(" ",@{$v->{$_}})."\n",
+		     grep defined($v->{$_}),
+		     sort keys %$v
+		   );
     },
 
     #### A collection of numbered specifiers (e.g. "arrow"), each with a collection of terms
     "N" => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined $v);
-		 if(ref $v ne 'ARRAY') {
-		     barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed";
-		 }
-		 return join ("", map { my $l;
-					if(defined($v->[$_])) {
-					    $l = "set   $k $_ ";
-					    if(ref $v->[$_] eq 'ARRAY') {
-						$l .= join(" ",@{$v->[$_]});
-					    } elsif(ref $v->[$_] eq 'HASH') {
-						$l .= join(" ",(%{$v->[$_]}));
-					    } else {
-						$l .= $v->[$_];
-					    }
-					    $l .= "\n";
-					} else {
-					    $l = "unset $k $_\n";
-					}
-					$l;
-			      } (1..$#$v)
-		     );
-                 },
+		 barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed"
+		     if ref $v ne 'ARRAY';
+		 return join "", map
+		   !defined($v->[$_]) ? "unset $k $_\n" :
+		   "set   $k $_ " .
+		   join(" ",
+		     ref $v->[$_] eq 'ARRAY' ? @{$v->[$_]} :
+		     ref $v->[$_] eq 'HASH' ? %{$v->[$_]} : $v->[$_]
+		   ) .
+		   "\n",
+		 1..$#$v;
+    },
 
     #### A collection of numbered specifiers for "object" types - requires a special case for
     #### "set object polygon"
     "NO" => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined $v);
-		 if(ref $v ne 'ARRAY') {
-		     barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed";
-		 }
-		 my $s = join ("", map { my $l;
-					if(defined($v->[$_])) {
-					    $l = "set   $k $_ ";
-					    if(ref $v->[$_] eq 'ARRAY') {
-						$l .= join(" ",@{$v->[$_]});
-					    } elsif(ref $v->[$_] eq 'HASH') {
-						$l .= join(" ",(%{$v->[$_]}));
-					    } else {
-						$l .= $v->[$_];
-					    }
-					    $l .= "\n";
-					} else {
-					    $l = "unset $k $_\n";
-					}
-					$l;
-			      } (1..$#$v)
-		     );
+		 barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed"
+		     if ref $v ne 'ARRAY';
+		 my $s = join "", map
+		   !defined($v->[$_]) ? "unset $k $_\n" :
+		   "set   $k $_ " .
+		   join(" ",
+		     ref $v->[$_] eq 'ARRAY' ? @{$v->[$_]} :
+		     ref $v->[$_] eq 'HASH' ? %{$v->[$_]} : $v->[$_]
+		   ) .
+		   "\n",
+		 1..$#$v;
 		  #Split polygon lines after the polygon spec - yuck.
 		  my @s = split ("\n",$s);
 		  for my $i(0..$#s){
@@ -6617,31 +6527,24 @@ our $_OptionEmitters = {
     #### A collection of numbered specifiers, the first word of which is quoted (for labels).
     "NL" => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined $v);
-		 if(ref $v ne 'ARRAY') {
-		     barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed";
-		 }
-		 return join ("", map { my $l;
-					if(defined($v->[$_])) {
-					    $l = "set   $k ".($_+1)." ";
-					    if(ref $v->[$_] eq 'ARRAY') {                      # It's an array
-						$v->[$_]->[0] = "\"".quote_escape($v->[$_]->[0])."\"" # quote the first element
-						    unless($v->[$_]->[0] =~ m/^\".*\"$/);      # unless it's already quoted
-						$l .= join(" ", map {
-						    (ref($_) eq 'ARRAY') ? join(",",@$_) : $_; # Nested arrays get connected with ','
-							   } @{$v->[$_]});
-					    } elsif(ref $v->[$_] eq 'HASH') {
-						$l .= join(" ",(%{$v->[$_]}));
-					    } else {
-						$l .= $v->[$_];
-					    }
-					    $l .= "\n";
-					} else {
-					    $l = "unset $k $_\n";
-					}
-					$l;
-			      } (0..$#$v)
-		     );
-                 },
+		 barf "non-array value '$v' found for numeric-indexed option '$k' -- not allowed"
+		     if ref $v ne 'ARRAY';
+		 return join "", map
+		   !defined($v->[$_]) ? "unset $k $_\n" :
+		   "set   $k ".($_+1)." " .
+		   join(" ",
+		     ref $v->[$_] eq 'ARRAY' ? (
+		       map ref($_) eq 'ARRAY' ? join(",",@$_) : $_, # Nested arrays get connected with ','
+			 $v->[$_][0] !~ m/^\".*\"$/ # unless already quoted
+			   ? "\"".quote_escape($v->[$_][0])."\"" : # quote the first element
+			   $v->[$_][0],
+			 @{$v->[$_]}[1..$#{$v->[$_]}]
+		     ) :
+		     ref $v->[$_] eq 'HASH' ? %{$v->[$_]} : $v->[$_]
+		   ) .
+		   "\n",
+		 0..$#$v;
+    },
 
     #### Ranges can either be given as a list, the first two elements
     #### of which are the range and the rest of which are options, or
