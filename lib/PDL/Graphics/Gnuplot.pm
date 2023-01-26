@@ -4796,20 +4796,10 @@ sub _expand_abbrev {
 	}
     }
 
-    if(exists($abbrevs->{$sl})) {
-	if(@{$abbrevs->{$sl}}>1) {
-	    barf "Error: ambiguous $name: '$s' could be one of { ".join(", ",@{$abbrevs->{$sl}})." }\n";
-	} else {
-	    if(wantarray) {
-		return ($abbrevs->{$sl}->[0],$snum);
-	    } else {
-		return $abbrevs->{$sl}->[0];
-	    }
-	}
-    } else {
-	die "No $name found that matches '$s'\n";
-    }
-    barf "This can't happen";
+    die "No $name found that matches '$s'\n" if !exists $abbrevs->{$sl};
+    barf "Error: ambiguous $name: '$s' could be one of { ".join(", ",@{$abbrevs->{$sl}})." }\n"
+	if @{$abbrevs->{$sl}}>1;
+    return wantarray ? ($abbrevs->{$sl}->[0],$snum) : $abbrevs->{$sl}->[0];
 }
 
 ##########
