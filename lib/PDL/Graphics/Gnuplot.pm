@@ -6315,7 +6315,7 @@ our $_OptionEmitters = {
 		      }
 		      if(defined $h{offset}) {
 			  unless($h{offset}){
-			      push(@l,'noofset');
+			      push(@l,'nooffset');
 			  } else {
 			      if(ref($h{offset}) eq 'ARRAY') {
 				  push(@l, "offset", join(",",@{$h{offset}}));
