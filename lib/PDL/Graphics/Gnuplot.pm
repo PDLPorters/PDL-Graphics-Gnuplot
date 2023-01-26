@@ -6044,23 +6044,19 @@ sub _emit_colorspec {
 	$s .= " ".join(" ",@words);
 	return $s;
     }
-    elsif($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
+    if($PDL::Graphics::Gnuplot::colornames->{lc($words[0])}) {
 	$s .= " rgb " unless($s =~ m/rgb/);
 	$s .= " \"$words[0] \" ";
 	shift @words;
 	$s .= join(" ",@words)." ";
 	return $s;
-    } elsif($words[0] =~ m/(^[0-9]+$)|(variable)|(palette)/) {
-	return join(" ",($s,@words,""));
-    } else {
-	my $ww = join(" ",@words);
-	die <<"EOD";
-PDL::Graphics::Gnuplot: Unknown color spec '$ww'.
+    }
+    return join(" ",($s,@words,"")) if $words[0] =~ m/(^[0-9]+$)|(variable)|(palette)/;
+    die <<"EOD";
+PDL::Graphics::Gnuplot: Unknown color spec '@{[join(" ",@words)]}'.
   Use an integer, an '#RRGGBB' spec, 'variable', 'palette', or a name from
   the list in \@PDL::Graphics::Gnuplot::colornames.
 EOD
-    }
-    die "Can't get here!  (colorspec parser)";
 }
 
 ##############################
@@ -6084,25 +6080,19 @@ our $_OptionEmitters = {
     #### Default output -- a collection of terms with spaces between them as a plot option
     ' ' => sub { my($k,$v,$h) = @_;
 		 return "" unless(defined($v));
-		 if(ref $v eq 'ARRAY') {
-		     return join(" ",("set",$k,map { (defined $_)?$_:"" } @$v))."\n";
-		 } elsif(ref $v eq 'HASH') {
-		     return join(" ",("set",$k,%$v))."\n";
-		 } else {
-		     return join(" ",("set",$k,$v))."\n";
-		 }
+		 join(" ","set",$k,
+		     ref $v eq 'ARRAY' ? (grep defined, @$v) :
+		     ref $v eq 'HASH' ? %$v : $v
+		 )."\n";
                 },
 
     #### nomulti -- a default style plot option that is ignored in multiplot mode
     'nomulti' => sub { my($k,$v,$h) = @_;
 		 return "" unless((defined($v)) and !($h->{multiplot}));
-		 if(ref $v eq 'ARRAY') {
-		     return join(" ",("set",$k,map { (defined $_)?$_:"" } @$v))."\n";
-		 } elsif(ref $v eq 'HASH') {
-		     return join(" ",("set",$k,%$v))."\n";
-		 } else {
-		     return join(" ",("set",$k,$v))."\n";
-		 }
+		 join(" ","set",$k,
+		     ref $v eq 'ARRAY' ? (grep defined, @$v) :
+		     ref $v eq 'HASH' ? %$v : $v
+		 )."\n";
                 },
 
     #### Empty output - return nothing.
