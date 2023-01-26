@@ -7886,159 +7886,155 @@ sub _checkpoint {
     # happens if($dump)
     return "" unless defined $pipeerr;
 
+    return "" if $this->{dumping}; # dumping - never generate an error.
+
+    my $int = $SIG{INT};
+    local $SIG{INT} = $int;
+
+    # Queue up a SIGINT handler, with passthrough...
+    unless($MS_io_braindamage) {
+	$SIG{INT} =
+	    sub {
+		kill 'INT', $this->{"pid-$suffix"};
+		if(ref $int eq 'CODE') {
+		    &$int;
+		}
+		die "^C received during PDL::Graphics::Gnuplot checkpoint operation\n";
+	};
+    }
+
+    _logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
+
+    my $terminal =$this->{options}->{terminal};
+    my $delay = (_def($this->{'wait'}, 0) + 0) || 10;
     my $fromerr = '';
 
-    if( !($this->{dumping}) ) {
-	my $int = $SIG{INT};
-	local $SIG{INT} = $int;
+    if($this->{"echobuffer-$suffix"}) {
+	$fromerr = $this->{"echobuffer-$suffix"};
+	$this->{"echobuffer-$suffix"} = "";
+    }
 
-	# Queue up a SIGINT handler, with passthrough...
-	unless($MS_io_braindamage) {
-	    $SIG{INT} =
-		sub {
-		    kill 'INT', $this->{"pid-$suffix"};
-		    if(ref $int eq 'CODE') {
-			&$int;
-		    }
-		    die "^C received during PDL::Graphics::Gnuplot checkpoint operation\n";
-	    };
-	}
+    my $subproc_gone = 0 ;
 
-	_logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
+    local($SIG{PIPE}) = sub { $subproc_gone = 1; };
 
-	my $terminal =$this->{options}->{terminal};
-	my $delay = (_def($this->{'wait'}, 0) + 0) || 10;
+    do
+    {
+	# if no data received in a few seconds, the gnuplot
+	# process is stuck. This usually happens if the gnuplot
+	# process is not in a command mode, but in a
+	# data-receiving mode. I'm careful to avoid this
+	# situation, but bugs in this module and/or in gnuplot
+	# itself can make this happen
+	#
+	# Note that the nice asynchronous part of this loop won't
+	# work on Microsoft Windows, since that OS doesn't have a
+	# working asynchronous read, and can_read doesn't work
+	# either.
 
-	if($this->{"echobuffer-$suffix"}) {
-	    $fromerr = $this->{"echobuffer-$suffix"};
-	    $this->{"echobuffer-$suffix"} = "";
-	}
-
-	my $subproc_gone = 0 ;
-
-	local($SIG{PIPE}) = sub { $subproc_gone = 1; };
-
-	do
+	if( $MS_io_braindamage or
+	    $this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay )
+	    )
 	{
-	    # if no data received in a few seconds, the gnuplot
-	    # process is stuck. This usually happens if the gnuplot
-	    # process is not in a command mode, but in a
-	    # data-receiving mode. I'm careful to avoid this
-	    # situation, but bugs in this module and/or in gnuplot
-	    # itself can make this happen
-	    #
-	    # Note that the nice asynchronous part of this loop won't
-	    # work on Microsoft Windows, since that OS doesn't have a
-	    # working asynchronous read, and can_read doesn't work
-	    # either.
-
-	    if( $MS_io_braindamage or
-		$this->{"errSelector-$suffix"}->can_read($notimeout ? undef : $delay )
-		)
-	    {
-		my $byte;
-		sysread $pipeerr, $byte, ($MS_io_braindamage ? 1 : 100);
-		$fromerr .= $byte;
-		if($byte eq \004 or $byte eq \000 or !length($byte)) {
-		    $subproc_gone = 1;
-		}
+	    my $byte;
+	    sysread $pipeerr, $byte, ($MS_io_braindamage ? 1 : 100);
+	    $fromerr .= $byte;
+	    if($byte eq \004 or $byte eq \000 or !length($byte)) {
+		$subproc_gone = 1;
 	    }
-	    else
-	    {
-		_logEvent($this, "Gnuplot $suffix read timed out") if $this->{options}{tee};
-		$this->{"stuck-$suffix"} = 1;
-		kill 'INT', $this->{"pid-$suffix"};
-		barf <<"EOM";
+	}
+	else
+	{
+	    _logEvent($this, "Gnuplot $suffix read timed out") if $this->{options}{tee};
+	    $this->{"stuck-$suffix"} = 1;
+	    kill 'INT', $this->{"pid-$suffix"};
+	    barf <<"EOM";
 Hmmm, my $suffix Gnuplot process didn't respond for $delay seconds.
 I've kicked it with an interrupt signal, which should help with the
 next thing you try to do.  If you expect slow response from gnuplot,
 you can adjust the timeout with the "wait" terminal option.
 EOM
-	    }
-	} until ($fromerr =~ m/^$checkpoint/ms or $subproc_gone);
-
-	if($MS_io_braindamage) {
-	    # Fix newline braindamage too
-	    $fromerr =~ s/\r\n/\n/g;
 	}
+    } until ($fromerr =~ m/^$checkpoint/ms or $subproc_gone);
 
-	if($subproc_gone) {
-	    _killGnuplot($this, undef, 1);
-	    barf "PDL::Graphics::Gnuplot: the gnuplot process seems to have died.\n";
-	}
-
-	_logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
-
-	# Discard prompt-and-command lines up to the last prompt seen.
-	# This is necessary for MS Windows support: MS Windows doesn't have
-	# a notion of a tty versus other kind of pipe, so gnuplot always
-	# prints prompts and echoes commands.  Since there isn't much in the
-	# way of error syntax, we might miss a few errors this way.  Oh well.
-	if($MS_io_braindamage) {
-	    $fromerr =~ s/[\s\n\r]*(gnu|multi)plot\>[^\n\r]*$//msg;
-	    $fromerr =~ s/[\s\n\r]*input data \(\'e\' ends\) \>[^\n\r]*$//msg;
-	}
-
-	# Strip the checkpoint message.
-	$fromerr =~ s/\s*(.*?)\s*$checkpoint.*$/$1/ms;
-
-	# Replace non-printable ASCII characters with '?'
-	# (preserve ^I [tab], ^J [newline], and ^M [return])
-	$fromerr =~ s/[\000-\010\013-\014\016-\037\200-\377]/\?/g;
-
-	# Find, report, and strip warnings. This is complicated by the fact
-	# that some warnings come with a line specifier and others don't.
-
-      WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m or
-		   $fromerr =~ m/^Populating font family aliases took/m     # CED - Quicktime on MacOS Catalina throws a warning marked as an error.  Stupid.
-	    ) {
-	  if($2){
-	      # it's a warning with a line specifier. Break off two more lines before it.
-	      last WARN unless($fromerr =~ s/^((gnu|multi)plot\>.*\n\s*\^\s*\n\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
-	      my $a = $1;
-	      $a =~ s/^\s*line \d+\:/Gnuplot:/m;
-	      carp $a if($printwarnings);
-	  } else {
-	      last WARN unless($fromerr =~ s/^(\s*(line \d+\:\s*)?[wW](arning\:.*(\n|$)))//m);
-	      carp "Gnuplot w$3\n" if($printwarnings);
-	  }
-
-	}
-
-	# Anything else is an error -- except on Microsoft Windows where we
-	# get additional chaff on the channel.  Try to take it out.
-	if($MS_io_braindamage) {
-	    $fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
-	} else {
-	    # Hack to avoid spurious the pdfcairo errors in MacOS 10.5 - strip out obsolete-function errors.
-	    while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//s or
-		   $fromerr =~ s/^.*Populating font family aliases took.*cost\.//s
-		) {
-		# do nothing
-	    }
-	}
-
-	if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or
-	    # This is really stupid -- many error messages from gnuplot aren't labeled as such, so we can't mark
-	    # them as errors.  Try some common keywords for genuine error messages.
-	    $fromerr =~ m/(fail(ed|s)?)|(error)|(expected \w+ driver)/io
-	   )
-	    ) {
-	    if($this->{early_gnuplot}) {
-		barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_dep_v gnuplot backend issued an error:\n$fromerr\n";
-	    } else {
-	        barf "PDL::Graphics::Gnuplot: ERROR: the gnuplot backend issued an error:\n$fromerr\n";
-	    }
-	}
-
-	# strip whitespace
-	$fromerr =~ s/^\s*//s;
-	$fromerr =~ s/\s*$//s;
-	return $fromerr;
-    } else {
-	# dumping - never generate an error.
-	return "";
+    if($MS_io_braindamage) {
+	# Fix newline braindamage too
+	$fromerr =~ s/\r\n/\n/g;
     }
+
+    if($subproc_gone) {
+	_killGnuplot($this, undef, 1);
+	barf "PDL::Graphics::Gnuplot: the gnuplot process seems to have died.\n";
+    }
+
+    _logEvent($this, "Read string '$fromerr' from gnuplot $suffix process") if $this->{options}{tee};
+
+    # Discard prompt-and-command lines up to the last prompt seen.
+    # This is necessary for MS Windows support: MS Windows doesn't have
+    # a notion of a tty versus other kind of pipe, so gnuplot always
+    # prints prompts and echoes commands.  Since there isn't much in the
+    # way of error syntax, we might miss a few errors this way.  Oh well.
+    if($MS_io_braindamage) {
+	$fromerr =~ s/[\s\n\r]*(gnu|multi)plot\>[^\n\r]*$//msg;
+	$fromerr =~ s/[\s\n\r]*input data \(\'e\' ends\) \>[^\n\r]*$//msg;
+    }
+
+    # Strip the checkpoint message.
+    $fromerr =~ s/\s*(.*?)\s*$checkpoint.*$/$1/ms;
+
+    # Replace non-printable ASCII characters with '?'
+    # (preserve ^I [tab], ^J [newline], and ^M [return])
+    $fromerr =~ s/[\000-\010\013-\014\016-\037\200-\377]/\?/g;
+
+    # Find, report, and strip warnings. This is complicated by the fact
+    # that some warnings come with a line specifier and others don't.
+
+  WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m or
+	       $fromerr =~ m/^Populating font family aliases took/m     # CED - Quicktime on MacOS Catalina throws a warning marked as an error.  Stupid.
+	) {
+      if($2){
+	  # it's a warning with a line specifier. Break off two more lines before it.
+	  last WARN unless($fromerr =~ s/^((gnu|multi)plot\>.*\n\s*\^\s*\n\s*(line \d+\:\s*)?[wW]arning\:.*(\n|$))//m);
+	  my $a = $1;
+	  $a =~ s/^\s*line \d+\:/Gnuplot:/m;
+	  carp $a if($printwarnings);
+      } else {
+	  last WARN unless($fromerr =~ s/^(\s*(line \d+\:\s*)?[wW](arning\:.*(\n|$)))//m);
+	  carp "Gnuplot w$3\n" if($printwarnings);
+      }
+
+    }
+
+    # Anything else is an error -- except on Microsoft Windows where we
+    # get additional chaff on the channel.  Try to take it out.
+    if($MS_io_braindamage) {
+	$fromerr =~ s/^\s*Terminal type set to \'[^\']*\'.*Options are \'[^\']*\'//s;
+    } else {
+	# Hack to avoid spurious the pdfcairo errors in MacOS 10.5 - strip out obsolete-function errors.
+	while( $fromerr =~ s/^.*obsolete\s*function.*system\s*performance.\s*//s or
+	       $fromerr =~ s/^.*Populating font family aliases took.*cost\.//s
+	    ) {
+	    # do nothing
+	}
+    }
+
+    if((!$ignore_errors) and (($fromerr =~ m/^\s+\^\s*$/ms or $fromerr=~ m/^\s*line/ms) or
+	# This is really stupid -- many error messages from gnuplot aren't labeled as such, so we can't mark
+	# them as errors.  Try some common keywords for genuine error messages.
+	$fromerr =~ m/(fail(ed|s)?)|(error)|(expected \w+ driver)/io
+       )
+	) {
+	if($this->{early_gnuplot}) {
+	    barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_dep_v gnuplot backend issued an error:\n$fromerr\n";
+	} else {
+	    barf "PDL::Graphics::Gnuplot: ERROR: the gnuplot backend issued an error:\n$fromerr\n";
+	}
+    }
+
+    # strip whitespace
+    $fromerr =~ s/^\s*//s;
+    $fromerr =~ s/\s*$//s;
+    return $fromerr;
 }
 
 ##############################
