@@ -3981,45 +3981,44 @@ FOO
 		}
 	    }
 	    return @data;
-	} else {
-	    # At least one of the data columns is a non-PDL.  Force them to be simple columns, and
-	    # require exact dimensional match.
-	    #
-	    # Also, convert any contained PDLs to list refs.
-
-	    my $nelem;
-	    my @out = ();
-
-	    for(@data) {
-		barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
-		    if( $_->$_isa('PDL')   and   $_->ndims > 1 );
-
-		if((ref $_) eq 'ARRAY') {
-		    barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
-			if( (defined $nelem) and (@$_ != $nelem) );
-		    $nelem = @$_;
-
-		    for (@$_) {
-			barf "plot(): nested references not allowed in list data\n"
-			    if( ref($_) );
-		    }
-
-		    push(@out, $_);
-
-		} elsif(  $_->$_isa('PDL')  ) {
-		    barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
-			if( (defined $nelem) and ($_->nelem != $nelem) );
-		    $nelem = $_->nelem;
-
-		    push(@out, [ $_->list ]);
-
-		} else {
-		    barf "plot(): problem with dim checking.  This should never happen.";
-		}
-	    }
-
-	    return @out;
 	}
+	# At least one of the data columns is a non-PDL.  Force them to be simple columns, and
+	# require exact dimensional match.
+	#
+	# Also, convert any contained PDLs to list refs.
+
+	my $nelem;
+	my @out = ();
+
+	for(@data) {
+	    barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
+		if( $_->$_isa('PDL')   and   $_->ndims > 1 );
+
+	    if((ref $_) eq 'ARRAY') {
+		barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
+		    if( (defined $nelem) and (@$_ != $nelem) );
+		$nelem = @$_;
+
+		for (@$_) {
+		    barf "plot(): nested references not allowed in list data\n"
+			if( ref($_) );
+		}
+
+		push(@out, $_);
+
+	    } elsif(  $_->$_isa('PDL')  ) {
+		barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
+		    if( (defined $nelem) and ($_->nelem != $nelem) );
+		$nelem = $_->nelem;
+
+		push(@out, [ $_->list ]);
+
+	    } else {
+		barf "plot(): problem with dim checking.  This should never happen.";
+	    }
+	}
+
+	return @out;
     } # end of matchDims (nested in plot)
 }  # end of plot
 
