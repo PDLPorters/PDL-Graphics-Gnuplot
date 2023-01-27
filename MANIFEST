@@ -10,3 +10,4 @@ MANIFEST.SKIP
 README.pod
 t/pdfcairo-output.t
 t/plot.t
+t/aa.t

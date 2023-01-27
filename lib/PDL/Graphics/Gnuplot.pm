@@ -2455,6 +2455,7 @@ sub close
 	# gamma-correct before scaling, and put back after.
 	my $imf = ((float $im)/255.0)->clip(0,1) ** 2.2;
 	$imf = $imf->match( [ $im->dim(0)/$this->{aa}, $im->dim(1)/$this->{aa} ], {method=>'h',blur=>0.5});
+	$imf->check_badflag;
 	$im = byte(($imf ** (1/2.2)) * 255);
 	if($im->ndims==3){
 	    $im = $im->mv(-1,0);
