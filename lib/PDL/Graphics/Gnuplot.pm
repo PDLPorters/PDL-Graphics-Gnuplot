@@ -2386,7 +2386,7 @@ FOO
 	    }
 
 	    ### Terminals that support anti-aliasing all broadcast their format so that rpic can handle them.
-	    if( defined $termTab->{terminal}->{image_format}) {
+	    if( defined $termTab->{$terminal}->{image_format}) {
 		$this->{image_format}= $termTab->{$terminal}->{image_format};
 	    } else {
 		delete($this->{image_format});
@@ -2448,6 +2448,10 @@ sub close
     restart($this);
     if(defined $this->{aa} && $this->{aa} && $this->{aa} != 1 && $this->{aa_ready}) {
 	eval "use PDL::Transform; use PDL::IO::Pic;";  # load when needed
+	unless( rpiccan($this->{image_format}) and wpiccan($this->{image_format})  ) {
+		carp "Can not read/write $this->{image_format} for anti-aliasing. Skipping aa operation.";
+		return;
+	}
 	my $im = rpic($this->{options}->{output},{FORMAT=>$this->{image_format}});
 	if($im->ndims==3) {
 	    $im = $im->mv(0,-1);
@@ -7066,7 +7070,10 @@ for my $k(keys %$termTabSource) {
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
 			   ],
-		       default_output=> $v->{default_output}
+		       default_output=> $v->{default_output},
+		       ( exists $v->{image_format}
+			       ? ( image_format => $v->{image_format} )
+			       : () ),
                      };
 }
 
