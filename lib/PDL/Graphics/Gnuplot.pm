@@ -6356,7 +6356,7 @@ our $_OptionEmitters = {
 		  delete $h{locations};
 		  delete $h{labels};
 
-		  push(@l,'format',"\"".quote_escape($h{format})."\"") if(defined(delete $h{format}));
+		  push(@l,'format',"\"".quote_escape($h{format})."\"") if(defined($h{format})); delete $h{format};
 
 		  if( defined( my $v = delete $h{font} ) ) {
 		      push @l, "font", '"'.join(',', ref($v) eq 'ARRAY' ? @$v : $v).'"';
