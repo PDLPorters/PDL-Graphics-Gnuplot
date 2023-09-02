@@ -785,7 +785,7 @@ e.g. C<< grid=>["noxtics","ymtics"] >> draws no X gridlines and draws
 C<< grid=>["xtics","ytics"] >> or C<< grid=>["xtics ytics"] >> will draw both
 vertical (X) and horizontal (Y) grid lines on major tics.
 
-vTo draw a coordinate grid with default values, set C<< grid=>1 >>.  For more
+To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more
 control, feed in a list ref with zero or more of the following parameters, in order:
 
 The C<zeroaxis> keyword indicates whether to actually draw each axis
@@ -1625,9 +1625,9 @@ If you don't specify a C<dashtype> curve option, the default behavior
 matches the behavior of earlier gnuplots: many terminals support a
 "dashed" terminal/output option, and if you have set that option (with
 the constructor or with the C<output> method) then lines are uniquely
-dashed by default.  To make a single curve solid, specify C<dt=>0> as
+dashed by default.  To make a single curve solid, specify C<< dt=>0 >> as
 a curve option for it; or to make all curves solid, use the constructor
-or the C<output> method to set the terminal option C<dashed=>0>.
+or the C<output> method to set the terminal option C<< dashed=>0 >>.
 
 If your gnuplot is older than v5.0, the dashtype curve option is
 ignored (and causes a warning to be emitted).
