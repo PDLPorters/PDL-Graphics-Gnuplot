@@ -43,7 +43,7 @@ WriteMakefile(
         'Alien::Gnuplot'      => 0,
     },
     PREREQ_PM => { 
-            'Alien::Gnuplot'      => 0,
+	    'Alien::Gnuplot'      => '1.031',
 	    'PDL'                 => 0,
 	    'PDL::Transform::Color' => 0,
 	    'IPC::Run'            => 0,
