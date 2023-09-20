@@ -4235,18 +4235,73 @@ The options hash will accept:
 
 =item layout - define a regular grid of plots to multiplot
 
-C<layout> should be followed by an ARRAY ref that contains at least
-number of columns ("NX") followed by number of rows ("NY).  After
-that, you may include any of the "rowsfirst", "columnsfirst",
-"downwards", or "upwards" keywords to specify traversal order through
-the grid.  Only the first letter is examined, so (e.g.) "down" or even
-"dog" works the same as "downwards".
+C<layout> should be followed by an ARRAY ref with the following
+required and optional elements:
+
+=over
+
+=item NX
+
+I<required>
+
+The integer number of columns.
+
+=item NY
+
+I<required>
+
+The integer number of rows.
+
+=item C<rowsfirst> | C<columnsfirst>
+
+=item C<downwards> | C<upwards>
+
+I<Optional>
+
+These take no arguments.
+
+Traversal order through the grid.  Only the first letter is examined,
+so (e.g.) "down" or even "dog" works the same as "downwards".
+
+=item C<scale> => SCALAR | ARRAYREF
+
+I<Optional>
+
+A scale to be applied to each plot.  If a scalar is specified, that
+will be applied to both X and Y; if an ARRAY ref is specified,
+it should contain independent values for each axis.
+
+=item C<offset> => SCALAR | ARRAYREF
+
+I<Optional>
+
+An offset to be applied to each plot.  If a scalar is specified, that
+will be applied to both X and Y; if an ARRAY ref is specified,
+it should contain independent values for each axis.
+
+=item C<spacing> => SCALAR | ARRAYREF
+
+I<Optional>
+
+Gap sizes between two adjacent plots. to each plot.  If a scalar is
+specified, that will be applied to both X and Y; if an ARRAY ref is
+specified, it should contain independent values for each axis.
+
+=item C<margins> => ARRAYREF
+
+I<Optional>
+
+Accepts an ARRAY ref with four values ( [ I<< <left>,<right>,<bottom>,<top> >> ] ).
+
+=back
 
 =item title - define a title for the entire page
 
 C<title> should be followed by a single scalar containing the title string.
 
 =item scale - make gridded plots larger or smaller than their allocated space
+
+[Deprecated; add this to the layout keyword]
 
 C<scale> takes either a scalar or a list ref containing one or two
 values.  If only one value is supplied, it is a general scale factor
@@ -4255,6 +4310,8 @@ X stretch factor for each plot in the grid, and the second is a Y
 stretch factor for each plot in the grid.
 
 =item offset - offset each plot from its grid origin
+
+[Deprecated; add this to the layout keyword]
 
 C<offset> takes a list ref containing two values, that control placement
 of each plot within the grid.
@@ -4284,7 +4341,8 @@ Ends a multiplot block (i.e. a block of plots that are meant to render to a sing
 our $mpOptionsTable = {
     'layout' => [sub { my($old, $new, $h) = @_;
 		       my ($nx,$ny);
-		       my @dirs=("","");
+                       my @output;
+		       my %dirs;
 		       if(!ref($new)) {
 			   $nx = $ny = $new;
 		       } elsif(ref($new) eq 'ARRAY') {
@@ -4292,15 +4350,28 @@ our $mpOptionsTable = {
 			   $nx = shift @$new;
 			   $ny = (@$new) ? shift @$new : $nx;
 			   while($_ = shift @$new) { # assignment
-			       $dirs[0]="rowsfirst"    if(m/^r/i);
-			       $dirs[0]="columnsfirst" if(m/^c/i);
-			       $dirs[1]="downwards"    if(m/^d/i);
-			       $dirs[1]="upwards"      if(m/^u/i);
+
+                               if ( my ($command) = /^(scale|offset|spacing|margins)$/ ) {
+                                   barf "multiplot: missing option to $command"
+                                     unless @$new;
+                                   $_ = shift @$new;
+                                   my @values = ref($_) eq 'ARRAY' ? @{$_} : $_;
+                                   barf ( "multiplot: $command requires four values" )
+                                     if $command eq 'margins' && @values != 4;
+                                   barf ( "multiplot: $command requires 1 or 2 values" )
+                                     if $command ne 'margins' && ( @values != 1 or @values != 2 );
+                                   push @output, $command, join( q{,}, @values );
+                               }
+			       $dirs{0}="rowsfirst"    if(m/^r/i);
+			       $dirs{0}="columnsfirst" if(m/^c/i);
+
+			       $dirs{1}="downwards"    if(m/^d/i);
+			       $dirs{1}="upwards"      if(m/^u/i);
 			   }
 		       } else {
 			   barf "multiplot: layout option needs a scalar or array ref value\n";
 		       }
-		       return join(" ",("$ny,$nx",$dirs[0],$dirs[1]));
+		       return join(" ", "$ny,$nx", @output, values %dirs);
 		 },
 		 'cl',undef,1,''],
     'title' => ['s','cq',undef,2,''],
