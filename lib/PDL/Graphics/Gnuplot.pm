@@ -3117,6 +3117,7 @@ sub plot
 set size noratio
 set view noequal
 set view 60,30,1.0,1.0
+unset label
 unset xlabel
 unset ylabel
 unset cblabel
