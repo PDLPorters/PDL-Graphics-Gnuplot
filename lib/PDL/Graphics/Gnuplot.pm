@@ -3479,390 +3479,337 @@ POS
 
     # read and report any warnings that happened during the plot
     return $plotWarnings;
+}  # end of plot
 
-    #####################
-    #
-    # parseArgs - helper sub nested inside plot
-    #
-    # This breaks out the parsing of the curve arguments.
-    #
-    # Each chunk of data to plot appears in the argument list as
-    #      plot(options, options, ..., data, data, ....).
-    # The options are a hashref or an inline hash and also serve as delimiters between
-    # chunks of data.
-    #
-    # Curve options, with the exception of "legend", are accumulated - each set
-    # is used as the default value of the same option for the next one.
-    #
-    # The data arguments are one-argument-per-tuple-element, but higher
-    # dims can be used for threading.  Plot elements that are to be treated
-    # as 1-D (non-image) data can be threaded over -- so, e.g., you can pass in
-    # a 50 PDL (as X) and a 50x3 PDL (as Y) and you'll get three separate plots with
-    # the same options.  As a special case, you can pass an array ref into the
-    # "legend" or "color" options in that case, and thereby specify a different legend/color
-    # for each of those threaded plots.
-    #
-    sub parseArgs
-    {
-	my $this = shift;
-
-	##############################
-	# Parse curve option / data chunks.
-
-	my @args = @_;
-
-	my $is3d = (defined $this->{options}->{'3d'}) ? $this->{options}->{'3d'} : 0;
-	my $ND = (('2D','3D')[!!$is3d]);  # mainly for error messages
-	my $spec_legends = 0;
-
-	# options were once cumulative.  The 'with' specifier is still kept, but most
-	# of that functionality is not present as of 2.003.
-	# We keep the lastOptions accumulator around just in case it comes in handy for
-	# a little more context.
-	my $lastOptions = {};
-
-	my @chunks;
-	my $Ncurves  = 0;
-	my $argIndex = 0;
-
-	while($argIndex <= $#args)
-	{
-	    # First, I find and parse the options in this chunk
-	    # Array refs are allowed in some curve options, but only as values of key/value
-	    # pairs -- so any list refs glommed in with a bunch of other refs are data.
-	    my $nextDataIdx = first { (ref $args[$_] ) and
-					  (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or
-					     $args[$_]->$_isa('PDL')
-					     )
-	    } $argIndex..$#args;
-
-	    last if !defined $nextDataIdx; # no more data. done.
-
-	    my $lastWith = {};
-	    $lastWith->{with} = $lastOptions->{with} if($lastOptions->{with});
-
-	    my %chunk;
-	    eval {
-		$chunk{options} = dclone(
-		    _parseOptHash( $lastWith, $cOpt, @args[$argIndex..$nextDataIdx-1] )
-		    );
-		### As of Gnuplot 5.0, some curve options (dashtype) require a default value to maintain legacy
-		### behavior in the default case.  This is the place where curve options are parsed, so we
-		### hand-tweak a couple of default values here.
-
-		# dashtype doesn't have to have a defined value it only has to exist in the curve options hash,
-		# to trigger emission of a dashtype.
-		$chunk{options}{dashtype} = undef unless(defined($chunk{options}{dashtype}));
-
-		## Even worse -- some plot types (notably "with labels") barf in newer gnuplots
-		## if you feed them a "dt".  So don't send a dashtype to those.
-		my $with = (
-		    ( ref($chunk{options}{'with'}) =~ m/ARRAY/ ) ?
-		    $chunk{options}{'with'}->[0] :
-		    $chunk{options}{'with'}
-		    ) //
-		    $this->{options}->{'globalwith'} //
-		    "";
-		if($with =~ m/^label/) {
-		    $chunk{options}{dashtype} = "INVALID";
-		}
-	    };
-	    if($@){
-		unless(@chunks){
-		    barf "$@\n(Did you mix plot options and curve options at the beginning of the arg list?)\n\n";
-		}
-		barf "$@\n";
-	    }
-
-	    $chunk{options}->{data}="dummy"; # force emission of the data field
-
-	    # Find the data for this chunk...
-	    $argIndex         = $nextDataIdx;
-	    my $nextOptionIdx = first { !(ref $args[$_]) or
-					!( (ref $args[$_]) eq 'ARRAY' or
-					    $args[$_]->$_isa('PDL')
-					 )
-	                              } $argIndex..$#args;
-	    $nextOptionIdx = @args unless defined $nextOptionIdx;
-	    # Make sure we know our "with" style...
-	    unless($chunk{options}{with}) {
-		$chunk{options}{with} = _def($this->{options}->{'globalwith'},["lines"]);
-	    }
-
-	    # validate "with" and get imgFlag and tupleSizes.
-	    # First, unpack the "with" -- we accept a list of with parameters, but also
-	    # unpack them if they are supplied as a single smushed-together string.
-	    our $plotStyleProps; # declared below
-	    my @with;
-	    if(@{$chunk{options}{with}}==1) {
-		@with = split /\s+/,$chunk{options}{with}->[0];
-		@{$chunk{options}{with}} = @with;
-	    } else {
-		@with = @{$chunk{options}{with}};
-	    }
-	    if(@with > 1) {
-		carp q{
+#####################
+#
+# parseArgs - helper sub nested inside plot
+#
+# This breaks out the parsing of the curve arguments.
+#
+# Each chunk of data to plot appears in the argument list as
+#    plot(options, options, ..., data, data, ....).
+# The options are a hashref or an inline hash and also serve as delimiters between
+# chunks of data.
+#
+# Curve options, with the exception of "legend", are accumulated - each set
+# is used as the default value of the same option for the next one.
+#
+# The data arguments are one-argument-per-tuple-element, but higher
+# dims can be used for threading.  Plot elements that are to be treated
+# as 1-D (non-image) data can be threaded over -- so, e.g., you can pass in
+# a 50 PDL (as X) and a 50x3 PDL (as Y) and you'll get three separate plots with
+# the same options.  As a special case, you can pass an array ref into the
+# "legend" or "color" options in that case, and thereby specify a different legend/color
+# for each of those threaded plots.
+#
+sub parseArgs
+{
+  my $this = shift;
+  ##############################
+  # Parse curve option / data chunks.
+  my @args = @_;
+  my $is3d = (defined $this->{options}->{'3d'}) ? $this->{options}->{'3d'} : 0;
+  my $ND = (('2D','3D')[!!$is3d]);  # mainly for error messages
+  my $spec_legends = 0;
+  # options were once cumulative.  The 'with' specifier is still kept, but most
+  # of that functionality is not present as of 2.003.
+  # We keep the lastOptions accumulator around just in case it comes in handy for
+  # a little more context.
+  my $lastOptions = {};
+  my @chunks;
+  my $Ncurves  = 0;
+  my $argIndex = 0;
+  while($argIndex <= $#args)
+  {
+    # First, I find and parse the options in this chunk
+    # Array refs are allowed in some curve options, but only as values of key/value
+    # pairs -- so any list refs glommed in with a bunch of other refs are data.
+    my $nextDataIdx = first { (ref $args[$_] ) and
+                    (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or
+                     $args[$_]->$_isa('PDL')
+                     )
+    } $argIndex..$#args;
+    last if !defined $nextDataIdx; # no more data. done.
+    my $lastWith = {};
+    $lastWith->{with} = $lastOptions->{with} if($lastOptions->{with});
+    my %chunk;
+    eval {
+      $chunk{options} = dclone(
+        _parseOptHash( $lastWith, $cOpt, @args[$argIndex..$nextDataIdx-1] )
+        );
+      ### As of Gnuplot 5.0, some curve options (dashtype) require a default value to maintain legacy
+      ### behavior in the default case.  This is the place where curve options are parsed, so we
+      ### hand-tweak a couple of default values here.
+      # dashtype doesn't have to have a defined value it only has to exist in the curve options hash,
+      # to trigger emission of a dashtype.
+      $chunk{options}{dashtype} = undef unless(defined($chunk{options}{dashtype}));
+      ## Even worse -- some plot types (notably "with labels") barf in newer gnuplots
+      ## if you feed them a "dt".  So don't send a dashtype to those.
+      my $with = (
+        ( ref($chunk{options}{'with'}) =~ m/ARRAY/ ) ?
+        $chunk{options}{'with'}->[0] :
+        $chunk{options}{'with'}
+        ) //
+        $this->{options}->{'globalwith'} //
+        "";
+      if($with =~ m/^label/) {
+        $chunk{options}{dashtype} = "INVALID";
+      }
+    };
+    if($@){
+      unless(@chunks){
+        barf "$@\n(Did you mix plot options and curve options at the beginning of the arg list?)\n\n";
+      }
+      barf "$@\n";
+    }
+    $chunk{options}->{data}="dummy"; # force emission of the data field
+    # Find the data for this chunk...
+    $argIndex     = $nextDataIdx;
+    my $nextOptionIdx = first { !(ref $args[$_]) or
+                  !( (ref $args[$_]) eq 'ARRAY' or
+                    $args[$_]->$_isa('PDL')
+                   )
+                  } $argIndex..$#args;
+    $nextOptionIdx = @args unless defined $nextOptionIdx;
+    # Make sure we know our "with" style...
+    unless($chunk{options}{with}) {
+      $chunk{options}{with} = _def($this->{options}->{'globalwith'},["lines"]);
+    }
+    # validate "with" and get imgFlag and tupleSizes.
+    # First, unpack the "with" -- we accept a list of with parameters, but also
+    # unpack them if they are supplied as a single smushed-together string.
+    our $plotStyleProps; # declared below
+    my @with;
+    if(@{$chunk{options}{with}}==1) {
+      @with = split /\s+/,$chunk{options}{with}->[0];
+      @{$chunk{options}{with}} = @with;
+    } else {
+      @with = @{$chunk{options}{with}};
+    }
+    if(@with > 1) {
+      carp q{
 WARNING: deprecated usage of complex 'with' detected.  Use a simple 'with'
 specifier and curve options instead.  This will fail in future releases of
 PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
 } unless($ENV{'PGG_DEP'});
-	    }
-
-	    # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
-	    # before giving up entirely.
-	    unless( exists( $plotStyleProps->{$with[0]}->[0] ) ) {
-		our $plotStylesAbbrevs;
-
-		# Try pluralizing and lc'ing if that works...
-		if($with[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with[0].'s'} ) ) {
-		    $with[0] = lc $with[0].'s';
-		    $chunk{options}{'with'}[0] = $with[0];
-		} else {
-		    # nope.  throw a fit.
-		    barf "invalid plotstyle 'with ".($with[0])."' in plot\n";
-		}
-	    }
-
-	    my $psProps = $plotStyleProps->{$with[0]};
-
-	    # Extract the data objects from the argument list.
-	    # They should all be either PDLs or array refs.
-	    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1] ;
-
-
-	    # Some plot styles (currently just "fits") are implemented via a
-	    # prefrobnicator that processes the data.
-	    if( $psProps->[ 4 ] ) {
-		@dataPiddles = &{ $psProps->[4] }( \@with, $this, \%chunk, @dataPiddles );
-		$psProps = $plotStyleProps->{$with[0]};
-	    }
-
-
-	    # Image flag and base tuplesizes allowed for this plot style...
-	    my $tupleSizes     = $psProps->[ !!$is3d ];  # index is 0 or 1 depending on truth of 3D flag
-	    my $imgFlag        = $psProps->[ 2 ];
-	    $chunk{binaryWith} = $psProps->[ 3 ];
-
-	    # If the user wanted binary but this style requires ASCII (or vice
-	    # versa) I throw a warning
-	    if ( !$ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} &&
-		 defined $chunk{binaryWith} )
-	    {
-	      # style requires some specific ascii/binary transfer
-	      my $got	= $chunk{binaryWith}	     ? "binary" : "ascii";
-	      my $asked = $this->{options}->{binary} ? "binary" : "ascii";
-
-	      if( $got ne $asked  and  !($this->{binary_flag_defaulted}))
-	      {
-		carp <<EOF;
+    }
+    # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
+    # before giving up entirely.
+    unless( exists( $plotStyleProps->{$with[0]}->[0] ) ) {
+      our $plotStylesAbbrevs;
+      # Try pluralizing and lc'ing if that works...
+      if($with[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with[0].'s'} ) ) {
+        $with[0] = lc $with[0].'s';
+        $chunk{options}{'with'}[0] = $with[0];
+      } else {
+        # nope.  throw a fit.
+        barf "invalid plotstyle 'with ".($with[0])."' in plot\n";
+      }
+    }
+    my $psProps = $plotStyleProps->{$with[0]};
+    # Extract the data objects from the argument list.
+    # They should all be either PDLs or array refs.
+    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1] ;
+    # Some plot styles (currently just "fits") are implemented via a
+    # prefrobnicator that processes the data.
+    if( $psProps->[ 4 ] ) {
+      @dataPiddles = &{ $psProps->[4] }( \@with, $this, \%chunk, @dataPiddles );
+      $psProps = $plotStyleProps->{$with[0]};
+    }
+    # Image flag and base tuplesizes allowed for this plot style...
+    my $tupleSizes   = $psProps->[ !!$is3d ];  # index is 0 or 1 depending on truth of 3D flag
+    my $imgFlag    = $psProps->[ 2 ];
+    $chunk{binaryWith} = $psProps->[ 3 ];
+    # If the user wanted binary but this style requires ASCII (or vice
+    # versa) I throw a warning
+    if ( !$ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} &&
+       defined $chunk{binaryWith} )
+    {
+      # style requires some specific ascii/binary transfer
+      my $got	= $chunk{binaryWith}	   ? "binary" : "ascii";
+      my $asked = $this->{options}->{binary} ? "binary" : "ascii";
+      if( $got ne $asked  and  !($this->{binary_flag_defaulted}))
+      {
+      carp <<EOF;
 PDL::Graphics::Gnuplot warning: user asked for $asked data transfer, but
 '$with[0]' plots are ALWAYS sent in $got. Ignoring '$asked' request.
 Set environment variable PGG_SUPPRESS_BINARY_MISMATCH_WARNING to suppress
 this warning.
 EOF
-	      $ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} = 1;
-	      }
-	    }
-
-	    # Reject disallowed plot styles
-	    unless(ref $tupleSizes) {
-		barf "plotstyle 'with ".($with[0])."' isn't valid in $ND plots\n";
-	    }
-
-	    # Additional columns are needed for certain 'with' modifiers. Figure 'em, cheesily: each
-	    # palette or variable option to 'with' needs an additional column.
-	    # The search over @with will disappear with the deprecated compound-with form;
-	    # the real one is the second line that scans through curve options.
-	    my $ExtraColumns = 0;
-	    map { $ExtraColumns++ } grep /(palette|variable)/,map { split /\s+/ } @with;
-	    for my $k( qw/linecolor textcolor fillstyle pointsize linewidth/ ) {
-		my $v = $chunk{options}{$k};
-		next unless defined($v);
-		my $s = (ref $v eq 'ARRAY') ? join(" ",@$v) : $v;
-		$ExtraColumns++ if($s =~ m/palette|variable/);
-	    }
-	    $ExtraColumns++ if($chunk{options}{palette});
-
-	    ##############################
-	    # Figure out what size of tuple we have, and check it against the tuple sizes we can take...
-	    my $NdataPiddles = @dataPiddles;
-
-	    # Check in case it was explicitly set [not normally needed, but still...]
-	    if($chunk{options}->{tuplesize}) {
-		if($NdataPiddles != $chunk{options}->{tuplesize}) {
-		    barf "You specified a tuple size of ".($chunk{options}->{tuplesize})." but only $NdataPiddles columns of data\n";
-		}
-	    }
-
-	    my (@tuplematch) = (grep ((abs($_)+$ExtraColumns == $NdataPiddles), @$tupleSizes));
-
-
-	    if( @tuplematch ) {
-		# Tuple sizes that require autogenerated dimensions require 'array' in binary mode;
-		# all others reqire 'record' in binary mode.   Note that in ascii mode it's slightly
-		# different -- an additional "using" column (or two) is needed (see below).
-		$chunk{ArrayRec} = ($tuplematch[0] < 0) ? 'array' : 'record';
-	    } else {
-		# No match -- barf unless you really meant it
-		if($chunk{options}->{tuplesize}) {
-		    $chunk{ArrayRec} = 'record';
-		    carp "WARNING: forced disallowed tuplesize with a curve option...\n";
-		} else {
-		    my $pl = ($NdataPiddles==1)?"":"s";
-		    my $s = "Found $NdataPiddles PDL$pl for $ND plot type 'with ".($with[0])."', which needs ";
-		    if(@$tupleSizes==0) {
-			barf "Ouch! I'm never supposed to take this path.  Please report a bug.";
-		    } elsif(@$tupleSizes==1) {
-			$s .= abs($tupleSizes->[0]) + $ExtraColumns;
-		    } else {
-			$s .= "one of [".join(",",map { abs($_)+$ExtraColumns } @$tupleSizes)."]";
-		    }
-		    if($ExtraColumns) {
-			my $pl = ($ExtraColumns==1)?"":"s";
-			$s .= " (including the $ExtraColumns extra$pl from your 'with' options).\n";
-		    } else {
-			$s .= ".\n";
-		    }
-		    barf $s;
-		}
-	    }
-
-	    ##############################
-	    # Implicit dimensions in 3-D plots require imgFlag to be set...
-	    my $cdims;
-	    if($chunk{options}->{cdims}) {
-		$cdims = $chunk{options}->{cdims};
-		if($cdims==1 and $imgFlag) {
-		    barf("You specified column dimension of 1 for an image plot type! Not allowed.");
-		}
-	    } else {
-		$cdims = ($imgFlag or ( $is3d && $dataPiddles[0]->ndims >= 2 )) ? 2 : 1;
-
-	    }
-
-	    ##############################
-	    # A little aside:  streamline the common optimization cases --
-	    # if the user specified "image" but handed in an RGB or RGBA image,
-	    # bust it up into components and update the 'with' accordingly.
-	    # This happens if RGB or RGBA is in dim 0 or in dim 2.
-	    # The other dimensions have to have at least five elements.
-	    if( $cdims==2 ) {
-		if($chunk{options}->{with}->[0] eq 'image') {
-
-		    my $dp = $dataPiddles[$#dataPiddles];
-
-		    if($dp->ndims==3) {
-			if($dp->dim(1) >= 5) {
-			    if($dp->dim(0) ==3 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
-				$chunk{options}->{with}->[0] = 'rgbimage';
-				pop @dataPiddles;
-				push(@dataPiddles,$dp->using(0,1,2));
-			    } elsif($dp->dim(2)==3 && $dp->dim(1)>=5 && $dp->dim(0) >= 5) {
-				$chunk{options}->{with}->[0] = 'rgbimage';
-				pop @dataPiddles;
-				push(@dataPiddles,$dp->mv(2,0)->using(0,1,2));
-			    } elsif($dp->dim(0)==4 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
-				$chunk{options}->{with}->[0] = 'rgbalpha';
-				pop @dataPiddles;
-				push(@dataPiddles,$dp->using(0,1,2,3));
-			    } elsif($dp->dim(2)==4 && $dp->dim(0) >= 5 && $dp->dim(1) >= 5) {
-				$chunk{options}->{with}->[0] = 'rgbalpha';
-				pop @dataPiddles;
-				push(@dataPiddles, $dp->mv(2,0)->using(0,1,2,3));
-			    }
-			}
-		    }
-		}
-	    }
-	    $chunk{cdims} = $cdims;
-
-	    $chunk{tuplesize} = @dataPiddles;
-
-	    # Get the threading dims right
-	    @dataPiddles = matchDims( @dataPiddles );
-
-	    ##############################
-	    # Make sure there is a using spec, in case one wasn't given.
-	    # If we have one implicit dim in ASCII, we need a different using spec
-	    # (blech).  If we have implicit dims in 3-D, imgFlag is set (see just above),
-	    # and we will be sending the data in binary anyway (see the emission code in plot itself).
-	    unless(exists($chunk{options}->{using})) {
-		if(
-		    defined($this->{options}->{binary}) and !$this->{options}->{binary} and
-		    !$imgFlag and
-		    $chunk{ArrayRec} eq 'array'
-		    ){
-		    # ASCII mode, not an image.  Add the requisite implicit columns.
-		    if($is3d) {
-			# Two implicit columns.  The first is column 0, the second is all zeroes since
-			# we'd have to be sending an image to make it otherwise.  We sleaze up the
-			# y=0 column by multipling column 0 by 0.
-			$chunk{options}->{using} = join(":",0,'($0*0)',1..$chunk{tuplesize});
-		    } else {
-			# one implicit column.  It is column 0.
-			$chunk{options}->{using} = join(":",0..$chunk{tuplesize});
-		    }
-
-		} else {
-		    # Binary mode and/or is an image.  Omit the implicit columns since they'll be
-		    # added by gnuplot.
-		    $chunk{options}->{using} = join(":",1..$chunk{tuplesize});
-		}
-	    }
-
-
-	    # Check number of lines threaded into this tupleset; make sure everything
-	    # is consistent...
-	    my $ncurves;
-
-	    if($imgFlag){
-		if($dataPiddles[0]->dims < 2) {
-		    barf "Image plot types require at least a 2-D input PDL\n";
-		}
-	    }
-
-	    # For the image case glom everything together into one 3-dimensional PDL,
-	    # pre-inverted so that the 0 dim runs across column.
-	    if($cdims==2) {
-		# Surfaces never get a label unless one is explicitly set
-		$chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
-		$spec_legends = 1;
-
-		my $p = pdl(@dataPiddles);
-
-		# Coerce up to 3 dimensions, with (col, ix, iy).
-		if( $p->dims == 2) {
-		    $p = $p->dummy(0,1);
-		} else {
-		    $p = $p->mv(-1,0);
-		}
-
-		if( ($p->dims > 3) ) {
-		    barf("PDL::Graphics::Gnuplot::plot: I can't make sense of this dimensional mix -- \n  I ended up with (".join("x",$p->dims).") data after combining everything. \n   (Did you mix list and PDL-stack formulations, or try to thread 2-D columns?)\n");
-		}
-
-		# Place the PDL onto the argument stack.
-		@dataPiddles = ($p);
-
-		$chunk{tuplesize} = $p->dim(0);
-		$ncurves = 1;
-
-
-		$chunk{data}      = \@dataPiddles;
-		$chunk{imgFlag} = 1;
-		push @chunks, \%chunk;
-
-	    } elsif( $dataPiddles[0]->$_isa('PDL') ) {
-		# Non-image case: check that the legend count agrees with the
-		# number of curves we found, and break up compound chunks (with multiple
-		# curves) into separate chunks of one curve each.
-
-		$ncurves = $dataPiddles[0]->slice("(0)")->nelem;
-
-		# Speed bump for weird case
-		our $bigthreads;
-		if($ncurves >= 100 and !$bigthreads) {
-		    carp <<"FOO"
+      $ENV{PGG_SUPPRESS_BINARY_MISMATCH_WARNING} = 1;
+      }
+    }
+    # Reject disallowed plot styles
+    unless(ref $tupleSizes) {
+      barf "plotstyle 'with ".($with[0])."' isn't valid in $ND plots\n";
+    }
+    # Additional columns are needed for certain 'with' modifiers. Figure 'em, cheesily: each
+    # palette or variable option to 'with' needs an additional column.
+    # The search over @with will disappear with the deprecated compound-with form;
+    # the real one is the second line that scans through curve options.
+    my $ExtraColumns = 0;
+    map { $ExtraColumns++ } grep /(palette|variable)/,map { split /\s+/ } @with;
+    for my $k( qw/linecolor textcolor fillstyle pointsize linewidth/ ) {
+      my $v = $chunk{options}{$k};
+      next unless defined($v);
+      my $s = (ref $v eq 'ARRAY') ? join(" ",@$v) : $v;
+      $ExtraColumns++ if($s =~ m/palette|variable/);
+    }
+    $ExtraColumns++ if($chunk{options}{palette});
+    ##############################
+    # Figure out what size of tuple we have, and check it against the tuple sizes we can take...
+    my $NdataPiddles = @dataPiddles;
+    # Check in case it was explicitly set [not normally needed, but still...]
+    if($chunk{options}->{tuplesize}) {
+      if($NdataPiddles != $chunk{options}->{tuplesize}) {
+        barf "You specified a tuple size of ".($chunk{options}->{tuplesize})." but only $NdataPiddles columns of data\n";
+      }
+    }
+    my (@tuplematch) = (grep ((abs($_)+$ExtraColumns == $NdataPiddles), @$tupleSizes));
+    if( @tuplematch ) {
+      # Tuple sizes that require autogenerated dimensions require 'array' in binary mode;
+      # all others reqire 'record' in binary mode.   Note that in ascii mode it's slightly
+      # different -- an additional "using" column (or two) is needed (see below).
+      $chunk{ArrayRec} = ($tuplematch[0] < 0) ? 'array' : 'record';
+    } else {
+      # No match -- barf unless you really meant it
+      if($chunk{options}->{tuplesize}) {
+        $chunk{ArrayRec} = 'record';
+        carp "WARNING: forced disallowed tuplesize with a curve option...\n";
+      } else {
+        my $pl = ($NdataPiddles==1)?"":"s";
+        my $s = "Found $NdataPiddles PDL$pl for $ND plot type 'with ".($with[0])."', which needs ";
+        if(@$tupleSizes==0) {
+          barf "Ouch! I'm never supposed to take this path.  Please report a bug.";
+        } elsif(@$tupleSizes==1) {
+          $s .= abs($tupleSizes->[0]) + $ExtraColumns;
+        } else {
+          $s .= "one of [".join(",",map { abs($_)+$ExtraColumns } @$tupleSizes)."]";
+        }
+        if($ExtraColumns) {
+          my $pl = ($ExtraColumns==1)?"":"s";
+          $s .= " (including the $ExtraColumns extra$pl from your 'with' options).\n";
+        } else {
+          $s .= ".\n";
+        }
+        barf $s;
+      }
+    }
+    ##############################
+    # Implicit dimensions in 3-D plots require imgFlag to be set...
+    my $cdims;
+    if($chunk{options}->{cdims}) {
+      $cdims = $chunk{options}->{cdims};
+      if($cdims==1 and $imgFlag) {
+        barf("You specified column dimension of 1 for an image plot type! Not allowed.");
+      }
+    } else {
+      $cdims = ($imgFlag or ( $is3d && $dataPiddles[0]->ndims >= 2 )) ? 2 : 1;
+    }
+    ##############################
+    # A little aside:  streamline the common optimization cases --
+    # if the user specified "image" but handed in an RGB or RGBA image,
+    # bust it up into components and update the 'with' accordingly.
+    # This happens if RGB or RGBA is in dim 0 or in dim 2.
+    # The other dimensions have to have at least five elements.
+    if( $cdims==2 ) {
+      if($chunk{options}->{with}->[0] eq 'image') {
+        my $dp = $dataPiddles[$#dataPiddles];
+        if($dp->ndims==3) {
+          if($dp->dim(1) >= 5) {
+            if($dp->dim(0) ==3 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
+              $chunk{options}->{with}->[0] = 'rgbimage';
+              pop @dataPiddles;
+              push(@dataPiddles,$dp->using(0,1,2));
+            } elsif($dp->dim(2)==3 && $dp->dim(1)>=5 && $dp->dim(0) >= 5) {
+              $chunk{options}->{with}->[0] = 'rgbimage';
+              pop @dataPiddles;
+              push(@dataPiddles,$dp->mv(2,0)->using(0,1,2));
+            } elsif($dp->dim(0)==4 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
+              $chunk{options}->{with}->[0] = 'rgbalpha';
+              pop @dataPiddles;
+              push(@dataPiddles,$dp->using(0,1,2,3));
+            } elsif($dp->dim(2)==4 && $dp->dim(0) >= 5 && $dp->dim(1) >= 5) {
+              $chunk{options}->{with}->[0] = 'rgbalpha';
+              pop @dataPiddles;
+              push(@dataPiddles, $dp->mv(2,0)->using(0,1,2,3));
+            }
+          }
+        }
+      }
+    }
+    $chunk{cdims} = $cdims;
+    $chunk{tuplesize} = @dataPiddles;
+    # Get the threading dims right
+    @dataPiddles = matchDims( @dataPiddles );
+    ##############################
+    # Make sure there is a using spec, in case one wasn't given.
+    # If we have one implicit dim in ASCII, we need a different using spec
+    # (blech).  If we have implicit dims in 3-D, imgFlag is set (see just above),
+    # and we will be sending the data in binary anyway (see the emission code in plot itself).
+    unless (exists($chunk{options}->{using})) {
+      if (
+        defined($this->{options}->{binary}) and !$this->{options}->{binary} and
+        !$imgFlag and
+        $chunk{ArrayRec} eq 'array'
+      ) {
+        # ASCII mode, not an image.  Add the requisite implicit columns.
+        if($is3d) {
+          # Two implicit columns.  The first is column 0, the second is all zeroes since
+          # we'd have to be sending an image to make it otherwise.  We sleaze up the
+          # y=0 column by multipling column 0 by 0.
+          $chunk{options}->{using} = join(":",0,'($0*0)',1..$chunk{tuplesize});
+        } else {
+          # one implicit column.  It is column 0.
+          $chunk{options}->{using} = join(":",0..$chunk{tuplesize});
+        }
+      } else {
+        # Binary mode and/or is an image.  Omit the implicit columns since they'll be
+        # added by gnuplot.
+        $chunk{options}->{using} = join(":",1..$chunk{tuplesize});
+      }
+    }
+    # Check number of lines threaded into this tupleset; make sure everything
+    # is consistent...
+    my $ncurves;
+    if($imgFlag){
+      if($dataPiddles[0]->dims < 2) {
+        barf "Image plot types require at least a 2-D input PDL\n";
+      }
+    }
+    # For the image case glom everything together into one 3-dimensional PDL,
+    # pre-inverted so that the 0 dim runs across column.
+    if($cdims==2) {
+      # Surfaces never get a label unless one is explicitly set
+      $chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
+      $spec_legends = 1;
+      my $p = pdl(@dataPiddles);
+      # Coerce up to 3 dimensions, with (col, ix, iy).
+      if( $p->dims == 2) {
+        $p = $p->dummy(0,1);
+      } else {
+        $p = $p->mv(-1,0);
+      }
+      if( ($p->dims > 3) ) {
+        barf("PDL::Graphics::Gnuplot::plot: I can't make sense of this dimensional mix -- \n  I ended up with (".join("x",$p->dims).") data after combining everything. \n   (Did you mix list and PDL-stack formulations, or try to thread 2-D columns?)\n");
+      }
+      # Place the PDL onto the argument stack.
+      @dataPiddles = ($p);
+      $chunk{tuplesize} = $p->dim(0);
+      $ncurves = 1;
+      $chunk{data}    = \@dataPiddles;
+      $chunk{imgFlag} = 1;
+      push @chunks, \%chunk;
+    } elsif( $dataPiddles[0]->$_isa('PDL') ) {
+      # Non-image case: check that the legend count agrees with the
+      # number of curves we found, and break up compound chunks (with multiple
+      # curves) into separate chunks of one curve each.
+      $ncurves = $dataPiddles[0]->slice("(0)")->nelem;
+      # Speed bump for weird case
+      our $bigthreads;
+      if($ncurves >= 100 and !$bigthreads) {
+        carp <<"FOO"
 PDL::Graphics::Gnuplot: WARNING - you seem to be plotting $ncurves
 curves in a single threaded collection.  This could be because you fed
 in a 2-D (or higher) data set when you meant to plot a single curve.
@@ -3871,170 +3818,139 @@ this message, set \$PDL::Graphics::Gnuplot::bigthreads to be true).
 If you are trying to plot a surface, you might try setting 'trid=>1'
 in the plot options.
 FOO
-		}
+      }
+      if($chunk{options}->{legend} and
+         @{$chunk{options}->{legend}} and
+         @{$chunk{options}->{legend}} != $ncurves
+        ) {
+        my $ent = (0+@{$chunk{options}->{legend}} == 1) ? "y" : "ies";
+        my $pl = ($ncurves==1)?"":"s";
+        barf "Legend has ".(0+@{$chunk{options}->{legend}})." entr$ent; but ".($ncurves)." curve$pl supplied!";
+      }
+      # Ensure legend appears in the options parsing (to emit "notitle" if necessary)
+      $chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
+      $spec_legends = 1 if($chunk{options}->{legend});
+      $chunk{tuplesize} = $NdataPiddles;
+      if($ncurves==1) {
+        # The chunk is OK.
+        $chunk{data}    = \@dataPiddles;
+        push @chunks, \%chunk;
+      } else {
+        # The chunk needs splitting, options and all.
+        for my $i(0..$ncurves - 1) {
+          my $chk = dclone(\%chunk);
+          $chk->{data} = [ map { $_->slice(":,($i)") } @dataPiddles ];
+          if(exists($chk->{options}->{legend})) {
+            $chk->{options}->{legend} = [$chk->{options}->{legend}->[$i]];
+          }
+          push(@chunks, $chk);
+        }
+      }
+    } else {
+      # Non-image case, with array refs instead of PDLs -- we required the chunk to be
+      # simple in matchDims, so just push it.
+      $ncurves = 1;
+      $chunk{data} = \@dataPiddles;
+      $chunk{imgFlag} = 0;
+      # Ensure legend appears in the options parsing (to emit "notitle" if necessary)
+      $chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
+      push @chunks, \%chunk;
+    }
+    $Ncurves += $ncurves;
+    $chunk{imageflag} = $imgFlag;
+    $argIndex = $nextOptionIdx;
+  }
+  return (\@chunks, $Ncurves);
+} # end of ParseArgs nested sub
 
-		if($chunk{options}->{legend} and
-		   @{$chunk{options}->{legend}} and
-		   @{$chunk{options}->{legend}} != $ncurves
-		    ) {
-		    my $ent = (0+@{$chunk{options}->{legend}} == 1) ? "y" : "ies";
-		    my $pl = ($ncurves==1)?"":"s";
-		    barf "Legend has ".(0+@{$chunk{options}->{legend}})." entr$ent; but ".($ncurves)." curve$pl supplied!";
-		}
-
-		# Ensure legend appears in the options parsing (to emit "notitle" if necessary)
-		$chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
-
-
-		$spec_legends = 1 if($chunk{options}->{legend});
-
-
-		$chunk{tuplesize} = $NdataPiddles;
-
-		if($ncurves==1) {
-		    # The chunk is OK.
-		    $chunk{data}      = \@dataPiddles;
-		    push @chunks, \%chunk;
-		} else {
-		    # The chunk needs splitting, options and all.
-		    for my $i(0..$ncurves - 1) {
-			my $chk = dclone(\%chunk);
-			$chk->{data} = [ map { $_->slice(":,($i)") } @dataPiddles ];
-
-			if(exists($chk->{options}->{legend})) {
-			    $chk->{options}->{legend} = [$chk->{options}->{legend}->[$i]];
-			}
-
-			push(@chunks, $chk);
-		    }
-		}
-	    } else {
-		# Non-image case, with array refs instead of PDLs -- we required the chunk to be
-		# simple in matchDims, so just push it.
-		$ncurves = 1;
-		$chunk{data} = \@dataPiddles;
-		$chunk{imgFlag} = 0;
-		# Ensure legend appears in the options parsing (to emit "notitle" if necessary)
-		$chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
-
-		push @chunks, \%chunk;
-	    }
-
-	    $Ncurves += $ncurves;
-	    $chunk{imageflag} = $imgFlag;
-
-
-	    $argIndex = $nextOptionIdx;
-	}
-
-	return (\@chunks, $Ncurves);
-    } # end of ParseArgs nested sub
-
-
-    ##########
-    # matchDims: nested sub inside plot - kludge up thread style matching across
-    # the data arguments to a given chunk.
-    sub matchDims
-    {
-	my @data = @_;
-
-	my $nonPDLCount = 0;
-	map { $nonPDLCount++ unless( $_->$_isa('PDL') ) } @data;
-
-	# In the case where all data are PDLs, we match dimensions.
-	unless($nonPDLCount) {
-	    # Make sure the domain and ranges describe the same number of data points,
-	    # and that all PDLs have at least one dim.
-	    #
-	    # ( This is complicated by the need/desire to preserve threading rules.  Here,
-	    # we accumulate thread dimensions manually and then match 'em using dummy
-	    # dimensions...  --CED )
-	    my @data_dims = (1);  # ensure at least 1 dim with at least 1 element
-
-	    # Assemble the thread-rules dim list
-	    for my $i(0..$#data) {
-		my @ddims = $data[$i]->dims;
-		for my $i(0..$#ddims) {
-		    if( (!defined($data_dims[$i])) || ($data_dims[$i] <= 1) ) {
-			$data_dims[$i] = $ddims[$i];
-		    }
-		    elsif( ( $ddims[$i]>1) && ($ddims[$i] != $data_dims[$i] )) {
-			barf "plot(): mismatched arguments in tuple (position $i)\n";
-		    }
-		}
-	    }
-
-	    # Now pad each data element out, by slicing, to match the full dim list.  If the
-	    # dim matches, mark a ':'; if not, put in the correct dummy dim to make it match.
-	    # Don't bother slicing unless at least one dummy dim is needed.
-	    for my $i(0..$#data) {
-		my @ddims = $data[$i]->dims;
-		my @s = ();
-		my $slice_needed = 0;
-
-		for my $id(0..$#data_dims) {
-		    if((!defined($ddims[$id])) || !$ddims[$id]) {
-			push(@s,"*$data_dims[$id]");
-			$slice_needed = 1;
-		    }
-		    elsif($data_dims[$id] == $ddims[$id]) {
-			push(@s,":");
-		    }
-		    elsif( $ddims[$id]==1 ) {
-			push(@s,"(0), *$data_dims[$id]");
-			$slice_needed = 1;
-		    } else {
-			# should never happen
-			barf "plot(): problem with dim assignments. This is a bug."; # no newline
-		    }
-		}
-
-		if($slice_needed) {
-		    my $s = join(",",@s);
-		    $data[$i] = $data[$i]->slice( join(",",@s) );
-		}
-	    }
-	    return @data;
-	}
-	# At least one of the data columns is a non-PDL.  Force them to be simple columns, and
-	# require exact dimensional match.
-	#
-	# Also, convert any contained PDLs to list refs.
-
-	my $nelem;
-	my @out = ();
-
-	for(@data) {
-	    barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
-		if( $_->$_isa('PDL')   and   $_->ndims > 1 );
-
-	    if((ref $_) eq 'ARRAY') {
-		barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
-		    if( (defined $nelem) and (@$_ != $nelem) );
-		$nelem = @$_;
-
-		for (@$_) {
-		    barf "plot(): nested references not allowed in list data\n"
-			if( ref($_) );
-		}
-
-		push(@out, $_);
-
-	    } elsif(  $_->$_isa('PDL')  ) {
-		barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
-		    if( (defined $nelem) and ($_->nelem != $nelem) );
-		$nelem = $_->nelem;
-
-		push(@out, [ $_->list ]);
-
-	    } else {
-		barf "plot(): problem with dim checking.  This should never happen.";
-	    }
-	}
-
-	return @out;
-    } # end of matchDims (nested in plot)
-}  # end of plot
+##########
+# matchDims: nested sub inside plot - kludge up thread style matching across
+# the data arguments to a given chunk.
+sub matchDims
+{
+  my @data = @_;
+  my $nonPDLCount = 0;
+  map { $nonPDLCount++ unless( $_->$_isa('PDL') ) } @data;
+  # In the case where all data are PDLs, we match dimensions.
+  unless($nonPDLCount) {
+    # Make sure the domain and ranges describe the same number of data points,
+    # and that all PDLs have at least one dim.
+    #
+    # ( This is complicated by the need/desire to preserve threading rules.  Here,
+    # we accumulate thread dimensions manually and then match 'em using dummy
+    # dimensions...  --CED )
+    my @data_dims = (1);  # ensure at least 1 dim with at least 1 element
+    # Assemble the thread-rules dim list
+    for my $i(0..$#data) {
+      my @ddims = $data[$i]->dims;
+      for my $i(0..$#ddims) {
+        if( (!defined($data_dims[$i])) || ($data_dims[$i] <= 1) ) {
+          $data_dims[$i] = $ddims[$i];
+        }
+        elsif( ( $ddims[$i]>1) && ($ddims[$i] != $data_dims[$i] )) {
+          barf "plot(): mismatched arguments in tuple (position $i)\n";
+        }
+      }
+    }
+    # Now pad each data element out, by slicing, to match the full dim list.  If the
+    # dim matches, mark a ':'; if not, put in the correct dummy dim to make it match.
+    # Don't bother slicing unless at least one dummy dim is needed.
+    for my $i(0..$#data) {
+      my @ddims = $data[$i]->dims;
+      my @s = ();
+      my $slice_needed = 0;
+      for my $id(0..$#data_dims) {
+        if((!defined($ddims[$id])) || !$ddims[$id]) {
+          push(@s,"*$data_dims[$id]");
+          $slice_needed = 1;
+        }
+        elsif($data_dims[$id] == $ddims[$id]) {
+          push(@s,":");
+        }
+        elsif( $ddims[$id]==1 ) {
+          push(@s,"(0), *$data_dims[$id]");
+          $slice_needed = 1;
+        } else {
+          # should never happen
+          barf "plot(): problem with dim assignments. This is a bug."; # no newline
+        }
+      }
+      if($slice_needed) {
+        my $s = join(",",@s);
+        $data[$i] = $data[$i]->slice( join(",",@s) );
+      }
+    }
+    return @data;
+  }
+  # At least one of the data columns is a non-PDL.  Force them to be simple columns, and
+  # require exact dimensional match.
+  #
+  # Also, convert any contained PDLs to list refs.
+  my $nelem;
+  my @out = ();
+  for(@data) {
+    barf "plot(): only 1-D PDLs are allowed to be mixed with array ref data\n"
+      if( $_->$_isa('PDL')   and   $_->ndims > 1 );
+    if((ref $_) eq 'ARRAY') {
+      barf "plot(): row count mismatch:  ".(0+@$_)." != $nelem\n"
+        if( (defined $nelem) and (@$_ != $nelem) );
+      $nelem = @$_;
+      for (@$_) {
+        barf "plot(): nested references not allowed in list data\n"
+          if( ref($_) );
+      }
+      push(@out, $_);
+    } elsif(  $_->$_isa('PDL')  ) {
+      barf "plot(): nelem disagrees with row count: ".$_->nelem." != $nelem\n"
+        if( (defined $nelem) and ($_->nelem != $nelem) );
+      $nelem = $_->nelem;
+      push(@out, [ $_->list ]);
+    } else {
+      barf "plot(): problem with dim checking.  This should never happen.";
+    }
+  }
+  return @out;
+} # end of matchDims (nested in plot)
 
 ######################################################################
 ######################################################################
