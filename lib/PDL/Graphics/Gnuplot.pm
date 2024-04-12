@@ -2010,7 +2010,7 @@ use Time::HiRes qw(gettimeofday tv_interval);
 use Safe::Isa;
 use Carp;
 
-use Alien::Gnuplot 4.4;  # Ensure gnuplot exists and is recent, and get ancillary info about it.
+use Alien::Gnuplot;
 if($Alien::Gnuplot::VERSION < 1.031) {
     # Have to check explicitly since we use the version hack to check the *gnuplot* version.
     die "PDL::Graphics::Gnuplot requires Alien::Gnuplot version 1.031 or higher\n (v$Alien::Gnuplot::VERSION found). You can pull the latest from CPAN.\n";
@@ -2018,6 +2018,8 @@ if($Alien::Gnuplot::VERSION < 1.031) {
 
 our $gnuplot_dep_v = 4.006; # Versions below this are deprecated.
 our $gnuplot_req_v = 4.004; # Versions below this are not supported.
+# Ensure gnuplot exists and is recent, and get ancillary info about it.
+Alien::Gnuplot->VERSION('4.4');
 
 # Compile time config flags...
 our $check_syntax = 0;
