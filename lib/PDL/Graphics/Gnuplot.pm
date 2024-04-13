@@ -2701,14 +2701,14 @@ sub plot
     # the last_plot hash options hash remains unchanged in the object.
     my $o;
     if($this->{replotting}) {
-	$o = dclone($this->{last_plot}->{options});
-	$o->{terminal} = $this->{options}->{terminal};
-	$o->{output}   = $this->{options}->{output};
+	$o = dclone($this->{last_plot}{options});
+	$o->{terminal} = $this->{options}{terminal};
+	$o->{output}   = $this->{options}{output};
     } else {
 	$o = dclone($this->{options});
     }
     # Now parse the initial hash of plot options (if there is one)
-    if(  (ref $_[0]) =~ m/^(HASH|ARRAY)/ ) {
+    if ( (ref $_[0]) =~ m/^(HASH|ARRAY)/ ) {
 	my $oo = dclone($o);
 	eval { _parseOptHash( $oo, $pOpt, $_[0] ); };
 	if($@ =~ m/^No /) {
@@ -2725,14 +2725,14 @@ sub plot
 	}
     }
     # Now look for and parse a trailing hash of plot options (if there is one)
-    if( $#_ >= 1  and   ((ref $_[-1])=~ /^(HASH)/)) {
+    if (@_ >= 2  and   ((ref $_[-1])=~ /^(HASH)/)) {
 	my $oo = dclone($o);
 	eval { _parseOptHash( $oo, $pOpt, $_[-1] ); };
-	if($@ =~ m/^No /) {
+	if ($@ =~ m/^No /) {
 	    # Found an unrecognized keyword -- clear the error and keep going.
 	    # (not a set of plot options)
 	    $@ = "";
-	} elsif($@) {
+	} elsif ($@) {
 	    # Some other actual exception -- pass it down the line.  Oops.
 	    barf $@ . "   (while parsing presumed extra plot options at end of plot command)\n";
 	} else {
@@ -2747,7 +2747,7 @@ sub plot
     local($this->{options}) = $o;
     local($this->{tmp_options}) = {};
     # Make sure to reset the palette to the gnuplot default if it's not set here
-    $this->{options}->{palette} = [] unless($this->{options}->{palette});
+    $this->{options}{palette} ||= [];
     # If we're replotting, then any remaining arguments need to be put
     # *after* the arguments that we used for the last plot.
     unshift @_, @{$this->{last_plot}{args}}, !$_[0]->$_isa('PDL') ? () : {}
@@ -2755,20 +2755,17 @@ sub plot
     ##############################
     # Set binary mode default. This is a bit complex since
     # we sometimes default to binary and sometimes to ascii.
-    local $this->{binary_flag_defaulted} = 0;
-    unless (defined $this->{options}{binary}) {
-	# The user didn't explicitly set binary or non-binary mode.  Try to guess.
-	# Also, under Microsoft Windows binary mode seems to be dicey (Juegen Mueck's hang
-	# test), so we default to ascii.
-	$this->{options}{binary} =
-	  # Early gnuplot - ASCII mode only (by default)
-	  ($this->{early_gnuplot} || $MS_io_braindamage) ? 0 :
-	  # Late-model gnuplot - binary for non time format plots, ASCII for time plots.
-	  # (Note: some transfer formats force binary transfer)
-	  !grep +($this->{options}{$_."data"}||'') =~ m/time/,
-	    qw/x x2 y y2 z cb/;
-	$this->{binary_flag_defaulted} = 1; # Mark that we set the binary/ascii mode by default rather than user command
-    }
+    local $this->{binary_flag_defaulted} = !defined $this->{options}{binary};
+    # The user didn't explicitly set binary or non-binary mode.  Try to guess.
+    # Also, under Microsoft Windows binary mode seems to be dicey
+    # (Juegen Mueck's hang test), so we default to ascii.
+    $this->{options}{binary} //=
+      # Early gnuplot - ASCII mode only (by default)
+      ($this->{early_gnuplot} || $MS_io_braindamage) ? 0 :
+      # Late-model gnuplot - binary for non time format plots, ASCII for time plots.
+      # (Note: some transfer formats force binary transfer)
+      !grep +($this->{options}{$_."data"}||'') =~ m/time/,
+	qw/x x2 y y2 z cb/;
     # Store the current arguments into the state array for next time.
     # (This has to be done here because plot options need to be stripped out first).
     #
@@ -3576,7 +3573,7 @@ EOF
     # pre-inverted so that the 0 dim runs across column.
     if($cdims==2) {
       # Surfaces never get a label unless one is explicitly set
-      $chunk{options}->{legend} = undef unless( exists($chunk{options}->{legend}) );
+      $chunk{options}{legend} = undef unless exists $chunk{options}{legend};
       $spec_legends = 1;
       my $p = pdl(@dataPiddles);
       # Coerce up to 3 dimensions, with (col, ix, iy).
@@ -3613,31 +3610,31 @@ If you are trying to plot a surface, you might try setting 'trid=>1'
 in the plot options.
 FOO
       }
-      if($chunk{options}->{legend} and
-         @{$chunk{options}->{legend}} and
-         @{$chunk{options}->{legend}} != $ncurves
+      if ($chunk{options}{legend} and
+         @{$chunk{options}{legend}} and
+         @{$chunk{options}{legend}} != $ncurves
         ) {
-        my $ent = (0+@{$chunk{options}->{legend}} == 1) ? "y" : "ies";
+        my $ent = (0+@{$chunk{options}{legend}} == 1) ? "y" : "ies";
         my $pl = ($ncurves==1)?"":"s";
-        barf "Legend has ".(0+@{$chunk{options}->{legend}})." entr$ent; but ".($ncurves)." curve$pl supplied!";
+        barf "Legend has ".(0+@{$chunk{options}{legend}})." entr$ent; but ".($ncurves)." curve$pl supplied!";
       }
       # Ensure legend appears in the options parsing (to emit "notitle" if necessary)
-      $chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
-      $spec_legends = 1 if($chunk{options}->{legend});
+      $chunk{options}{legend} = undef unless(exists($chunk{options}{legend}));
+      $spec_legends = 1 if($chunk{options}{legend});
       $chunk{tuplesize} = $NdataPiddles;
-      if($ncurves==1) {
+      if ($ncurves==1) {
         # The chunk is OK.
         $chunk{data}    = \@dataPiddles;
         push @chunks, \%chunk;
       } else {
         # The chunk needs splitting, options and all.
-        for my $i(0..$ncurves - 1) {
+        for my $i (0..$ncurves - 1) {
           my $chk = dclone(\%chunk);
-          $chk->{data} = [ map { $_->slice(":,($i)") } @dataPiddles ];
-          if(exists($chk->{options}->{legend})) {
-            $chk->{options}->{legend} = [$chk->{options}->{legend}->[$i]];
+          $chk->{data} = [ map $_->slice(":,($i)"), @dataPiddles ];
+          if (exists($chk->{options}{legend})) {
+            $chk->{options}{legend} = [$chk->{options}{legend}[$i]];
           }
-          push(@chunks, $chk);
+          push @chunks, $chk;
         }
       }
     } else {
@@ -3647,7 +3644,7 @@ FOO
       $chunk{data} = \@dataPiddles;
       $chunk{imgFlag} = 0;
       # Ensure legend appears in the options parsing (to emit "notitle" if necessary)
-      $chunk{options}->{legend} = undef unless(exists($chunk{options}->{legend}));
+      $chunk{options}{legend} = undef unless(exists($chunk{options}{legend}));
       push @chunks, \%chunk;
     }
     $Ncurves += $ncurves;
@@ -5127,7 +5124,7 @@ our $cOptionsTable = {
 		   ],
     'using'    => ['l','cl',undef,6],        # using clauses in order (straight passthrough)
 # legend is a special case -- it gets parsed as a list but emitted as a quoted scalar.
-    'legend'   => ['l', sub { if(defined($_[1]) and defined $_[1]->[0]) {return "title \"$_[1]->[0]\"";} else {return "notitle"}},
+    'legend'   => ['l', sub { if(defined($_[1]) and defined $_[1][0]) {return "title \"$_[1][0]\"";} else {return "notitle"}},
 		   undef, 7],
     'axes'     => [['(x[12])(y[12])'],'cs',undef,8],
     'smooth'   => ['s','cs',undef,8.1],
