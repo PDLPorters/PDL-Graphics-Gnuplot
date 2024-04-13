@@ -2,6 +2,7 @@
   packaging. Fixes #98.
 - fixes for Windows (#89)
 - use terminal "dumb" if probing shows "unknown" (#66)
+- fix numeric-only strings for legend (#100) - thanks @d-lamb for report
 
 2.024 2023-03-30
 - Add Alien::Gnuplot as a configure-time dependency. Fixes #92 - thanks @zmughal

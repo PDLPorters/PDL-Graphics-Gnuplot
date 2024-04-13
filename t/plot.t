@@ -825,10 +825,14 @@ $b = pdl(1,4,9,16,25)->sqrt;  # 1,2,3,4,5
 
 $w->plot(with=>'lines',$a,{binary=>1});
 $w->close;
-
 @lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 isnt $lines[12], '';
 like substr($lines[12],20,40), qr/^\s+$/, "NaN makes a blank in a plot";
+
+$w->restart;
+eval {$w->plot(with=>'lines',legend=>'456',$b)};
+is $@, '', "can use numeric-only strings for legend"; # GH#100
+$w->close;
 
 $w->restart;
 $w->plot(with=>'lines',$b,{binary=>1});

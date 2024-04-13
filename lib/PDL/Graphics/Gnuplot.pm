@@ -5466,7 +5466,7 @@ $_pOHInputs = {
     ## one-line list (can also be boolean)
     'l' => sub { return undef unless(defined $_[1]);
 		 return "" unless(length($_[1]));                                 # false value yields false
-		 return $_[1] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
+		 return [$_[1]] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
 		 # Not setting a boolean value - it's a list (or a trivial list).
 		 return $_[1] if ref $_[1] eq 'ARRAY';
 		 # anything that's not an array ref (and not a number) gets put in the array
