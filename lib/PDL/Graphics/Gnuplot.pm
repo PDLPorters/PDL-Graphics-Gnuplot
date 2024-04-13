@@ -2782,13 +2782,12 @@ sub plot
     # We don't store the arguments if we're carrying the "ephemeral" flag - that is
     # so we can do ephemeral markup of plots, without adding to the replot list.
     unless($this->{ephemeral}) {
-	$this->{last_plot}->{args}  = [@_];
-	$this->{last_plot}->{options} = dclone($this->{options});
+	$this->{last_plot}{args}  = [@_];
+	$this->{last_plot}{options} = dclone($this->{options});
 	delete $this->{last_plot}{options}{binary}
 	  if $this->{binary_flag_defaulted};
     }
     # Now parse the rest of the arguments into chunks.
-    # parseArgs is a nested sub at the bottom of this one.
     my ($chunks, $Ncurves) = parseArgs($this, @_);
     if( scalar @$chunks == 0) { barf "plot() was not given any data"; }
     ##############################
@@ -2813,17 +2812,14 @@ sub plot
     #
     # This is complicated in the case when there are multiple chunks, one of which is an image.
     # We can't set an overall range until we scan the whole collection of chunks.
-    my ($cbmin,$cbmax) = (undef, undef);
-    my $im_ranges = {};
-    my $active_axes = {};
-    my @axes_by_chunkno = ();
-    for my $i(0..$#$chunks) {
+    my ($im_ranges, $active_axes, $cbmin, $cbmax, @axes_by_chunkno) = ({}, {});
+    for my $i (0..$#$chunks) {
 	# Allow global binary/ASCII flag to be overridden by per-curve binary/ASCII flag
-	$chunks->[$i]->{binaryCurveFlag} = _def($chunks->[$i]->{binaryWith}, $this->{options}->{binary});
+	$chunks->[$i]{binaryCurveFlag} = $chunks->[$i]{binaryWith} // $this->{options}{binary};
 	# Figure which axes are active
-	my $axis_str = _def($chunks->[$i]->{options}->{axes}, 'x1y1');
+	my $axis_str = $chunks->[$i]{options}{axes} // 'x1y1';
 	my ($xax,$yax);
-	if($axis_str =~ m/x([12])y([12])/i) {
+	if ($axis_str =~ m/x([12])y([12])/i) {
 	    my ($x,$y) = ($1,$2);
 	    ($xax,$yax) = ($x==1 ? 'x' : 'x2', $y==1 ? 'y' : 'y2');
 	} else {
@@ -2833,15 +2829,15 @@ sub plot
 	$axes_by_chunkno[$i] = [$xax,$yax];
 	$_++ for @$active_axes{$xax, $yax};
 	# Everything else in this block is an image fix
-	next unless($chunks->[$i]->{imgFlag});
+	next unless($chunks->[$i]{imgFlag});
 	# Fix up gnuplot color scaling bug/misfeature for RGB images
 	# Here, we accumulate min/max color ranges across *all* imagelike chunks,
 	# so mixing rgb and palette images will scale right.
-	if(!defined( $this->{options}->{cbrange} )) {
-	    my $with = $chunks->[$i]->{options}->{with}->[0];
+	if(!defined( $this->{options}{cbrange} )) {
+	    my $with = $chunks->[$i]{options}{with}[0];
 	    my $slice = "-1";
-	    $slice = "-3:-1" if($with eq 'rgbimage');
-	    $slice = "-4:-2" if($with eq 'rgbalpha');
+	    $slice = "-3:-1" if $with eq 'rgbimage';
+	    $slice = "-4:-2" if $with eq 'rgbalpha';
 	    # Sometimes data comes in that has BAD values but they are
 	    # not marked as such, which messes up the cbmin &c. calc.
 	    if ($PDL::Bad::Status){
@@ -2865,26 +2861,26 @@ sub plot
 	# We implement that here by accumulating the largest extent covered by images.
 	# If there are images and no xrange/yrange was set by the user, we set it to that.
 	my $z; # temp. holding space for xrange/yrange for this chunk
-	if($chunks->[$i]->{ArrayRec} eq 'array') {
-	    $z = [-0.5, $chunks->[$i]->{data}->[0]->dim(1) - 0.5];
+	if ($chunks->[$i]{ArrayRec} eq 'array') {
+	    $z = [-0.5, $chunks->[$i]{data}[0]->dim(1) - 0.5];
 	} else {
-	    my($xmin,$xmax) = $chunks->[$i]->{data}->[0]->slice("(0)")->minmax;
-	    my($dx) = ($xmax-$xmin) / $chunks->[$i]->{data}->[0]->dim(1) * 0.5;
+	    my($xmin,$xmax) = $chunks->[$i]{data}[0]->slice("(0)")->minmax;
+	    my($dx) = ($xmax-$xmin) / $chunks->[$i]{data}[0]->dim(1) * 0.5;
 	    $z = [$xmin - $dx, $xmax + $dx];
 	}
 	$im_ranges->{$xax} //= [undef, undef];
-	$im_ranges->{$xax}[0] = $z->[0]  if( !defined( $im_ranges->{$xax}[0] ) or $z->[0] < $im_ranges->{$xax}->[0] );
-	$im_ranges->{$xax}[1] = $z->[1]  if( !defined( $im_ranges->{$xax}[1] ) or $z->[1] > $im_ranges->{$xax}->[1] );
+	$im_ranges->{$xax}[0] = $z->[0]  if( !defined( $im_ranges->{$xax}[0] ) or $z->[0] < $im_ranges->{$xax}[0] );
+	$im_ranges->{$xax}[1] = $z->[1]  if( !defined( $im_ranges->{$xax}[1] ) or $z->[1] > $im_ranges->{$xax}[1] );
 	if($chunks->[$i]->{ArrayRec} eq 'array') {
-	    $z= [ -0.5, $chunks->[$i]->{data}->[0]->dim(2) - 0.5 ];
+	    $z= [ -0.5, $chunks->[$i]{data}[0]->dim(2) - 0.5 ];
 	} else {
-	    my ($ymin,$ymax) = $chunks->[$i]->{data}->[0]->slice("(1)")->minmax;
-	    my($dy) = ($ymax-$ymin) / $chunks->[$i]->{data}->[0]->dim(2) * 0.5;
+	    my ($ymin,$ymax) = $chunks->[$i]{data}[0]->slice("(1)")->minmax;
+	    my($dy) = ($ymax-$ymin) / $chunks->[$i]{data}[0]->dim(2) * 0.5;
 	    $z = [$ymin - $dy, $ymax + $dy];
 	}
 	$im_ranges->{$yax} //= [undef, undef];
-	$im_ranges->{$yax}[0] = $z->[0]  if( !defined( $im_ranges->{$yax}[0] ) or $z->[0] < $im_ranges->{$yax}->[0] );
-	$im_ranges->{$yax}[1] = $z->[1]  if( !defined( $im_ranges->{$yax}[1] ) or $z->[1] > $im_ranges->{$yax}->[1] );
+	$im_ranges->{$yax}[0] = $z->[0]  if( !defined( $im_ranges->{$yax}[0] ) or $z->[0] < $im_ranges->{$yax}[0] );
+	$im_ranges->{$yax}[1] = $z->[1]  if( !defined( $im_ranges->{$yax}[1] ) or $z->[1] > $im_ranges->{$yax}[1] );
     }
     ##############################
     # If image xrange/yrange has been set, check it against the maximum extent of other types of
@@ -2895,7 +2891,7 @@ sub plot
     #
     # We don't actually keep the non-image range limits, since we want to fall back to gnuplot's
     # axis estimator in the case where a non-image curve is setting the size of the axis.
-    if( 0 + (keys %$im_ranges) ) {
+    if ( 0 + (keys %$im_ranges) ) {
 	my $ranges = {};
 	for my $i (grep !$chunks->[$_]{imgFlag}, 0..$#$chunks) {
 	    my ($cxr, $cyr);
@@ -2953,11 +2949,11 @@ sub plot
     # Remember, the purpose of this whole shenanigan is to fix up image ranging.
     # Axes whose values are set by option only or by non-image curves only are just fine.
     # (Maybe it would have been better to just submit a gnuplot patch...)
-    for my $k(keys %$im_ranges) {
+    for my $k (keys %$im_ranges) {
 	my $rkey = $k."range";
 	# Calculate the widest-range merge of any supplied plot options and curve options
 	# for this axis.
-	my $po_range = _def( $this->{options}{$rkey}, [undef,undef] );
+	my $po_range = $this->{options}{$rkey} // [undef,undef];
 	if( defined( $chunks->[0]->{options}{$rkey} ) ) {
 	    my $z = $chunks->[0]->{options}{$rkey};
 	    $po_range->[0] = $z->[0] if( !defined($po_range->[0]) or (defined($z->[0]) and  $z->[0] < $po_range->[0]) );
@@ -2969,13 +2965,13 @@ sub plot
 	# Now we have a merged range value whose limits come from supplied options or existing image "curve"s.
 	# Normal curves are not represented and appear as undef, allowing gnuplot to pix the axis range.
 	# Create a temporary option representing this.
-	$this->{tmp_options}->{$rkey} = $po_range;
+	$this->{tmp_options}{$rkey} = $po_range;
     }
     ##############################
     # If we're working with time data, and timefmt isn't set, then default it to '%s'.
     $this->{options}->{timefmt} = '%s'
       if !defined($this->{options}->{timefmt}) and
-	grep _def($this->{options}->{$_."data"}, "") =~ m/^time/i, qw/x x2 y y2 z cb/;
+	grep +($this->{options}->{$_."data"} // "") =~ m/^time/i, qw/x x2 y y2 z cb/;
     ##############################
     # Now deal with x2/y2 ticks.  By default they don't get turned on (blech).  So if they are
     # active, we turn them on with default values -- and also turn off mirroring for the x/y ticks.
@@ -2993,7 +2989,7 @@ sub plot
 	    # Do this with a 'topcmds' command since it will be overridden
 	    # by whatever comes below (and axis1 ticks are on by default anyway,
 	    # so if the user doesn't want them he will have turned them off).
-	    my $tc = _def($this->{options}->{topcmds},"");
+	    my $tc = $this->{options}->{topcmds} // "";
 	    $tc .= "\nset $axtics nomirror\n";
 	    $this->{options}->{topcmds} = $tc;
 	}
@@ -3034,21 +3030,12 @@ POS
 	$plotOptionsString .= "reset\n\n\n";
     }
     $plotOptionsString .= _emitOpts($this->{options}, $pOpt);
-    my $testOptionsString;
-    if ($check_syntax){
-	local($this->{options}{terminal}) = "dumb";
-	local($this->{options}{output}) = ' ';
-	$testOptionsString = _emitOpts($this->{options}, $pOpt);
-    }
     ##########
     # Generate the plot command with the fences in it instead of data specifiers.
     # (The fences are emitted in _emitOpts and contained in the global $cmdFence)
-    my $plotcmd =  ($this->{options}->{'3d'} ? "splot " : "plot ") .
-	join( ", ",
-	      map {
-		  _emitOpts($chunks->[$_]->{options}, $cOpt, $this);
-	      } (0..$#$chunks)
-	);
+    my $plotcmd =  ($this->{options}{'3d'} ? "splot " : "plot ") .
+	join ", ", map _emitOpts($chunks->[$_]{options}, $cOpt, $this),
+	    0..$#$chunks;
     ##########
     # Break up the plot command so we can insert data specifiers in each location
     my @plotcmds = split /$cmdFence/, $plotcmd;
@@ -3119,14 +3106,9 @@ POS
     $testcmd .= join("", map $_->{testdata}, @$chunks) if $check_syntax;
     # Stash this plot command in the debugging variable
     $this->{last_plotcmd} = our $last_plotcmd = $plotOptionsString.$plotcmd;
-    our $last_testcmd;
-    if($check_syntax) {
-	$last_testcmd = $plotOptionsString.$testcmd;
-	$this->{last_testcmd} = $last_testcmd;
-    }
-    if ($PDL::Graphics::Gnuplot::DEBUG) {
-	print "plot command is:\n$plotcmd\n";
-    }
+    $this->{last_testcmd} = our $last_testcmd = $plotOptionsString.$testcmd
+      if $check_syntax;
+    print "plot command is:\n$plotcmd\n" if $PDL::Graphics::Gnuplot::DEBUG;
     #######
     # The commands are assembled.  Now test 'em by sending the test command down the pipe.
     my $checkpointMessage;
@@ -3162,8 +3144,7 @@ POS
     ##### Finally..... send the actual plot command to the gnuplot device.
     _printGnuplotPipe( $this, "main", $plotcmd);
     $this->{last_plot}{command} = $plotcmd;
-    my $chunkno = 0;
-    for my $chunk(@$chunks){
+    for my $chunk (@$chunks) {
 	my $p;
 	# Gnuplot doesn't handle bad values, but it *does* know to
 	# omit nans.  If we're running under a PDL that uses the
@@ -3185,15 +3166,13 @@ POS
 	    $last_plotcmd .= $s;
 	    $this->{last_plotcmd} .= $s;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 } );
-
-	} elsif ( $chunk->{binaryCurveFlag}  ) {
+	} elsif ($chunk->{binaryCurveFlag}) {
 	    # Send in binary if the binary flag is set.
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
 	    my $s = " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 	    $last_plotcmd .= $s;
 	    $this->{last_plotcmd} .= $s;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 });
-
 	} else {
 	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
 	    # a line with just "e".
@@ -3225,7 +3204,7 @@ POS
 		};
 	    }
 	    # Assemble and dump the ASCII through the just-defined emitter.
-	    if( $chunk->{data}->[0]->$_isa('PDL') ) {
+	    if ($chunk->{data}[0]->$_isa('PDL')) {
 		# It's a collection of PDL data only.
 		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
@@ -3238,12 +3217,12 @@ POS
 	    } else {
 		# It's a collection of list ref data only.  Assemble strings.
 		my $data = $chunk->{data};
-		my $last = $#{$chunk->{data}[0]};
+		my $last = $#{$data->[0]};
 		my $s = "";
 		for my $i (0..$last) {
 		    for my $j (0..$#$data) {
 			my $elem = $data->[$j][$i];
-			if($elem =~ m/[\s\"]/) {    # element contains whitespace or quotes
+			if ($elem =~ m/[\s\"]/) {    # element contains whitespace or quotes
 			    $elem =~ s/\"/\\\"/g;   # Escape quotes
 			    $elem =~ s/[\n\r]/ /g;  # Remove any newlines or returns
 			    $elem = "\"$elem\"";    # quote the element
@@ -3391,9 +3370,7 @@ sub parseArgs
                   } $argIndex..$#args;
     $nextOptionIdx = @args unless defined $nextOptionIdx;
     # Make sure we know our "with" style...
-    unless($chunk{options}{with}) {
-      $chunk{options}{with} = _def($this->{options}->{'globalwith'},["lines"]);
-    }
+    $chunk{options}{with} ||= $this->{options}{globalwith} // ["lines"];
     # validate "with" and get imgFlag and tupleSizes.
     # First, unpack the "with" -- we accept a list of with parameters, but also
     # unpack them if they are supplied as a single smushed-together string.
@@ -4163,7 +4140,7 @@ read_mouse blocks execution for input, but responds gracefully to interrupts.
 my $mouse_serial = 0;
 sub read_mouse {
     my $this = shift;
-    my $message = _def(shift(), "Click mouse or press key in plot to continue...");
+    my $message = shift() // "Click mouse or press key in plot to continue...";
 
     unless($this->{mouse}) {
 	my $s = "read_mouse: This plot uses the '$this->{terminal}' terminal, which doesn't support mousing\n";
@@ -4204,7 +4181,7 @@ EOC
 	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
-	($ch,$x,$y,$b,$sft,$alt,$ctl) = map { _def($_,"") } ($1,$3,$4,$5,$6,$7,$8);
+	($ch,$x,$y,$b,$sft,$alt,$ctl) = map $_//"", ($1,$3,$4,$5,$6,$7,$8);
 
     }
 
@@ -4224,7 +4201,7 @@ EOC
 	$string =~ m/Key:(\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+) shift:(\d+) alt:(\d+) ctrl:(\d+))?/
 	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
 
-	($ch,$x,$y,$sft,$alt,$ctl) = map { _def($_, "") } ($1,$3,$4,$5,$6,$7);
+	($ch,$x,$y,$sft,$alt,$ctl) = map $_ // "", ($1,$3,$4,$5,$6,$7);
 
 	if($ch == 1063) {
 	    $b = 1;
@@ -4531,7 +4508,7 @@ sub _gen_abbrev_list {
 }
 
 sub _expand_abbrev {
-    my $s = _def(shift(),"");
+    my $s = shift() // "";
     my $sl = lc($s);
     my $abbrevs = shift;
     my $name = shift;
@@ -5007,8 +4984,8 @@ use warnings;
 			       my @numbers = ();
 			       my @v = @$v;
 
-			       while( @v && (_def($v[0],"") =~ m/^(\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*)?$/ )) {
-				   push(@numbers, _def(shift(@v),""));
+			       while( @v && (($v[0]//"") =~ m/^(\s*\-?((\d+\.?\d*)|(\d*\.\d+))([eE][\+\-]\d*)?\s*)?$/ )) {
+				   push @numbers, shift(@v)//"";
 			       }
 			       my $s = "";
 			       $s .= "set view ".join(",",@numbers)."\n" if(@numbers);
@@ -5140,7 +5117,7 @@ our $cOptionsTable = {
          # data is here so that it gets sorted properly into each chunk -- but it doesn't get specified this way.
          # the output string just specifies STDIN.   The magic output string gets replaced post facto with the test and
          # real output format specifiers.
-    'cdims'     => [sub { my $s = _def($_[1], 0);  # Number of dimensions in a column
+    'cdims'     => [sub { my $s = $_[1] // 0; # Number of dimensions in a column
 			  barf "Curve option 'cdims' must be one of 0, 1, or 2\n" unless $s==0 or $s==1 or $s==2;
 			  return $s;
 		    },
@@ -5999,7 +5976,7 @@ our $_OptionEmitters = {
 
     #### A boolean or 'time' (for <foo>data plot options)
     'bt' => sub { my($k,$v,$h) = @_;
-		  return "set $k\n" unless (_def($v, "")  and  $v=~m/^t/i);
+		  return "set $k\n" unless ($v and $v=~m/^t/i);
 		  return "set $k $v\n";rxt hel
                  },
 
@@ -6085,7 +6062,7 @@ our $_OptionEmitters = {
 			  if grep ref() ne 'ARRAY', @$v;
 		      my $line =   "(".
 				    join(", ",
-					  map sprintf('"%s" %s %s', _def($_->[0],""), _def($_->[1],0), _def($_->[2],"") ),
+					  map sprintf('"%s" %s %s', $_->[0]//"", $_->[1]//0, $_->[2]//""),
 					  @$v
 				    ).
 				    ")"
@@ -6316,17 +6293,17 @@ our $_OptionEmitters = {
 
 
 		     #looks like 'set <foo>range restore' (only way 'r' can be the first char)
-		     return "set $k ".join(" ",@$v)."\n" if( _def($v->[0], '') =~ m/^\s*r/i);
+		     return "set $k ".join(" ",@$v)."\n" if ($v->[0]//'') =~ m/^\s*r/i;
 
 
 		     # first element is an empty range specifier - emit.
-		     return "set $k ".join(" ",@$v)."\n" if(_def($v->[0], '') =~ m/\s*\[\s*\]/);
+		     return "set $k ".join(" ",@$v)."\n" if ($v->[0]//'') =~ m/\s*\[\s*\]/;
 
 		     my $c = substr($k,0,1);
-		     my $tfmt = _def( $h->{$c."data"}, "" ) =~ m/time/;
+		     my $tfmt = ( $h->{$c."data"} // "" ) =~ m/time/;
 
 		     # first element has a nonempty range specifier (naked or not).
-		     if( _def($v->[0], '') =~ m/\:/) {
+		     if( ($v->[0] // '') =~ m/\:/) {
 			 $v->[0]=~ s/^\s*((.*[^\s])?)\s*$/$1/; # trim leading and trailing whitespace if present
 
 			 unless($v->[0] =~ m/^\[/) {
@@ -6349,7 +6326,7 @@ our $_OptionEmitters = {
 		     # specifier out of 'em, then emit.
 		     # Here's a little fillip: gnuplot requires quotes around time ranges
 		     # if the corresponding axes are time data.  Handle that bizarre case.
-		     if( _def($h->{$c."data"},  "" ) =~ m/time/ ) {
+		     if( ($h->{$c."data"} // "") =~ m/time/ ) {
 			 return sprintf("set %s [%s:%s]\n",$k, ((defined $v->[0])?"\"$v->[0]\"":"*"), ((defined $v->[1])?"\"$v->[1]\"":"*"));
 		     }
 
@@ -6364,7 +6341,7 @@ our $_OptionEmitters = {
 		      # if the corresponding axes are time data.  Handle that bizarre case.
 		      my $c = substr($k,0,1);
 
-		      if( (_def($this and $this->{options} and $this->{options}->{$c."data"}), "" ) =~ m/time/ ) {
+		      if( ($this and $this->{options} and $this->{options}{$c."data"} // "") =~ m/time/ ) {
 			  carp "WARNING: gnuplot-4.6.1 date range bug triggered.  Check the date scale.\n";
 			  return sprintf(" [%s:%s] ",((defined $v->[0])?"\"$v->[0]\"":""), ((defined $v->[1])?"\"$v->[1]\"":""));
 		      }
@@ -6806,9 +6783,9 @@ for my $k(keys %$termTabSource) {
     $desc =~ s/\%u/$v->{unit}/;
     $termTab->{$k} = { desc => $desc,
 		       unit => $v->{unit},
-		       mouse => _def( $v->{mouse}, 0),
-		       disp  => _def( $v->{disp},  0),
-		       int   => _def( $v->{int},   0),
+		       mouse => $v->{mouse} // 0,
+		       disp  => $v->{disp}  // 0,
+		       int   => $v->{int}   // 0,
 		       opt  => [ $terminalOpt,
 				 undef, # This gets filled in on first use in the constructor.
 				 "$k terminal options"
@@ -6845,19 +6822,18 @@ interactive sessions.  It outputs information directly to the terminal.
 
 sub terminfo {
     my $this = _obj_or_global(\@_);
-    my $terminal = _def(shift, '');
+    my $terminal = shift() // '';
     my $brief_form = shift;
     my $dont_print = shift;
     my $s = "";
 
     if($termTabSource->{$terminal}) {
 	if(ref $termTabSource->{$terminal}) {
-	    my $ms = ( _def($termTabSource->{$terminal}->{mouse}, 0) ? ", mouse input ok" : "");
+	    my $ms = $termTabSource->{$terminal}{mouse} ? ", mouse input ok" : "";
 	    $s = "Gnuplot terminal '$terminal': size default unit is '$termTabSource->{$terminal}->{unit}'$ms, options are:\n";
 	    my $tt = $termTab->{$terminal}->{opt}->[0];
-	    for my $name(sort { _def($tt->{$a}->[3], 0) <=> _def($tt->{$b}->[3], 0)} keys %$tt) {
-		my @info = ();
-		@info = ($name, $tt->{$name}->[4]);
+	    for my $name(sort { ($tt->{$a}[3] // 0) <=> ($tt->{$b}->[3] // 0) } keys %$tt) {
+		my @info = ($name, $tt->{$name}[4]);
 		$info[0] =~ s/\_$//;         #remove trailing underscore on "output_" hack
 		if(defined($info[0]) and defined($info[1])) {
 		    my $ss = sprintf "%10s - %s\n",@info;
@@ -6999,7 +6975,7 @@ sub _load_alien_gnuplot {
 	if(exists($termTab->{$_})) {
 	    $valid_terms->{$_} = 1;
 	} else {
-	    $unknown_terms->{$_} = _def($termTabSource->{$_}, "Unknown but reported by gnuplot");
+	    $unknown_terms->{$_} = $termTabSource->{$_} // "Unknown but reported by gnuplot";
 	}
     }
 
@@ -7347,13 +7323,13 @@ sub _printGnuplotPipe
 	      # Send the next block out.
 	      $len = syswrite($pipein,substr($string,$of),$chunksize);
 	      if(!defined($len) or $len==0) {
-		  my $err = (defined($len) ? "(No error but 0 bytes written)" : _def($!, "(Huh - no error code in \$!)"));
+		  my $err = defined($len) ? "(No error but 0 bytes written)" : $! // "(Huh - no error code in \$!)";
 		  barf "PDL::Graphics::Gnuplot: Error while writing ".
-		      (length($string)).
+		      length($string).
 		      " bytes to the gnuplot pipe.\nError was:\n\t$err";
 	      }
 	      $of += $len;
-	      } while($of < length($string) and !$int_flag);
+	      } while $of < length($string) and !$int_flag;
 
 	      if($int_flag) {
 		  # We were interrupted, which hoses up gnuplot.  Restart gnuplot.
@@ -7435,10 +7411,10 @@ our $cp_serial = 0;
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
-    my $opt = _def(shift,  {});
-    my $notimeout = _def($opt->{notimeout}, 0);
-    my $printwarnings = (_def($opt->{printwarnings},  0) and !_def($this->{options}->{silent}, 0));
-    my $ignore_errors = _def($opt->{ignore_errors}, 0);
+    my $opt = shift() // {};
+    my $notimeout = $opt->{notimeout} // 0;
+    my $printwarnings = $opt->{printwarnings} && !$this->{options}{silent};
+    my $ignore_errors = $opt->{ignore_errors} // 0;
 
     my $pipeerr = $this->{"err-$suffix"};
 
@@ -7480,7 +7456,7 @@ sub _checkpoint {
     _logEvent($this, "Trying to read from gnuplot (suffix $suffix)") if $this->{options}{tee};
 
     my $terminal =$this->{options}->{terminal};
-    my $delay = (_def($this->{'wait'}, 0) + 0) || 10;
+    my $delay = (($this->{'wait'} // 0) + 0) || 10;
     my $fromerr = '';
 
     if($this->{"echobuffer-$suffix"}) {
@@ -7724,7 +7700,7 @@ sub _with_fits_prefrobnicator {
 	    splice @$with, $i,1; # remove 'resample' from list
 	    $resample_flag = 1;
 	    if( ($with->[$i]) =~ m/(\d+)(\,(\d+))?/ ) {
-		@resample_dims = ($1, _def($3, $1));
+		@resample_dims = ($1, $3 // $1);
 		splice @$with, $i, 1;
 	    }
 	    $i--;
@@ -7848,14 +7824,6 @@ sub _with_fits_prefrobnicator {
 
     barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n";
 
-}
-
-##########
-# Helper routine mocks up the // operator (so we can support earlier perls that don't have it).
-sub _def {
-    my $val = shift;
-    my $or = shift;
-    return (defined($val)?$val : $or);
 }
 
 ##########
