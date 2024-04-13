@@ -132,6 +132,17 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
     is 0+@lines, 1, "xlabel gets reset on multiplots";
 }
 
+if ($PDL::Graphics::Gnuplot::gp_version >= 4.7) { # only 4.7+
+  $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+  $w->multiplot(layout=>[1,2]);
+  $w->line(xvals(5)**2,{xlabel=>"FOO BAR BAZ"});
+  $w->multiplot_next;
+  $w->end_multi;
+  undef $w;
+  my @lines = grep m/FOO BAR BAZ/, do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
+  is 0+@lines, 1, "xlabel gets reset on multiplots";
+}
+
 ##############################
 # Test ascii data transfer (binary is tested by default on platforms where it works)
 eval {$w = gpwin('dumb', size=>[79,24,'ch'],output=>$testoutput);};

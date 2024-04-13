@@ -3915,6 +3915,7 @@ sub fits {
  $w->multiplot(layout=>[2,2,"columnsfirst"]);
  $w->plot({title=>"points"},with=>"points",$a,$b);
  $w->plot({title=>"lines"}, with=>"lines", $a,$b);
+ $w->multiplot_next; # with Gnuplot 4.7+
  $w->plot({title=>"image"}, with=>"image", $a->(*1) * $b );
  $w->end_multi();
 
@@ -3962,6 +3963,12 @@ C<offset> takes an array ref containing two values, that control placement
 of each plot within the grid.
 
 =back
+
+=head2 multiplot_next
+
+=for ref
+
+Skip one plot. Added in 2.025. Requires Gnuplot 4.7+.
 
 =head2 end_multi
 
@@ -4065,23 +4072,45 @@ sub multiplot {
     return;
 }
 
+sub multiplot_next {
+  barf "multiplot_next: need Gnuplot 4.7+\n"
+    if $PDL::Graphics::Gnuplot::gp_version < 4.7;
+  my $this = _obj_or_global(\@_);
+  barf "multiplot_next: you can't, you're not in multiplot mode\n"
+    unless $this->{options}{multiplot};
+  my $checkpointMessage;
+  if ($check_syntax) {
+    _printGnuplotPipe($this, "syntax", "set multiplot next\n");
+    $checkpointMessage = _checkpoint($this, "syntax");
+    barf "Gnuplot error: set multiplot next failed on syntax check!\n$checkpointMessage"
+      if $checkpointMessage;
+  }
+  _printGnuplotPipe($this, "main", "set multiplot next\n");
+  $checkpointMessage = _checkpoint($this, "main");
+  if ($checkpointMessage) {
+    if ($MS_io_braindamage) {
+      carp "WARNING: unexpected chatter after set multiplot next:\n$checkpointMessage\n";
+    } else {
+      barf("Gnuplot error: set multiplot next failed!\n$checkpointMessage");
+    }
+  }
+}
+
 sub end_multi {
     my $this = _obj_or_global(\@_);
-    unless($this->{options}{multiplot}) {
-	barf("end_multi: you can't, you're not in multiplot mode\n");
-    }
+    barf "end_multi: you can't, you're not in multiplot mode\n"
+      unless $this->{options}{multiplot};
     my $checkpointMessage;
-    if($check_syntax){
+    if ($check_syntax) {
 	_printGnuplotPipe( $this, "syntax", "unset multiplot\n");
 	$checkpointMessage = _checkpoint($this, "syntax");
-	if($checkpointMessage) {
-	    barf("Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage");
-	}
+	barf "Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage"
+	  if $checkpointMessage;
     }
     _printGnuplotPipe($this, "main", "unset multiplot\n");
     $checkpointMessage = _checkpoint($this, "main");
-    if($checkpointMessage) {
-	if($MS_io_braindamage) {
+    if ($checkpointMessage) {
+	if ($MS_io_braindamage) {
 	    carp "WARNING: unexpected chatter after unset multiplot:\n$checkpointMessage\n";
 	} else {
 	    barf("Gnuplot error: unset multiplot failed!\n$checkpointMessage");
