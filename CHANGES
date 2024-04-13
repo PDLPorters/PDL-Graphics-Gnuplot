@@ -1,5 +1,6 @@
 - Split version checking from `use Alien::Gnuplot` line for easier downstream
   packaging. Fixes #98.
+- fixes for Windows (#89)
 
 2.024 2023-03-30
 - Add Alien::Gnuplot as a configure-time dependency. Fixes #92 - thanks @zmughal

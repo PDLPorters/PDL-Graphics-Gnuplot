@@ -91,16 +91,15 @@ do {
 	"xr sets xrange option properly in options call";
     $w->plot($x);
 
-    open FOO, "<$testoutput";
-    my @lines = <FOO>;
+    my @lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
     is( 0+@lines, 24, "setting 79x24 character dumb output yields 24 lines of output");
     like $lines[-2], qr/.*\s30\s*$/,
       "xrange option generates proper X axis (and dumb terminal behaves as expected)";
 
+    $w->{options}{output} = "${testoutput}2";
     $w->plot($x,{xr=>[0,5]});
 
-    open FOO, "<$testoutput";
-    @lines = <FOO>;
+    @lines = do { open my $fh, "<", "${testoutput}2" or die "${testoutput}2: $!"; <$fh> };
     like $lines[-2], qr/.*\s5\s*$/,
       "inline xrange option overrides stored xrange option (and dumb terminal behaves as expected)";
 
@@ -109,9 +108,11 @@ do {
 
     is_deeply $w->{last_plot}{options}{xrange}, [0, 5],
 	"inline xrange is stored in last_plot options";
+    undef $w;
 };
 
-unlink($testoutput) or warn "\$!: $!";
+unlink("${testoutput}2") or warn "\$!: $! for '${testoutput}2'";
+unlink($testoutput) or warn "\$!: $! for '$testoutput'";
 
 ##############################
 # Test manual reset in multiplots
@@ -127,8 +128,7 @@ unlink($testoutput) or warn "\$!: $!";
     $w->line(xvals(5)**2); # no xlabel -- should not print one
     $w->end_multi;
     undef $w;
-    open FOO,"<$testoutput";
-    my @lines = grep m/FOO BAR BAZ/,(<FOO>);
+    my @lines = grep m/FOO BAR BAZ/, do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
     is 0+@lines, 1, "xlabel gets reset on multiplots";
 }
 
@@ -157,9 +157,7 @@ ok($w,"re-opened window");
 eval { $w->plot({xr=>[0,30]},xvals(50),xvals(50)**2); };
 is($@, ''," plot works");
 
-open FOO,"<$testoutput";
-my @lines = <FOO>;
-close FOO;
+my @lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 is(0+@lines, 24, "test plot made 24 lines");
 
 eval { $w->restart(); };
@@ -171,9 +169,7 @@ ok(!(-e $testoutput), "test file got deleted");
 eval { $w->replot(); };
 is($@, '', "replot works");
 
-open FOO,"<$testoutput";
-my @l2 = <FOO>;
-close FOO;
+my @l2 = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 $w->restart;
 unlink($testoutput) or warn "\$!: $!";
 is(0+@l2, 24, "test replot made 24 lines");
@@ -185,9 +181,7 @@ is($@, '', "replotting and adding a line works");
 
 # lame test - just make sure the plots include at least two lines
 # and that one is higher than the other.
-open FOO,"<$testoutput";
-my @l3 = <FOO>;
-close FOO;
+my @l3 = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 $w->restart;
 unlink($testoutput) or warn "\$!: $!";
 is(0+@l3, 24, "test replot again made 24 lines");
@@ -208,9 +202,7 @@ if($w->{gp_version} == 5.0 && $Alien::Gnuplot::pl==0
 eval { $w->options(yrange=>[200,400]);  $w->replot(); };
 is($@, '', "options set and replot don't crash");
 
-open FOO,"<$testoutput";
-my @l4 = <FOO>;
-close FOO;
+my @l4 = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 $w->restart;
 unlink($testoutput) or warn "\$!: $!";
 is 0+@l4, 24, "replot made 24 lines after option set";
@@ -230,14 +222,8 @@ like($@, qr/No curve option found that matches \'xmin\'/, "xmin after a curve op
 
 eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),xvals(10)) };
 is($@, '', "plot works when curve options are given after plot options");
-
-do {
-    open FOO,"<$testoutput";
-    my @lines = <FOO>;
-    like($lines[22], qr/^\s*4\s+.*\s+5\s+$/, "curve option range overrides plot option range");
-    close FOO;
-};
-
+my @l5 = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
+like($l5[22], qr/^\s*4\s+.*\s+5\s+$/, "curve option range overrides plot option range");
 
 ##############################
 # Test parsing of plot options as arrays and/or PDLs, mixed.
@@ -373,8 +359,7 @@ is($@, '', "gnuplot reset works");
 
 sub get_axis_testoutput {
     my $file = shift;
-    open FOO,"<$file";
-    my @lines = <FOO>;
+    my @lines = do { open my $fh, "<", $file or die "$file: $!"; <$fh> };
     chomp for @lines;
     for my $i(0..$#lines) {
 	last if( $lines[$#lines] =~ m/[^\s]/ );
@@ -664,21 +649,15 @@ my $dates = pdl(@dates);
 
 eval { $w->plot( {xdata=>'time'}, with=>'points', $dates->clip(0), xvals($dates) ); };
 is($@, '', "time plotting didn't fail");
-open FOO,"<$testoutput";
-my $lines1 = join("",(<FOO>));
-close FOO;
+my $lines1 = join '', do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 
 eval { $w->plot( {xr=>[0,$dates->max],xdata=>'time'}, with=>'points', $dates, xvals($dates) ); };
 is($@, '', "time plotting with range didn't fail");
-open FOO,"<$testoutput";
-my $lines2 = join("",(<FOO>));
-close FOO;
+my $lines2 = join '', do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 
 eval { $w->plot( {xr=>[$dates->at(3),$dates->at(4)], xdata=>'time'}, with=>'points', $dates, xvals($dates));};
 is($@, '', "time plotting with a different range didn't fail");
-open FOO,"<$testoutput";
-my $lines3 = join("",(<FOO>));
-close FOO;
+my $lines3 = join '', do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 
 print "lines1:\n$lines1\n\nlines2:\n$lines2\n\nlines3:\n$lines3\n\n";
 SKIP: {
@@ -693,9 +672,7 @@ isnt($lines2, $lines3, "Modifying the time range modifies the graph");
 eval { $w->reset; $w->plot({title=>"This is a plot title"},with=>'points',xvals(5));};
 is($@, '', "Title plotting works, no error");
 
-open FOO,"<$testoutput";
-@lines = <FOO>;
-close FOO;
+@lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 
 SKIP:{
     skip "Skipping title tests due to obsolete version of gnuplot (BSD uses 4.2, which fails these)",3
@@ -707,9 +684,7 @@ SKIP:{
     eval { $w->plot({title=>""},with=>'points',xvals(5));};
     is($@, '', "Non-title plotting works, no error");
 
-    open FOO,"<$testoutput";
-    @lines = <FOO>;
-    close FOO;
+    @lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
     if($w->{gp_version} < 5.2) {
 	like($lines[1], qr/^\s*$/, "Setting empty plot title sets an empty title");
     } else {
@@ -726,15 +701,11 @@ SKIP:{
 
     eval { $w->plot({trid=>1,title=>""},with=>'lines',sequence(3,3)); };
     is($@, '', "3-d grid plot with single column succeeded");
-    open FOO,"<$testoutput";
-    my $lines = join("",<FOO>);
-    close FOO;
+    my $lines = join '', do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 
     eval { $w->plot({trid=>1,title=>"",yr=>[-1,1]},with=>'lines',cdim=>1,sequence(3,3));};
     is($@, '', "3-d threaded plot with single column succeeded");
-    open FOO,"<$testoutput";
-    my $lines2 = join("",<FOO>);
-    close FOO;
+    my $lines2 = join '', do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 
     isnt( $lines2, $lines, "the two 3-D plots differ");
 
@@ -855,32 +826,28 @@ $b = pdl(1,4,9,16,25)->sqrt;  # 1,2,3,4,5
 $w->plot(with=>'lines',$a,{binary=>1});
 $w->close;
 
-open FOO, "<$testoutput";
-@lines = <FOO>;
+@lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 isnt $lines[12], '';
 like substr($lines[12],20,40), qr/^\s+$/, "NaN makes a blank in a plot";
 
 $w->restart;
 $w->plot(with=>'lines',$b,{binary=>1});
 $w->close;
-open FOO, "<$testoutput";
-@lines = <FOO>;
+@lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 isnt $lines[12], '';
 unlike substr($lines[12],20,40), qr/^\s+$/, "No NaN makes a nonblank in a plot";
 
 $w->restart;
 $w->plot(with=>'lines',$b,{binary=>0});
 $w->close;
-open FOO, "<$testoutput";
-@lines = <FOO>;
+@lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 isnt $lines[12], '';
 unlike substr($lines[12],20,40), qr/^\s+$/, "No NaN makes a nonblank in a plot even with ASCII";
 
 $w->restart;
 $w->plot(with=>'lines',$a,{binary=>0});
 $w->close;
-open FOO, "<$testoutput";
-@lines = <FOO>;
+@lines = do { open my $fh, "<", $testoutput or die "$testoutput: $!"; <$fh> };
 isnt $lines[12], '';
 like substr($lines[12],20,40), qr/^\s+$/, "NaN makes a blank in a plot even with ASCII";
 
