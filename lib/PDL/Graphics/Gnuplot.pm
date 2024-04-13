@@ -189,8 +189,8 @@ is called a "tuple".  These plots have two columns in their tuples:
 
 Normal threading rules apply across the arguments to a given plot.
 
-All data are required to be supplied as either PDLs or list refs.
-If you use a list ref as a data column, then normal
+All data are required to be supplied as either PDLs or array refs.
+If you use an array ref as a data column, then normal
 threading is disabled.  For example:
 
  $x = xvals(5);
@@ -463,14 +463,14 @@ by stacking data inside the passed-in PDLs.  (An exception is that
 threading is disabled if one or more of the data elements is a list
 ref).
 
-=head3 PDLs vs list refs
+=head3 PDLs vs array refs
 
 The usual way to pass in data is as a PDL -- one PDL per column of data
 in the tuple.  But strings, in particular, cannot easily be hammered into
-PDLs.  Therefore any column in each tuple can be a list ref containing
+PDLs.  Therefore any column in each tuple can be an array ref containing
 values (either numeric or string).  The column is interpreted using the
 usual polymorphous cast-behind-your-back behavior of Perl.  For the sake
-of sanity, if even one list ref is present in a tuple, then threading is
+of sanity, if even one array ref is present in a tuple, then threading is
 disabled in that tuple: everything has to have a nice 1-D shape.
 
 
@@ -677,7 +677,7 @@ specifies the printf format used by contour labels in contour plots.)
 
 C<key> controls where the plot key (that relates line/symbol style to label)
 is placed on the plot.  It takes a scalar boolean indicating whether to turn the
-key on (with default values) or off, or a list ref containing any of the following
+key on (with default values) or off, or an array ref containing any of the following
 arguments (all are optional) in the order listed:
 
 =over 3
@@ -778,7 +778,7 @@ These are Gnuplot's usual three options for line control.
 =back
 
 The C<grid> option indicates whether gridlines should be drawn on
-each axis.  It takes a list ref of arguments, each of which is either "no" or "m" or "",
+each axis.  It takes an array ref of arguments, each of which is either "no" or "m" or "",
 followed by an axis name and "tics" --
 e.g. C<< grid=>["noxtics","ymtics"] >> draws no X gridlines and draws
 (horizontal) Y gridlines on Y axis major and minor tics, while
@@ -786,13 +786,13 @@ C<< grid=>["xtics","ytics"] >> or C<< grid=>["xtics ytics"] >> will draw both
 vertical (X) and horizontal (Y) grid lines on major tics.
 
 To draw a coordinate grid with default values, set C<< grid=>1 >>.  For more
-control, feed in a list ref with zero or more of the following parameters, in order:
+control, feed in an array ref with zero or more of the following parameters, in order:
 
 The C<zeroaxis> keyword indicates whether to actually draw each axis
 line at the corresponding zero along its indicated dimension.  For
 example, to draw the X axis (y=0), use C<< xzeroaxis=>1 >>.  If you just
 want the axis turned on with default values, you can feed in a Boolean
-scalar; if you want to set its parameters, you can feed in a list ref
+scalar; if you want to set its parameters, you can feed in an array ref
 containing linewidth, linestyle, and linetype (with appropriate
 parameters for each), e.g.  C<< xzeroaxis=>[linewidth=>2] >>.
 
@@ -829,7 +829,7 @@ The options described here are
 =back
 
 Gnuplot accepts explicit ranges as plot options for all axes.  Each option
-accepts a list ref with (min, max).  If either min or max is missing, then
+accepts an array ref with (min, max).  If either min or max is missing, then
 the opposite limit is autoscaled.  The x and y ranges refer to the usual
 ordinate and abscissa of the plot; x2 and y2 refer to alternate ordinate and
 abscissa; z if for 3-D plots; r is for polar plots; t, u, and v are for parametric
@@ -857,7 +857,7 @@ once by setting the keyword name to ' '.  Examples:
 
  autoscale=>{x=>'max',y=>'fix'};
 
-There is an older list ref syntax which is deprecated but still accepted.
+There is an older array ref syntax which is deprecated but still accepted.
 
 To not autoscale an axis at all, specify a range for it. The fix style of
 autoscaling forces the autoscaler to use the actual min/max of the data as
@@ -866,7 +866,7 @@ to the next minor tic (as set by the autoticker or by a tic specification, see
 below).
 
 C<logscale> allows you to turn on logarithmic scaling for any or all
-axes, and to set the base of the logarithm.  It takes a list ref, the
+axes, and to set the base of the logarithm.  It takes an array ref, the
 first element of which is a string mushing together the names of all
 the axes to scale logarithmically, and the second of which is the base
 of the logarithm: C<< logscale=>[xy=>10] >>.  You can also leave off the
@@ -955,7 +955,7 @@ If you pass in undef, tics get the default length.  If you pass in a scalar, maj
 
 =item * labels - sets tic locations explicitly, with text labels for each. If you specify both C<locations> and C<labels>, you get both sets of tics on the same axis.
 
-The labels should be a nested list ref that is a collection of duals
+The labels should be a nested array ref that is a collection of duals
 or triplets.  Each dual or triplet should contain [label, position, minorflag],
 as in C<< labels=>[["one",1,0],["three-halves",1.5,1],["two",2,0]] >>.
 
@@ -1145,7 +1145,7 @@ an alternative to the C<origin> and C<size> options below.
 The C<offsets> option allows you to put an empty boundary around the
 data, inside the plot borders, in an autosacaled graph.  The offsets
 only affect the x1 and y1 axes, and only in 2D plot commands.
-C<offsets> accepts a list ref with four values for the offsets, which
+C<offsets> accepts an array ref with four values for the offsets, which
 are given in scientific (plotted) axis units.
 
 The C<origin> option lets you specify the origin (lower left corner)
@@ -1176,7 +1176,7 @@ grayscale can have a "color box" that shows the photometric meaning of the color
 
 The colorbox generally appears when necessary but can be controlled manually
 with the C<colorbox> option.  C<colorbox> accepts a scalar boolean value indicating
-whether or no to draw a color box, or a list ref containing additional options.
+whether or no to draw a color box, or an array ref containing additional options.
 The options are all, well, optional but must appear in the order given:
 
 =over 3
@@ -1211,7 +1211,7 @@ of color tables, and have better support for scientific images.
 
 C<pseudocolor> (synonym C<pc>) gives access to the color tables built
 in to the C<PDL::Transform::Color> package, if that package is
-available.  It takes either a color table name or a list ref which
+available.  It takes either a color table name or an array ref which
 is a collection of arguments that get sent to the
 C<PDL::Transform::Color::t_pc> transform definition method. Sending
 the empty string or undef will generate a list of allowable color
@@ -1254,7 +1254,7 @@ version of the module but are explained in the gnuplot manual.
 
 C<hidden3d> accepts a list of parameters to control how hidden surfaces are
 plotted (or not) in 3D. It accepts a boolean argument indicating whether to hide
-"hidden" surfaces and lines; or a list ref containing parameters that control how
+"hidden" surfaces and lines; or an array ref containing parameters that control how
 hidden surfaces and lines are handled.  For details see the gnuplot manual.
 
 C<xyplane> sets the location of that plane (which is drawn) relative
@@ -1280,7 +1280,7 @@ C<contour> enables contour drawing on surfaces in 3D.  It takes a
 single string, which should be "base", "surface", or "both".
 
 C<cntrparam> manages how contours are generated and smoothed.  It
-accepts a list ref with a collection of Gnuplot parameters that are
+accepts an array ref with a collection of Gnuplot parameters that are
 issued one per line; refer to the Gnuplot manual for how to operate
 it.
 
@@ -1302,7 +1302,7 @@ You specify plot markup in advance of the plot command, with plot
 options (or add it later with the C<replot> method).  The options give
 you access to a collection of (separately) numbered descriptions that
 are accumulated into the plot object.  To add a markup object to the
-next plot, supply the appropriate options as a list ref or as a single
+next plot, supply the appropriate options as an array ref or as a single
 string.  To specify all markup objects at once, supply the appropriate
 options for all of them as a nested list-of-lists.
 
@@ -1335,7 +1335,7 @@ you care about.
 The C<label> option allows adding small bits of text at arbitrary
 locations on the plot.
 
-Each label specifier list ref accepts the following suboptions, in
+Each label specifier array ref accepts the following suboptions, in
 order.  All of them are optional -- if no options other than the index
 tag are given, then any existing label with that index is deleted.
 
@@ -1484,7 +1484,7 @@ filled rectangles (e.g. boxes, candlesticks, or histograms).
 =back
 
 If you pass in the undefined value you get no ticks on errorbars; if you pass in the
-empty list ref you get default ticks.
+empty array ref you get default ticks.
 
 B<C<boxwidth>> sets the width of drawn boxes in boxplots, candlesticks, and histograms.  It
 takes a list containing at most two elements:
@@ -1520,7 +1520,7 @@ B<C<style>> provides a great deal of customization for individual plot styles.
 It is not (yet) fully parsed by PDL::Graphics::Gnuplot; please refer to the Gnuplot
 manual for details (it is pp. 145ff in the Gnuplot 4.6.1 maual).  C<style> accepts
 a hash ref whose keys are plot styles (such as you would feed to the C<with> curve option),
-and whose values are list refs containing keywords and other parameters to modify how each
+and whose values are array refs containing keywords and other parameters to modify how each
 plot style should be displayed.
 
 =head2 POs for locale/internationalization - locale, decimalsign
@@ -1538,7 +1538,7 @@ placed on the side of the plot, e.g. for keeping track of drafts.
 
 C<zero> sets the approximation threshold for zero values within gnuplot.  Its default is 1e-8.
 
-C<fontpath> sets a font search path for gnuplot.  It accepts a collection of file names as a list ref.
+C<fontpath> sets a font search path for gnuplot.  It accepts a collection of file names as an array ref.
 
 =head2 POs for advanced Gnuplot tweaks: topcmds, extracmds, bottomcmds, binary, dump, tee
 
@@ -1552,7 +1552,7 @@ can send commands at the top of the configuration but just under the initial
 "set terminal" and "set output" commands (with the C<topcmds> option), at the bottom
 of the configuration and just before the "plot" command (with the C<extracmds> option),
 or after the plot command (with the C<bottomcmds> option).  Each of these plot
-options takes a list ref, each element of which should be one command line for
+options takes an array ref, each element of which should be one command line for
 gnuplot.
 
 Most plotting is done with binary data transfer to Gnuplot; however, due to
@@ -3207,7 +3207,7 @@ POS
 		my $outbuf = join("\n", map $_->isfinite->all ? join(" ", $_->list) : "", $p->dog) . "\n";
 		$emitter->($outbuf);
 	    } else {
-		# It's a collection of list ref data only.  Assemble strings.
+		# It's a collection of array ref data only.  Assemble strings.
 		my $data = $chunk->{data};
 		my $last = $#{$data->[0]};
 		my $s = "";
@@ -3313,7 +3313,7 @@ sub parseArgs
   {
     # First, I find and parse the options in this chunk
     # Array refs are allowed in some curve options, but only as values of key/value
-    # pairs -- so any list refs glommed in with a bunch of other refs are data.
+    # pairs -- so any array refs glommed in with a bunch of other refs are data.
     my $nextDataIdx = first { (ref $args[$_] ) and
                     (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or
                      $args[$_]->$_isa('PDL')
@@ -3700,7 +3700,7 @@ sub matchDims
   # At least one of the data columns is a non-PDL.  Force them to be simple columns, and
   # require exact dimensional match.
   #
-  # Also, convert any contained PDLs to list refs.
+  # Also, convert any contained PDLs to array refs.
   my $nelem;
   my @out = ();
   for(@data) {
@@ -3948,7 +3948,7 @@ C<title> should be followed by a single scalar containing the title string.
 
 =item scale - make gridded plots larger or smaller than their allocated space
 
-C<scale> takes either a scalar or a list ref containing one or two
+C<scale> takes either a scalar or an array ref containing one or two
 values.  If only one value is supplied, it is a general scale factor
 of each plot in the grid.  If two values are supplied, the first is an
 X stretch factor for each plot in the grid, and the second is a Y
@@ -3956,7 +3956,7 @@ stretch factor for each plot in the grid.
 
 =item offset - offset each plot from its grid origin
 
-C<offset> takes a list ref containing two values, that control placement
+C<offset> takes an array ref containing two values, that control placement
 of each plot within the grid.
 
 =back
@@ -4511,9 +4511,9 @@ sub _expand_abbrev {
 # pOptionsTable - describes valid plot options and their allowed value types
 #
 # The keywords are the option name (from the Gnuplot 4.6 manual); the values are
-# a list ref containing:
+# an array ref containing:
 #   - value type:
-#     * list ref for a single value with options (first is default)
+#     * array ref for a single value with options (first is default)
 #     * "b" for boolean flag (actually ternary: true/false/undef)
 #     * "n" for number
 #     * "s" for a scalar string
@@ -4543,7 +4543,7 @@ sub _expand_abbrev {
 #
 #   - sort-after:
 #     * nothing: can appear in no particular order
-#     * list ref: options later than which this option should be presented
+#     * array ref: options later than which this option should be presented
 #
 #   - sort-order
 #     * a number: numbered options, if present appear at the beginning of the option dump, in numerical order.
@@ -5188,7 +5188,7 @@ $cOpt = [$cOptionsTable, $cOptionsAbbrevs, "curve option"];
 #              Currently, fits images are handled that way because of gnuplot's problem
 #              dealing with proper coordinate grids -- the fits image is sampled into
 #              scientific coordinates using PDL::Transform.  The prefrobnicator should accept:
-#               * the 'with' option list ref,
+#               * the 'with' option array ref,
 #               * the main plot object (for access to plot options)
 #               * the plot chunk (for access to curve options),
 #               * all the data passed in for that curve.
@@ -5334,7 +5334,7 @@ $palettesTab = {
 # definitions and either an options hash ref or a listified hash.
 # Used for parsing/adding plot options...
 #
-# Call with the options hash to be written to, then with the Opt list ref (e.g. $pOpt global above),
+# Call with the options hash to be written to, then with the Opt array ref (e.g. $pOpt global above),
 # then with the arguments.  The $me is needed to feed to special-handling subs in the
 # OptionsTable.
 
@@ -5352,7 +5352,7 @@ sub _parseOptHash {
     # unpack it inline.
     opt: while(@opts) {
 	# Pull the next key.  If it turns out to be a hash, interpolate the hash into the list
-	# of parameters.  If it turns out to be a list, do likewise.  Note that list refs that are
+	# of parameters.  If it turns out to be a list, do likewise.  Note that array refs that are
 	# in a value slot are *not* interpolated.
 	my $k = shift @opts;
 	if(ref $k eq 'HASH') {
@@ -5411,7 +5411,7 @@ sub _parseOptHash {
 	    if(ref($parser->[0])) {
 		barf("HELP!  Parser is confused.  This is a bug, please report it.\n");
 	    } elsif (  0+@$parser == 1 )  {
-		# A list ref with a single element - it's a regexp to match
+		# An array ref with a single element - it's a regexp to match
 		my $a = $parser->[0];
 		$parser = sub {
 		    my ($old, $newparam, $hash) = @_;
@@ -5419,7 +5419,7 @@ sub _parseOptHash {
 		    return $newparam;
 		};
 	    } else {
-		# A list ref with multiple elements - they are enums.
+		# An array ref with multiple elements - they are enums.
 		# Make a temporary abbrev list for 'em.
 		my $abbrevs = _gen_abbrev_list( @$parser );
 		my $p = sub {
@@ -5553,7 +5553,7 @@ $_pOHInputs = {
 		     my $o = [];
 		     for my $l(@$new) {
 			 unless(ref $l eq 'ARRAY') {
-			     die "Markup option: nested lists must contain only list refs\n";
+			     die "Markup option: nested lists must contain only array refs\n";
 			 }
 			 push(@$o, [@$l]);
 		     }
@@ -5593,7 +5593,7 @@ $_pOHInputs = {
 
 		      # We don't fully parse gnuplot lines -- but we do
 		      # check for the simple numeric case -- if it's correct,
-		      # turn the list ref into a hash for future manipulability.
+		      # turn the array ref into a hash for future manipulability.
 		      if( @list == 0 ) {
 			  return {};
 		      } elsif(@list > 3) {
@@ -6002,7 +6002,7 @@ our $_OptionEmitters = {
 		      }
 		  }
 		  if( defined( my $v = delete $h{offset} ) ) {
-		      barf "<foo>tics option: 'offset' suboption must be a list ref or false"
+		      barf "<foo>tics option: 'offset' suboption must be an array ref or false"
 			if $v and ref($v) ne 'ARRAY';
 		      push @l, $v ? ("offset", join(",",@$v)) : 'nooffset';
 		  }
@@ -6023,7 +6023,7 @@ our $_OptionEmitters = {
 		  # gnuplot command with "add" marked.
 
 		  if(defined( my $v = $h{locations} )) {
-		      barf "<foo>tics: 'locations' elements must be scalar or list ref"
+		      barf "<foo>tics: 'locations' elements must be scalar or array ref"
 			if ref($v) and ref($v) ne 'ARRAY';
 		      if(ref($v) eq 'ARRAY'){
 			  push @l, @$v ? join(',', @$v) : 'autofreq';
@@ -6036,9 +6036,9 @@ our $_OptionEmitters = {
 		      $l[$#l] =~ s/^\s*\-/0\-/;
 		  }
 		  if(defined( my $v = $h{labels} )) {
-		      barf "<foo>tics: 'labels' elements must be list refs containing [label, val, flag]"
+		      barf "<foo>tics: 'labels' elements must be array refs containing [label, val, flag]"
 			  if ref($v) ne 'ARRAY';
-		      barf "<foo>tics: labels list elements must be duals or triples as list refs"
+		      barf "<foo>tics: labels list elements must be duals or triples as array refs"
 			  if grep ref() ne 'ARRAY', @$v;
 		      my $line =   "(".
 				    join(", ",

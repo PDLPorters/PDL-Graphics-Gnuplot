@@ -741,13 +741,13 @@ $w = gpwin();
 eval { $w->options(xrange=>pdl(1,2)) };
 is($@, '', "xrange accepts a PDL option");
 is_deeply $w->{options}{xrange}, [1, 2],
-    "xrange parses a 2-PDL into a list ref";
+    "xrange parses a 2-PDL into a array ref";
 
 eval { $w->options(xrange=>pdl(1,2,3)) };
 isnt($@, '', "xrange rejects a PDL with more than 2 elements");
 
 eval {$w->options(xrange=>[21]);};
-is($@, '', "xrange accepts a single list element");
+is($@, '', "xrange accepts a single-element array-ref");
 is_deeply $w->{options}{xrange}, [21],
     "xrange parses single list element correctly";
 
