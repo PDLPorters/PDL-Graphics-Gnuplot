@@ -232,10 +232,13 @@ eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),[1,2,3,4,5,6,7,8,9,10])};
 is($@, '', "two arguments, second one is an array, works OK");
 
 eval { $w->plot(xmin=>3,xrange=>[4,5],[1,2,3,4,5,6,7,8,9,10],xvals(10))};
-is($@, '', "two arguments, second one is an array, works OK");
+is($@, '', "two arguments, first one is an array, works OK");
 
 eval { $w->plot([1,2,3,4,5],[6,7,8,9,10]);};
 is($@, '', "two arguments, both arrays, works OK");
+
+eval { $w->plot3d([1,2,3,4,5],[6,7,8,9,10],[6,7,8,9,10]);};
+is($@, '', "plot3d all arguments are arrays, works OK");
 
 eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),[1,2,3])};
 like($@, qr/mismatch/, "Mismatch detected in array size vs. PDL size");

@@ -3383,21 +3383,21 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
     }
     # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
     # before giving up entirely.
-    unless( exists( $plotStyleProps->{$with[0]}->[0] ) ) {
+    unless ( exists( $plotStyleProps->{$with[0]}[0] ) ) {
       our $plotStylesAbbrevs;
       # Try pluralizing and lc'ing if that works...
       if($with[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with[0].'s'} ) ) {
         $with[0] = lc $with[0].'s';
-        $chunk{options}{'with'}[0] = $with[0];
+        $chunk{options}{with}[0] = $with[0];
       } else {
         # nope.  throw a fit.
-        barf "invalid plotstyle 'with ".($with[0])."' in plot\n";
+        barf "invalid plotstyle 'with $with[0]' in plot\n";
       }
     }
     my $psProps = $plotStyleProps->{$with[0]};
     # Extract the data objects from the argument list.
     # They should all be either PDLs or array refs.
-    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1] ;
+    my @dataPiddles = @args[$argIndex..$nextOptionIdx-1];
     # Some plot styles (currently just "fits") are implemented via a
     # prefrobnicator that processes the data.
     if( $psProps->[ 4 ] ) {
@@ -3482,7 +3482,7 @@ EOF
     ##############################
     # Implicit dimensions in 3-D plots require imgFlag to be set...
     my $cdims = $chunk{options}{cdims} ||
-      ($imgFlag or ( $is3d && $dataPiddles[0]->ndims >= 2 )) ? 2 : 1;
+      ($imgFlag or ( $is3d && $dataPiddles[0]->$_isa('PDL') && $dataPiddles[0]->ndims >= 2 )) ? 2 : 1;
     barf("You specified column dimension of 1 for an image plot type! Not allowed.")
       if $cdims==1 and $imgFlag;
     ##############################
@@ -3493,7 +3493,7 @@ EOF
     # The other dimensions have to have at least five elements.
     if ( $cdims==2 ) {
       if ($chunk{options}{with}[0] eq 'image') {
-        my $dp = $dataPiddles[$#dataPiddles];
+        my $dp = $dataPiddles[-1];
         if ($dp->ndims==3) {
           if ($dp->dim(1) >= 5) {
             if ($dp->dim(0) ==3 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
