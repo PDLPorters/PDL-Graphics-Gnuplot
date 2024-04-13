@@ -240,6 +240,12 @@ is($@, '', "two arguments, both arrays, works OK");
 eval { $w->plot3d([1,2,3,4,5],[6,7,8,9,10],[6,7,8,9,10]);};
 is($@, '', "plot3d all arguments are arrays, works OK");
 
+eval { $w->gplot(with => 'points', pdl(0..2), pdl(0..2));};
+is($@, '', "gplot points all arguments are pdls, works OK");
+
+eval { $w->gplot(with => 'points', [ 0, 1, 2 ], [ 0, 1, 2 ]);};
+is($@, '', "gplot points all arguments are arrays, works OK");
+
 eval { $w->plot(xmin=>3,xrange=>[4,5],xvals(10),[1,2,3])};
 like($@, qr/mismatch/, "Mismatch detected in array size vs. PDL size");
 

@@ -3314,11 +3314,13 @@ sub parseArgs
     # First, I find and parse the options in this chunk
     # Array refs are allowed in some curve options, but only as values of key/value
     # pairs -- so any array refs glommed in with a bunch of other refs are data.
-    my $nextDataIdx = first { (ref $args[$_] ) and
-                    (  (ref($args[$_]) =~ m/ARRAY/ and ref($args[$_-1])) or
-                     $args[$_]->$_isa('PDL')
-                     )
-    } $argIndex..$#args;
+    my $nextDataIdx = $argIndex;
+    while (1) {
+      $nextDataIdx = undef, last if $nextDataIdx > $#args;
+      $nextDataIdx += 2, next if !ref $args[$nextDataIdx]; # a key
+      last if ref $args[$nextDataIdx] ne 'HASH';
+      $nextDataIdx++;
+    }
     last if !defined $nextDataIdx; # no more data. done.
     my $lastWith = {};
     $lastWith->{with} = $lastOptions->{with} if($lastOptions->{with});
