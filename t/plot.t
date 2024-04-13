@@ -444,7 +444,7 @@ unlink 'Plot-1.txt' or warn "Can't delete Plot-1.txt after test: $!";
 # accepts both array ref and scalar parameters.
 eval {$w=gpwin('dumb',size=>[7,5]); $w->line(xvals(50)**2); $w->close;};
 is($@, '', "plotting to 42x30 text file worked");
-@lines = eval {open FOO,"<Plot-1.txt"; my @l = <FOO>; close FOO;@l};
+@lines = eval { open my $fh, "<", "Plot-1.txt" or die "Plot-1.txt: $!"; <$fh> };
 is($@, '', "read ASCII plot OK");
 eval { unlink 'Plot-1.txt';};
 
@@ -452,7 +452,7 @@ is(@lines+0, 30, "'7x5 inch' ascii plot created 30 lines (created ".(0+@lines)."
 
 eval {$w=gpwin('dumb',size=>5); $w->line(xvals(50)**2); $w->close;};
 is($@, '', "plotting to 30x30 text file worked");
-eval {open FOO,"<Plot-1.txt"; @lines = <FOO>; close FOO;};
+@lines = eval { open my $fh, "<", "Plot-1.txt" or die "Plot-1.txt: $!"; <$fh> };
 is($@, '', "Read ASCII plot #2 OK");
 eval { unlink 'Plot-1.txt';};
 
@@ -869,6 +869,7 @@ unlink($testoutput) or warn "\$!: $!";
 ##############################
 # Test default output plotting
 
+unlink qw(Plot-1.txt Plot-2.txt);
  SKIP: {
      if( -e 'Plot-1.txt' || -e 'Plot-2.txt') {
 	 print STDERR "\n***********\nSkipping default-plot-output tests:  files 'Plot-1.txt' and/or 'Plot-2.txt' exist.\n***********\n";

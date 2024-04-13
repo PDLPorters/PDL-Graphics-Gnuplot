@@ -2300,9 +2300,8 @@ sub output {
 
     if(@_) {
 	# Check that, if there is at least one more argument, it is recognizable as a terminal
-	my $terminal;
-	$terminal = lc(shift);
-	$terminal = 'windows' if $^O =~ /mswin32/i and $terminal eq 'unknown';
+	my $terminal = lc(shift);
+	$terminal = 'dumb' if $terminal eq 'unknown';
 	##############################
 	# Check the terminal list here!
 	if(!exists($this->{valid_terms}->{$terminal})) {
