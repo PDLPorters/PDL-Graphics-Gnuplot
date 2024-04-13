@@ -288,6 +288,31 @@ Backslash escapes control characters to render them as themselves.
 
 =back
 
+=head2 Unicode text
+
+Separately to "enhanced" text above, if you wish to include text that
+is not ASCII, then you will need to pass data that has been UTF-8
+encoded. Sample code to achieve this:
+
+  use utf8;
+  use Encode;
+  use PDL;
+  use PDL::Graphics::Gnuplot;
+  use PDL::Constants qw(PI);
+
+  sub plot_sin {
+    my ($w, $coeff) = @_;
+    my $xrange = [ -2*PI, 2*PI ];
+    my $x = zeroes(1e3)->xlinvals(@$xrange); my $y = sin($coeff * 2 * PI * $x);
+    my $title = "y = sin( $coeff * 2π * x )";
+    # to get around sending text through syswrite()
+    my $title_octets = encode('UTF-8', $title);
+    $w->plot(with=>'lines', $x, $y, {
+      xrange => $xrange,
+      title => $title_octets, # can not pass $title as-is
+    });
+  }
+
 =head2 Color specification
 
 There are several contexts where you can specify color of plot elements.  In those
