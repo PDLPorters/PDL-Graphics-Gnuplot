@@ -2983,9 +2983,9 @@ sub plot
     }
     ##############################
     # If we're working with time data, and timefmt isn't set, then default it to '%s'.
-    $this->{options}->{timefmt} = '%s'
-      if !defined($this->{options}->{timefmt}) and
-	grep +($this->{options}->{$_."data"} // "") =~ m/^time/i, qw/x x2 y y2 z cb/;
+    $this->{options}{timefmt} = '%s'
+      if !defined($this->{options}{timefmt}) and
+	grep +($this->{options}{$_."data"} // "") =~ m/^time/i, qw/x x2 y y2 z cb/;
     ##############################
     # Now deal with x2/y2 ticks.  By default they don't get turned on (blech).  So if they are
     # active, we turn them on with default values -- and also turn off mirroring for the x/y ticks.
@@ -3053,9 +3053,8 @@ POS
     ##########
     # Break up the plot command so we can insert data specifiers in each location
     my @plotcmds = split /$cmdFence/, $plotcmd;
-    if (@plotcmds != @$chunks+1) {
-	barf "This should never happen, but it did.  That's odd.  I give up.";
-    }
+    barf "This should never happen, but it did.  That's odd.  I give up."
+      if @plotcmds != @$chunks+1;
     ##########
     # Rebuild the plot command by inserting the format string and data spec for each piece,
     # instead of the placeholder fence strings.
@@ -3065,23 +3064,22 @@ POS
     #
     $plotcmd = my $fl = shift @plotcmds;
     my $testcmd = $check_syntax ? $fl : undef;
-    for my $i (0..$#plotcmds){
+    for my $i (0..$#plotcmds) {
 	my ($pchunk, $tchunk);
 	if ( $chunks->[$i]{cdims} == 2 ) {
 	    # It's an image -- always use binary to push the image out.
 	    # The map statement ensures the main and test cmd get identical sprintf templates.
 	    my $fstr = "%double" x $chunks->[$i]{tuplesize};
-	    ($pchunk, $tchunk) = map {
+	    ($pchunk, $tchunk) = map
 		sprintf(' "-" binary %s=(%s) format="%s" %s',
 			$chunks->[$i]{ArrayRec},
 			$_,
 			$fstr,
-			$plotcmds[$i]);
-	    } ( join(",", ($chunks->[$i]{data}[0]->slice("(0)")->dims)),
-		join(",", (("1") x ($chunks->[$i]{data}[0]->ndims - 1)))
-	      );
+			$plotcmds[$i]),
+		join(",", ($chunks->[$i]{data}[0]->slice("(0)")->dims)),
+		$check_syntax ? join(",", (("1") x ($chunks->[$i]{data}[0]->ndims - 1))) : ();
 	    # Mock up test data - just a single data point for each (8 is the size of an IEEE double)
-	    $chunks->[$i]{testdata} = "." x ($chunks->[$i]->{tuplesize} * 8);
+	    $chunks->[$i]{testdata} = "." x ($chunks->[$i]->{tuplesize} * 8) if $check_syntax;
 	} else {
 	    # It's a non-image plot.  Calculate whether binary or ASCII output.
 	    # First, check the per-chunk flag (if set).  If it's not, then
@@ -3098,40 +3096,40 @@ POS
 			    $_,
 			    $fstr,
 			    $plotcmds[$i]),
-		(ref($first) eq 'ARRAY') ? 0+@{$first} : $first->dim(0), 1;
+		(ref($first) eq 'ARRAY') ? 0+@{$first} : $first->dim(0), $check_syntax ? 1 : ();
 		# test data is a string containing the data to send -- just garbage. Use '.' to aid
 		# byte counting in the test string.
-		$chunks->[$i]{testdata} = $testdataunit_binary x ($chunks->[$i]{tuplesize});
+		$chunks->[$i]{testdata} = $testdataunit_binary x ($chunks->[$i]{tuplesize}) if $check_syntax;
 	    } else {
 		# ASCII transfer has been specified - plot command is easier, but the data are in ASCII.
-		$pchunk = $tchunk =   " '-' ".$plotcmds[$i];
-		$chunks->[$i]{testdata} = " 1 " x ($chunks->[$i]{tuplesize}) . "\ne\n";
+		$pchunk = " '-' ".$plotcmds[$i];
+		$tchunk = $pchunk if $check_syntax;
+		$chunks->[$i]{testdata} = " 1 " x ($chunks->[$i]{tuplesize}) . "\ne\n" if $check_syntax;
 	    }
 	}
 	$plotcmd .= $pchunk;
 	$testcmd .= $tchunk if $check_syntax;
     }
     $plotcmd .= "\n";
-    my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
-    my $print_checkpoint = "; print \"$postTestplotCheckpoint\"";
-    $testcmd .= "$print_checkpoint\n" if $check_syntax;
-    ##########
-    # Put data and final checkpointing on the test command
-    $testcmd .= join("", map $_->{testdata}, @$chunks) if $check_syntax;
-    # Stash this plot command in the debugging variable
-    $this->{last_testcmd} = our $last_testcmd = $plotOptionsString.$testcmd
-      if $check_syntax;
-    #######
-    # The commands are assembled.  Now test 'em by sending the test command down the pipe.
-    my $checkpointMessage;
+    our $last_testcmd;
     if ($check_syntax) {
-	_printGnuplotPipe( $this, "syntax", $plotOptionsString.$testcmd );
-	$checkpointMessage = _checkpoint($this,"syntax");
-	if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
-	{
-	    $checkpointMessage =~ s/$print_checkpoint//;
-	    barf "Gnuplot error: \"$checkpointMessage\" while syntax-checking the plot cmd \"$testcmd\"";
-	}
+      my $postTestplotCheckpoint = 'xxxxxxx Plot succeeded xxxxxxx';
+      my $print_checkpoint = "; print \"$postTestplotCheckpoint\"";
+      $testcmd .= "$print_checkpoint\n";
+      ##########
+      # Put data and final checkpointing on the test command
+      $testcmd .= join("", map $_->{testdata}, @$chunks);
+      # Stash this plot command in the debugging variable
+      $this->{last_testcmd} = $last_testcmd = $plotOptionsString.$testcmd;
+      #######
+      # The commands are assembled.  Now test 'em by sending the test command down the pipe.
+      _printGnuplotPipe( $this, "syntax", $plotOptionsString.$testcmd );
+      my $checkpointMessage = _checkpoint($this,"syntax");
+      if(defined $checkpointMessage && $checkpointMessage !~ /^$postTestplotCheckpoint/m)
+      {
+	  $checkpointMessage =~ s/$print_checkpoint//;
+	  barf "Gnuplot error: \"$checkpointMessage\" while syntax-checking the plot cmd \"$testcmd\"";
+      }
     }
     ##############################
     ##### Send the PlotOptionsString
@@ -3238,14 +3236,13 @@ POS
     if ($check_syntax) {
 	_printGnuplotPipe($this, "syntax", $cleanup_cmd);
 	$_ .= $cleanup_cmd for $this->{last_testcmd}, $last_testcmd;
-	$checkpointMessage= _checkpoint($this, "syntax", {printwarnings=>1});
+	my $checkpointMessage = _checkpoint($this, "syntax", {printwarnings=>1});
 	barf "Gnuplot error: \"$checkpointMessage\" after syntax-checking cleanup cmd \"$cleanup_cmd\"\n"
 	  if $checkpointMessage;
     }
     _printGnuplotPipe($this, "main", $cleanup_cmd);
     $_ .= $cleanup_cmd for $this->{last_plotcmd}, $last_plotcmd;
-    $checkpointMessage= _checkpoint($this, "main", {printwarnings=>1});
-    if ($checkpointMessage) {
+    if (my $checkpointMessage = _checkpoint($this, "main", {printwarnings=>1})) {
 	barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n"
 	  if !$MS_io_braindamage;
 	# MS Windows can yield some chatter on the line, and it's not necessarily an
