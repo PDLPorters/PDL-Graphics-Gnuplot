@@ -3133,28 +3133,12 @@ POS
     }
     ##############################
     ##### Send the PlotOptionsString
-    _printGnuplotPipe( $this, "main", $plotOptionsString);
+    my @plot_chunks = [$plotOptionsString];
     my $plotshow = $plotOptionsString;
-    my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
-    # Mask out some common useless chatter
-    $optionsWarnings =~ s/^Terminal type set to .*$//m;
-    $optionsWarnings =~ s/^Options are \'.*$//m;
-    $optionsWarnings = '' if($optionsWarnings =~ m/^\s+$/s);
-    if ($optionsWarnings) {
-	if ($MS_io_braindamage) {
-	    # MS Windows can yield some chatter on the line, and it's not necessarily an
-	    # error.  So we don't barf, we only warn. Blech.
-	    carp "WARNING: the gnuplot process gave some unexpected chatter during plot setup:\n$optionsWarnings\n\n";
-	} else {
-	    # Used to barf here, but now we just issue an announcement, since
-	    # some messages are warnings (rather than errors).
-	    carp "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
-	}
-    }
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
     print "plot command is:\n$plotcmd\n" if $PDL::Graphics::Gnuplot::DEBUG;
-    _printGnuplotPipe( $this, "main", $plotcmd);
+    push @plot_chunks, [$plotcmd];
     $plotshow .= $plotcmd;
     for my $chunk (@$chunks) {
 	# Gnuplot doesn't handle bad values, but it *does* know to
@@ -3173,12 +3157,12 @@ POS
 	if ($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
 	    my $p = $chunk->{data}[0]->double->sever;
-	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 } );
+	    push @plot_chunks, [${$p->get_dataref}, {binary => 1, data => 1 }];
 	    $plotshow .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
 	} elsif ($chunk->{binaryCurveFlag}) {
 	    # Send in binary if the binary flag is set.
 	    my $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
-	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 });
+	    push @plot_chunks, [${$p->get_dataref}, {binary => 1, data => 1 }];
 	    $plotshow .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 	} else {
 	    # Assemble and dump the ASCII
@@ -3189,7 +3173,7 @@ POS
 		$plotshow .= " [ ".$p->dim(1)." lines of ASCII data ]\n";
 		# Create a set of ASCII lines.  If any of the elements of a given row are NaN or BAD, blank that line.
 		my $outbuf = join("\n", map $_->isfinite->all ? join(" ", $_->list) : "", $p->dog) . "\n";
-		_emit_ascii($this, $outbuf);
+		push @plot_chunks, _emit_ascii($this, $outbuf);
 	    } else {
 		# It's a collection of array ref data only.  Assemble strings.
 		my $data = $chunk->{data};
@@ -3208,17 +3192,9 @@ POS
 		    $s .= "\n";                     # add newline
 		}
 		$plotshow .= $s;
-		_emit_ascii($this, $s);
+		push @plot_chunks, _emit_ascii($this, $s);
 	    }
 	}
-    }
-    my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
-    if ($plotWarnings) {
-	barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n")
-	  if !$MS_io_braindamage;
-	# MS Windows can yield some chatter on the line, and it's not necessarily an
-	# error.  So we don't barf, we only warn. Blech.
-	carp "WARNING: the gnuplot process gave some unexpected chatter:\n$plotWarnings\n\n";
     }
     ##############################
     # Finally, finally ...  send any required cleanup commands.  This
@@ -3236,17 +3212,57 @@ POS
 	barf "Gnuplot error: \"$checkpointMessage\" after syntax-checking cleanup cmd \"$cleanup_cmd\"\n"
 	  if $checkpointMessage;
     }
-    _printGnuplotPipe($this, "main", $cleanup_cmd);
+    push @plot_chunks, [$cleanup_cmd];
     $plotshow .= $cleanup_cmd;
-    if (my $checkpointMessage = _checkpoint($this, "main", {printwarnings=>1})) {
-	barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n"
-	  if !$MS_io_braindamage;
-	# MS Windows can yield some chatter on the line, and it's not necessarily an
-	# error.  So we don't barf, we only warn.  Blech.
-	carp "WARNING: the gnuplot process gave some unexpected chatter after plot cleanup:\n$checkpointMessage\n";
-    }
     # Flag the output as rescalable if anti-aliasing is in effect
     $this->{aa_ready} = 1 if $this->{aa} && $this->{aa} != 1;
+    _printGnuplotPipe($this, "main", @{shift @plot_chunks}); # options
+    my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
+    # Mask out some common useless chatter
+    $optionsWarnings =~ s/^Terminal type set to .*$//m;
+    $optionsWarnings =~ s/^Options are \'.*$//m;
+    $optionsWarnings = '' if($optionsWarnings =~ m/^\s+$/s);
+    if ($optionsWarnings) {
+	if ($MS_io_braindamage) {
+	    # MS Windows can yield some chatter on the line, and it's not necessarily an
+	    # error.  So we don't barf, we only warn. Blech.
+	    carp "WARNING: the gnuplot process gave some unexpected chatter during plot setup:\n$optionsWarnings\n\n";
+	} else {
+	    # Used to barf here, but now we just issue an announcement, since
+	    # some messages are warnings (rather than errors).
+	    carp "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
+	}
+    }
+    my $cleanup_chunk = pop @plot_chunks;
+    for my $data_chunk (@plot_chunks) {
+      if (ref $data_chunk eq 'ARRAY') {
+	_printGnuplotPipe($this, "main", @$data_chunk);
+      } else {
+	_printGnuplotPipe($this, "main", @$$data_chunk);
+	my $pipe = $this->{"err-main"};
+	my $byte;
+	while (1) {
+	  sysread $pipe, $byte, 1;
+	  last if $byte eq \004 or $byte eq \000 or $byte eq '>';
+	};
+      }
+    }
+    my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
+    if ($plotWarnings) {
+	barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n")
+	  if !$MS_io_braindamage;
+	# MS Windows can yield some chatter on the line, and it's not necessarily an
+	# error.  So we don't barf, we only warn. Blech.
+	carp "WARNING: the gnuplot process gave some unexpected chatter:\n$plotWarnings\n\n";
+    }
+    _printGnuplotPipe($this, "main", @$cleanup_chunk);
+    if (my $checkpointMessage = _checkpoint($this, "main", {printwarnings=>1})) {
+      barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n"
+	if !$MS_io_braindamage;
+      # MS Windows can yield some chatter on the line, and it's not necessarily an
+      # error.  So we don't barf, we only warn.  Blech.
+      carp "WARNING: the gnuplot process gave some unexpected chatter after plot cleanup:\n$checkpointMessage\n";
+    }
     $this->{last_plotcmd} = our $last_plotcmd = $plotshow;
     # read and report any warnings that happened during the plot
     return $plotWarnings;
@@ -3257,20 +3273,10 @@ POS
 sub _emit_ascii {
   my ($this, $chunk) = @_;
   # Under real OSes, we can just send a schwack of stuff - there is no echo.
-  return _printGnuplotPipe($this, "main", $chunk."e\n", {data => 1} )
+  return [$chunk."e\n", {data => 1}]
     if !$MS_io_braindamage;
-  my $pipe = $this->{"err-main"};
-  for my $line (split /\n/, $chunk) {
-    _printGnuplotPipe($this, "main", $line."\n", {data => 1 });
-    if ( !$this->{dumping} && $echo_eating ) {
-      my $byte;
-      while (1) {
-	sysread $pipe, $byte, 1;
-	last if $byte eq \004 or $byte eq \000 or $byte eq '>';
-      };
-    }
-  }
-  _printGnuplotPipe($this, "main", "e\n", {data => 1} );
+  my $pipe_stuff = !$this->{dumping} && $echo_eating;
+  ((map $pipe_stuff ? \$_ : $_, map ["$_\n", {data => 1 }], split /\n/, $chunk), ["e\n", {data => 1 }]);
 }
 
 #####################
