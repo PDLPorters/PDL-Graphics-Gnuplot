@@ -132,6 +132,19 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
     is 0+@lines, 1, "xlabel gets reset on multiplots";
 }
 
+{
+  my $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+  my $text = eval { $w->multiplot_generate(layout=>[1,2]); };
+  is($@, '', "multiplot_generate succeeded");
+  like $text, qr/set multiplot\s+layout 2,1/, 'multiplot_generate';
+  $text = eval { $w->multiplot_next_generate };
+  is($@, '', "multiplot_next_generate succeeded");
+  like $text, qr/set multiplot next/, 'multiplot_next_generate';
+  $text = eval { $w->end_multi_generate };
+  is($@, '', "end_multi_generate succeeded");
+  like $text, qr/unset multiplot/, 'end_multi_generate';
+}
+
 if ($PDL::Graphics::Gnuplot::gp_version >= 4.7) { # only 4.7+
   $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
   $w->multiplot(layout=>[1,2]);
@@ -154,6 +167,10 @@ is $@, '', "set binary mode to 0";
 
 eval { $w->plot( xvals(5), xvals(5)**2 ); };
 is($@, '', "ascii plot succeeded");
+
+my $text = eval { $w->plot_generate( xvals(5), xvals(5)**2 ); };
+is($@, '', "plot_generate succeeded");
+like $text, qr/plot\s*'-'\s*using 1:2 notitle with lines\s*dt solid/, 'plot_generate';
 
 eval { $w->plot( xvals(10000), xvals(10000)->sqrt ); };
 is($@, '', "looong ascii plot succeeded ");

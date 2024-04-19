@@ -2062,7 +2062,10 @@ our $gp_numversion = undef; # which is here converted to a float
 my $did_warn_non_numeric_patchlevel; # whether we already warned about this
 
 use base 'Exporter';
-our @EXPORT_OK = qw(plot plot3d line lines points image terminfo reset restart replot);
+our @EXPORT_OK = qw(
+  plot plot3d line lines points image terminfo reset restart replot
+  multiplot_generate plot_generate multiplot_next_generate end_multi_generate
+);
 our @EXPORT = qw(gpwin gplot greplot greset grestart);
 
 # when testing plots with binary i/o, this is the unit of test data
@@ -2629,6 +2632,23 @@ sub options {
 
 =pod
 
+=head2 plot_generate
+
+=for ref
+
+Called with the same arguments as L</plot>, it returns the text that
+would be sent to Gnuplot. Exportable.
+Added in 2.025.
+
+=cut
+
+sub plot_generate
+{
+  barf "plot_generate called with no arguments" unless @_;
+  my ($plotchunks) = _obj_or_global(\@_)->_plot_generate(@_);
+  join '', map ref $_ eq 'ARRAY' ? $_->[0] : ${$_->[0]}, @$plotchunks;
+}
+
 =head2 gplot
 
 =for ref
@@ -2678,11 +2698,9 @@ in each object as the {last_plotcmd} field.
 
 =cut
 
-*gplot = \&plot;
-sub plot
+sub _plot_generate
 {
-    barf( "Plot called with no arguments") unless @_;
-    my $this = _obj_or_global(\@_);
+    my $this = shift;
     delete $this->{last_dashtype}; # implement dashtype state function for gnuplot>=5.0
     ##############################
     # Parse optional plot options - must be an array or hash ref, if present.
@@ -3216,56 +3234,65 @@ POS
     $plotshow .= $cleanup_cmd;
     # Flag the output as rescalable if anti-aliasing is in effect
     $this->{aa_ready} = 1 if $this->{aa} && $this->{aa} != 1;
-    _printGnuplotPipe($this, "main", @{shift @plot_chunks}); # options
-    my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
-    # Mask out some common useless chatter
-    $optionsWarnings =~ s/^Terminal type set to .*$//m;
-    $optionsWarnings =~ s/^Options are \'.*$//m;
-    $optionsWarnings = '' if($optionsWarnings =~ m/^\s+$/s);
-    if ($optionsWarnings) {
-	if ($MS_io_braindamage) {
-	    # MS Windows can yield some chatter on the line, and it's not necessarily an
-	    # error.  So we don't barf, we only warn. Blech.
-	    carp "WARNING: the gnuplot process gave some unexpected chatter during plot setup:\n$optionsWarnings\n\n";
-	} else {
-	    # Used to barf here, but now we just issue an announcement, since
-	    # some messages are warnings (rather than errors).
-	    carp "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
-	}
-    }
-    my $cleanup_chunk = pop @plot_chunks;
-    for my $data_chunk (@plot_chunks) {
-      if (ref $data_chunk eq 'ARRAY') {
-	_printGnuplotPipe($this, "main", @$data_chunk);
+    (\@plot_chunks, $plotshow);
+}
+
+*gplot = \&plot;
+sub plot
+{
+  barf "Plot called with no arguments" unless @_;
+  my $this = _obj_or_global(\@_);
+  my ($plotchunks, $plotshow) = $this->_plot_generate(@_);
+  _printGnuplotPipe($this, "main", @{shift @$plotchunks}); # options
+  my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
+  # Mask out some common useless chatter
+  $optionsWarnings =~ s/^Terminal type set to .*$//m;
+  $optionsWarnings =~ s/^Options are \'.*$//m;
+  $optionsWarnings = '' if($optionsWarnings =~ m/^\s+$/s);
+  if ($optionsWarnings) {
+      if ($MS_io_braindamage) {
+	  # MS Windows can yield some chatter on the line, and it's not necessarily an
+	  # error.  So we don't barf, we only warn. Blech.
+	  carp "WARNING: the gnuplot process gave some unexpected chatter during plot setup:\n$optionsWarnings\n\n";
       } else {
-	_printGnuplotPipe($this, "main", @$$data_chunk);
-	my $pipe = $this->{"err-main"};
-	my $byte;
-	while (1) {
-	  sysread $pipe, $byte, 1;
-	  last if $byte eq \004 or $byte eq \000 or $byte eq '>';
-	};
+	  # Used to barf here, but now we just issue an announcement, since
+	  # some messages are warnings (rather than errors).
+	  carp "WARNING: the gnuplot process gave some unexpected chatter:\n$optionsWarnings\n\n";
       }
+  }
+  my $cleanup_chunk = pop @$plotchunks;
+  for my $data_chunk (@$plotchunks) {
+    if (ref $data_chunk eq 'ARRAY') {
+      _printGnuplotPipe($this, "main", @$data_chunk);
+    } else {
+      _printGnuplotPipe($this, "main", @$$data_chunk);
+      my $pipe = $this->{"err-main"};
+      my $byte;
+      while (1) {
+	sysread $pipe, $byte, 1;
+	last if $byte eq \004 or $byte eq \000 or $byte eq '>';
+      };
     }
-    my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
-    if ($plotWarnings) {
-	barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n")
-	  if !$MS_io_braindamage;
-	# MS Windows can yield some chatter on the line, and it's not necessarily an
-	# error.  So we don't barf, we only warn. Blech.
-	carp "WARNING: the gnuplot process gave some unexpected chatter:\n$plotWarnings\n\n";
-    }
-    _printGnuplotPipe($this, "main", @$cleanup_chunk);
-    if (my $checkpointMessage = _checkpoint($this, "main", {printwarnings=>1})) {
-      barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n"
+  }
+  my $plotWarnings = _checkpoint($this, "main", {printwarnings=>1});
+  if ($plotWarnings) {
+      barf("the gnuplot process returned an error during plotting: $plotWarnings\n\n")
 	if !$MS_io_braindamage;
       # MS Windows can yield some chatter on the line, and it's not necessarily an
-      # error.  So we don't barf, we only warn.  Blech.
-      carp "WARNING: the gnuplot process gave some unexpected chatter after plot cleanup:\n$checkpointMessage\n";
-    }
-    $this->{last_plotcmd} = our $last_plotcmd = $plotshow;
-    # read and report any warnings that happened during the plot
-    return $plotWarnings;
+      # error.  So we don't barf, we only warn. Blech.
+      carp "WARNING: the gnuplot process gave some unexpected chatter:\n$plotWarnings\n\n";
+  }
+  _printGnuplotPipe($this, "main", @$cleanup_chunk);
+  if (my $checkpointMessage = _checkpoint($this, "main", {printwarnings=>1})) {
+    barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_chunk->[0]\"\n"
+      if !$MS_io_braindamage;
+    # MS Windows can yield some chatter on the line, and it's not necessarily an
+    # error.  So we don't barf, we only warn.  Blech.
+    carp "WARNING: the gnuplot process gave some unexpected chatter after plot cleanup:\n$checkpointMessage\n";
+  }
+  $this->{last_plotcmd} = our $last_plotcmd = $plotshow;
+  # read and report any warnings that happened during the plot
+  return $plotWarnings;
 }
 
 # Not in binary mode - send this chunk in ASCII.  Each line gets one
@@ -3914,6 +3941,14 @@ sub fits {
 
 =pod
 
+=head2 multiplot_generate
+
+=for ref
+
+Called with the same arguments as L</multiplot>, it returns the text that
+would be sent to Gnuplot.
+Added in 2.025.
+
 =head2 multiplot
 
 =for example
@@ -3973,11 +4008,27 @@ of each plot within the grid.
 
 =back
 
+=head2 multiplot_next_generate
+
+=for ref
+
+Called with the same arguments as L</multiplot_next>, it returns the text that
+would be sent to Gnuplot. Exportable.
+Added in 2.025.
+
 =head2 multiplot_next
 
 =for ref
 
 Skip one plot. Added in 2.025. Requires Gnuplot 4.7+.
+
+=head2 end_multi_generate
+
+=for ref
+
+Called with the same arguments as L</end_multi>, it returns the text that
+would be sent to Gnuplot. Exportable.
+Added in 2.025.
 
 =head2 end_multi
 
@@ -4028,29 +4079,27 @@ our $mpOptionsTable = {
 our $mpOptionsAbbrevs = _gen_abbrev_list(keys %$mpOptionsTable);
 our $mpOpt = [$mpOptionsTable, $mpOptionsAbbrevs, "multiplot option"];
 
-sub multiplot {
+sub multiplot_generate {
     my $this = _obj_or_global(\@_);
-    my @params = @_;
-    if($this->{options}{multiplot}) {
+    if ($this->{options}{multiplot}) {
 	carp "Warning: multiplot: object is already in multiplot mode!\n  Exiting multiplot mode first...\n";
 	end_multi($this);
     }
     my $mp_opts = _parseOptHash( undef, $mpOpt, @_ );
     # Assemble the command.
-    my $command = "set multiplot " . _emitOpts($mp_opts, $mpOpt) . "\n";
     my $preamble = _emitOpts({ 'terminal'   => $this->{options}{terminal},
 			       'output'     => $this->{options}{output},
 			       'termoption' => $this->{options}{termoption}
 			     },
 			     $pOpt);
-    my $checkpointMessage;
-    if($check_syntax){
+    my $command = "set multiplot " . _emitOpts($mp_opts, $mpOpt) . "\n";
+    if ($check_syntax) {
 	my $test_preamble = "set terminal dumb\nset output \" \"\n";
 	$PDL::Graphics::Gnuplot::last_testcmd = $test_preamble . $command;
 	$this->{last_testcmd} = $test_preamble . $command;
 	_printGnuplotPipe( $this, "syntax", $test_preamble . $command);
-	$checkpointMessage = _checkpoint($this, "syntax");
-	if($checkpointMessage) {
+	my $checkpointMessage = _checkpoint($this, "syntax");
+	if ($checkpointMessage) {
 	    if($MS_io_braindamage) {
 		carp "WARNING: unexpected chatter while sending multiplot command:\n$checkpointMessage\n\n";
 	    } else {
@@ -4058,22 +4107,27 @@ sub multiplot {
 	    }
 	}
     }
-    $PDL::Graphics::Gnuplot::last_plotcmd = $preamble . $command;
-    $this->{last_plotcmd} = $preamble.$command;
-    _printGnuplotPipe( $this, "main", $preamble . $command);
-    $checkpointMessage = _checkpoint($this,"main");
-    if($checkpointMessage){
-	if($MS_io_braindamage) {
+    $this->{options}{multiplot} = 1;
+    $preamble . $command;
+}
+
+sub multiplot {
+    my $this = _obj_or_global(\@_);
+    my $plotshow = $this->multiplot_generate(@_);
+    $this->{last_plotcmd} = our $last_plotcmd = $plotshow;
+    _printGnuplotPipe($this, "main", $plotshow);
+    my $checkpointMessage = _checkpoint($this,"main");
+    if ($checkpointMessage) {
+	if ($MS_io_braindamage) {
 	    carp "WARNING: unexpected chatter while sending final multiplot command:\n$checkpointMessage\n\n";
 	} else {
 	    barf("Gnuplot error: \"$checkpointMessage\" while sending final multiplot command.");
 	}
     }
-    $this->{options}{multiplot} = 1;
     return;
 }
 
-sub multiplot_next {
+sub multiplot_next_generate {
   barf "multiplot_next: need Gnuplot 4.7+\n"
     if $PDL::Graphics::Gnuplot::gp_version < 4.7;
   my $this = _obj_or_global(\@_);
@@ -4086,8 +4140,18 @@ sub multiplot_next {
     barf "Gnuplot error: set multiplot next failed on syntax check!\n$checkpointMessage"
       if $checkpointMessage;
   }
-  _printGnuplotPipe($this, "main", "set multiplot next\n");
-  $checkpointMessage = _checkpoint($this, "main");
+  "set multiplot next\n";
+}
+
+sub multiplot_next {
+  barf "multiplot_next: need Gnuplot 4.7+\n"
+    if $PDL::Graphics::Gnuplot::gp_version < 4.7;
+  my $this = _obj_or_global(\@_);
+  barf "multiplot_next: you can't, you're not in multiplot mode\n"
+    unless $this->{options}{multiplot};
+  my $plotcmd = $this->multiplot_next_generate;
+  _printGnuplotPipe($this, "main", $plotcmd);
+  my $checkpointMessage = _checkpoint($this, "main");
   if ($checkpointMessage) {
     if ($MS_io_braindamage) {
       carp "WARNING: unexpected chatter after set multiplot next:\n$checkpointMessage\n";
@@ -4097,28 +4161,35 @@ sub multiplot_next {
   }
 }
 
+sub end_multi_generate {
+  my $this = _obj_or_global(\@_);
+  barf "end_multi: you can't, you're not in multiplot mode\n"
+    unless $this->{options}{multiplot};
+  if ($check_syntax) {
+    _printGnuplotPipe( $this, "syntax", "unset multiplot\n");
+    my $checkpointMessage = _checkpoint($this, "syntax");
+    barf "Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage"
+      if $checkpointMessage;
+  }
+  $this->{options}{multiplot} = 0;
+  "unset multiplot\n";
+}
+
 sub end_multi {
-    my $this = _obj_or_global(\@_);
-    barf "end_multi: you can't, you're not in multiplot mode\n"
-      unless $this->{options}{multiplot};
-    my $checkpointMessage;
-    if ($check_syntax) {
-	_printGnuplotPipe( $this, "syntax", "unset multiplot\n");
-	$checkpointMessage = _checkpoint($this, "syntax");
-	barf "Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage"
-	  if $checkpointMessage;
+  my $this = _obj_or_global(\@_);
+  barf "end_multi: you can't, you're not in multiplot mode\n"
+    unless $this->{options}{multiplot};
+  my $plotcmd = $this->end_multi_generate;
+  _printGnuplotPipe($this, "main", $plotcmd);
+  my $checkpointMessage = _checkpoint($this, "main");
+  if ($checkpointMessage) {
+    if ($MS_io_braindamage) {
+      carp "WARNING: unexpected chatter after unset multiplot:\n$checkpointMessage\n";
+    } else {
+      barf("Gnuplot error: unset multiplot failed!\n$checkpointMessage");
     }
-    _printGnuplotPipe($this, "main", "unset multiplot\n");
-    $checkpointMessage = _checkpoint($this, "main");
-    if ($checkpointMessage) {
-	if ($MS_io_braindamage) {
-	    carp "WARNING: unexpected chatter after unset multiplot:\n$checkpointMessage\n";
-	} else {
-	    barf("Gnuplot error: unset multiplot failed!\n$checkpointMessage");
-	}
-    }
-    $this->{options}{multiplot} = 0;
-    $this->close if !$termTab->{$this->{terminal}}{disp};
+  }
+  $this->close if !$termTab->{$this->{terminal}}{disp};
 }
 
 ######################################################################
