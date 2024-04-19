@@ -3119,10 +3119,8 @@ POS
     # Put data and final checkpointing on the test command
     $testcmd .= join("", map $_->{testdata}, @$chunks) if $check_syntax;
     # Stash this plot command in the debugging variable
-    $this->{last_plotcmd} = our $last_plotcmd = $plotOptionsString.$plotcmd;
     $this->{last_testcmd} = our $last_testcmd = $plotOptionsString.$testcmd
       if $check_syntax;
-    print "plot command is:\n$plotcmd\n" if $PDL::Graphics::Gnuplot::DEBUG;
     #######
     # The commands are assembled.  Now test 'em by sending the test command down the pipe.
     my $checkpointMessage;
@@ -3138,6 +3136,7 @@ POS
     ##############################
     ##### Send the PlotOptionsString
     _printGnuplotPipe( $this, "main", $plotOptionsString);
+    $this->{last_plotcmd} = our $last_plotcmd = $plotOptionsString;
     my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
     # Mask out some common useless chatter
     $optionsWarnings =~ s/^Terminal type set to .*$//m;
@@ -3156,7 +3155,9 @@ POS
     }
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
+    print "plot command is:\n$plotcmd\n" if $PDL::Graphics::Gnuplot::DEBUG;
     _printGnuplotPipe( $this, "main", $plotcmd);
+    $_ .= $plotcmd for $this->{last_plotcmd}, $last_plotcmd;
     for my $chunk (@$chunks) {
 	my $p;
 	# Gnuplot doesn't handle bad values, but it *does* know to
@@ -3176,57 +3177,25 @@ POS
 	    # Currently all images are sent binary
 	    $p = $chunk->{data}[0]->double->sever;
 	    my $s = " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
-	    $last_plotcmd .= $s;
-	    $this->{last_plotcmd} .= $s;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 } );
+	    $_ .= $s for $this->{last_plotcmd}, $last_plotcmd;
 	} elsif ($chunk->{binaryCurveFlag}) {
 	    # Send in binary if the binary flag is set.
 	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
 	    my $s = " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
-	    $last_plotcmd .= $s;
-	    $this->{last_plotcmd} .= $s;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 });
+	    $_ .= $s for $this->{last_plotcmd}, $last_plotcmd;
 	} else {
-	    # Not in binary mode - send this chunk in ASCII.  Each line gets one tuple, followed
-	    # a line with just "e".
-	    # Defining the emitter here lets me keep context inside it instead of breaking it
-	    # out, which would probably be a better way to do it.
-	    my $emitter;
-	    if ($MS_io_braindamage) {
-		$emitter = sub {
-		    my @lines = split /\n/, shift;
-		    my $pipe = $this->{"err-main"};
-		    for my $line (@lines) {
-			_printGnuplotPipe($this, "main", $line."\n", {data => 1 });
-			if ( !$this->{dumping} && $echo_eating ) {
-			    my $byte;
-			    do {
-				sysread $pipe, $byte, 1;
-				if ( $byte eq \004 or $byte eq \000 ) {
-				    $byte = undef;
-				}
-			    } until !defined($byte) or $byte eq '>';
-			}
-		    }
-		    _printGnuplotPipe($this, "main", "e\n", {data => 1} );
-		};
-	    } else {
-		# Under real OSes, we can just send a schwack of stuff - there is no echo.
-		$emitter = sub {
-		    _printGnuplotPipe($this, "main", shift()."e\n", {data => 1} );
-		};
-	    }
-	    # Assemble and dump the ASCII through the just-defined emitter.
+	    # Assemble and dump the ASCII
 	    if ($chunk->{data}[0]->$_isa('PDL')) {
 		# It's a collection of PDL data only.
 		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
 		my $s = " [ ".$p->dim(1)." lines of ASCII data ]\n";
-		$last_plotcmd .= $s;
-		$this->{last_plotcmd} .= $s;
+		$_ .= $s for $this->{last_plotcmd}, $last_plotcmd;
 		# Create a set of ASCII lines.  If any of the elements of a given row are NaN or BAD, blank that line.
 		my $outbuf = join("\n", map $_->isfinite->all ? join(" ", $_->list) : "", $p->dog) . "\n";
-		$emitter->($outbuf);
+		_emit_ascii($this, $outbuf);
 	    } else {
 		# It's a collection of array ref data only.  Assemble strings.
 		my $data = $chunk->{data};
@@ -3244,7 +3213,7 @@ POS
 		    }
 		    $s .= "\n";                     # add newline
 		}
-		$emitter->( $s );
+		_emit_ascii($this, $s);
 	    }
 	}
     }
@@ -3267,16 +3236,14 @@ POS
     # Mark the gnuplot as replottable - we now have a full set of plot parameters stashed away.
     $this->{replottable} = 1;
     if ($check_syntax) {
-	$PDL::Graphics::Gnuplot::last_testcmd .= $cleanup_cmd;
-	$this->{last_testcmd} .= $cleanup_cmd;
 	_printGnuplotPipe($this, "syntax", $cleanup_cmd);
+	$_ .= $cleanup_cmd for $this->{last_testcmd}, $last_testcmd;
 	$checkpointMessage= _checkpoint($this, "syntax", {printwarnings=>1});
 	barf "Gnuplot error: \"$checkpointMessage\" after syntax-checking cleanup cmd \"$cleanup_cmd\"\n"
 	  if $checkpointMessage;
     }
-    $PDL::Graphics::Gnuplot::last_plotcmd .= $cleanup_cmd;
-    $this->{last_plotcmd} .= $cleanup_cmd;
     _printGnuplotPipe($this, "main", $cleanup_cmd);
+    $_ .= $cleanup_cmd for $this->{last_plotcmd}, $last_plotcmd;
     $checkpointMessage= _checkpoint($this, "main", {printwarnings=>1});
     if ($checkpointMessage) {
 	barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n"
@@ -3289,6 +3256,27 @@ POS
     $this->{aa_ready} = 1 if $this->{aa} && $this->{aa} != 1;
     # read and report any warnings that happened during the plot
     return $plotWarnings;
+}
+
+# Not in binary mode - send this chunk in ASCII.  Each line gets one
+# tuple, followed a line with just "e".
+sub _emit_ascii {
+  my ($this, $chunk) = @_;
+  # Under real OSes, we can just send a schwack of stuff - there is no echo.
+  return _printGnuplotPipe($this, "main", $chunk."e\n", {data => 1} )
+    if !$MS_io_braindamage;
+  my $pipe = $this->{"err-main"};
+  for my $line (split /\n/, $chunk) {
+    _printGnuplotPipe($this, "main", $line."\n", {data => 1 });
+    if ( !$this->{dumping} && $echo_eating ) {
+      my $byte;
+      while (1) {
+	sysread $pipe, $byte, 1;
+	last if $byte eq \004 or $byte eq \000 or $byte eq '>';
+      };
+    }
+  }
+  _printGnuplotPipe($this, "main", "e\n", {data => 1} );
 }
 
 #####################
