@@ -2682,11 +2682,8 @@ in each object as the {last_plotcmd} field.
 sub plot
 {
     barf( "Plot called with no arguments") unless @_;
-
     my $this = _obj_or_global(\@_);
-
     delete $this->{last_dashtype}; # implement dashtype state function for gnuplot>=5.0
-
     ##############################
     # Parse optional plot options - must be an array or hash ref, if present.
     # Cheesy but hopefully effective method (from Dima): parse as plot options
@@ -3160,7 +3157,6 @@ POS
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
     _printGnuplotPipe( $this, "main", $plotcmd);
-    $this->{last_plot}{command} = $plotcmd;
     for my $chunk (@$chunks) {
 	my $p;
 	# Gnuplot doesn't handle bad values, but it *does* know to
@@ -4047,23 +4043,18 @@ our $mpOpt = [$mpOptionsTable, $mpOptionsAbbrevs, "multiplot option"];
 sub multiplot {
     my $this = _obj_or_global(\@_);
     my @params = @_;
-
     if($this->{options}{multiplot}) {
 	carp "Warning: multiplot: object is already in multiplot mode!\n  Exiting multiplot mode first...\n";
 	end_multi($this);
     }
-
     my $mp_opts = _parseOptHash( undef, $mpOpt, @_ );
-
     # Assemble the command.
-
     my $command = "set multiplot " . _emitOpts($mp_opts, $mpOpt) . "\n";
     my $preamble = _emitOpts({ 'terminal'   => $this->{options}{terminal},
 			       'output'     => $this->{options}{output},
 			       'termoption' => $this->{options}{termoption}
 			     },
 			     $pOpt);
-
     my $checkpointMessage;
     if($check_syntax){
 	my $test_preamble = "set terminal dumb\nset output \" \"\n";
@@ -4079,7 +4070,6 @@ sub multiplot {
 	    }
 	}
     }
-
     $PDL::Graphics::Gnuplot::last_plotcmd = $preamble . $command;
     $this->{last_plotcmd} = $preamble.$command;
     _printGnuplotPipe( $this, "main", $preamble . $command);
@@ -4091,9 +4081,7 @@ sub multiplot {
 	    barf("Gnuplot error: \"$checkpointMessage\" while sending final multiplot command.");
 	}
     }
-
     $this->{options}{multiplot} = 1;
-
     return;
 }
 
@@ -6540,7 +6528,6 @@ our $termTabSource = {
 			   ['jsdir',      's','cq',   "URL of directory where javascripts are found"],
 			   'title'],
 		    default_output=>'%s%d.js'},
-
     'cgm'      => { unit=>'pt', desc=> "Computer Graphic Metafile format (ANSI X3.122-1986)",
 		    opt=>[ qw/ color monochrome solid dashed rotate /,
 			   ['size',  'l', sub { my( $k, $v, $h) = @_;
@@ -6782,7 +6769,6 @@ our $termTabSource = {
 			'size']},
 			'xlib'    =>"Xlib command file (for debugging X11)  [NS: useless here]",
     'vgal'=>     "VGAL terminal                          [NS: bizarre]",
-
 };
 
 ##############################
