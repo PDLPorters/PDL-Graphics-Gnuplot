@@ -3134,7 +3134,7 @@ POS
     ##############################
     ##### Send the PlotOptionsString
     _printGnuplotPipe( $this, "main", $plotOptionsString);
-    $this->{last_plotcmd} = our $last_plotcmd = $plotOptionsString;
+    my $plotshow = $plotOptionsString;
     my $optionsWarnings = _checkpoint($this, "main", {printwarnings=>1});
     # Mask out some common useless chatter
     $optionsWarnings =~ s/^Terminal type set to .*$//m;
@@ -3155,9 +3155,8 @@ POS
     ##### Finally..... send the actual plot command to the gnuplot device.
     print "plot command is:\n$plotcmd\n" if $PDL::Graphics::Gnuplot::DEBUG;
     _printGnuplotPipe( $this, "main", $plotcmd);
-    $_ .= $plotcmd for $this->{last_plotcmd}, $last_plotcmd;
+    $plotshow .= $plotcmd;
     for my $chunk (@$chunks) {
-	my $p;
 	# Gnuplot doesn't handle bad values, but it *does* know to
 	# omit nans.  If we're running under a PDL that uses the
 	# bad value handling stuff, replace bad values with nan in the current chunk.
@@ -3173,24 +3172,21 @@ POS
 	}
 	if ($chunk->{cdims}==2) {
 	    # Currently all images are sent binary
-	    $p = $chunk->{data}[0]->double->sever;
-	    my $s = " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
+	    my $p = $chunk->{data}[0]->double->sever;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 } );
-	    $_ .= $s for $this->{last_plotcmd}, $last_plotcmd;
+	    $plotshow .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
 	} elsif ($chunk->{binaryCurveFlag}) {
 	    # Send in binary if the binary flag is set.
-	    $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
-	    my $s = " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
+	    my $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
 	    _printGnuplotPipe($this, "main", ${$p->get_dataref}, {binary => 1, data => 1 });
-	    $_ .= $s for $this->{last_plotcmd}, $last_plotcmd;
+	    $plotshow .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 	} else {
 	    # Assemble and dump the ASCII
 	    if ($chunk->{data}[0]->$_isa('PDL')) {
 		# It's a collection of PDL data only.
-		$p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
+		my $p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
-		my $s = " [ ".$p->dim(1)." lines of ASCII data ]\n";
-		$_ .= $s for $this->{last_plotcmd}, $last_plotcmd;
+		$plotshow .= " [ ".$p->dim(1)." lines of ASCII data ]\n";
 		# Create a set of ASCII lines.  If any of the elements of a given row are NaN or BAD, blank that line.
 		my $outbuf = join("\n", map $_->isfinite->all ? join(" ", $_->list) : "", $p->dog) . "\n";
 		_emit_ascii($this, $outbuf);
@@ -3211,6 +3207,7 @@ POS
 		    }
 		    $s .= "\n";                     # add newline
 		}
+		$plotshow .= $s;
 		_emit_ascii($this, $s);
 	    }
 	}
@@ -3227,10 +3224,9 @@ POS
     # Finally, finally ...  send any required cleanup commands.  This
     # starts with {bottomcmds} and includes several things we don't want to persist,
     # but that do by default.
-    my $cleanup_cmd = "";
-    if (defined(my $bc = $this->{options}{bottomcmds})) {
-	$cleanup_cmd = ref($bc) eq 'ARRAY' ? join("\n", @$bc, "") : "$bc\n";
-    }
+    my $bc = $this->{options}{bottomcmds};
+    my $cleanup_cmd = !defined $bc ? "" :
+       ref($bc) ne 'ARRAY' ? "$bc\n" : join("\n", @$bc, "");
     # Mark the gnuplot as replottable - we now have a full set of plot parameters stashed away.
     $this->{replottable} = 1;
     if ($check_syntax) {
@@ -3241,7 +3237,7 @@ POS
 	  if $checkpointMessage;
     }
     _printGnuplotPipe($this, "main", $cleanup_cmd);
-    $_ .= $cleanup_cmd for $this->{last_plotcmd}, $last_plotcmd;
+    $plotshow .= $cleanup_cmd;
     if (my $checkpointMessage = _checkpoint($this, "main", {printwarnings=>1})) {
 	barf "Gnuplot error: \"$checkpointMessage\" after sending cleanup cmd \"$cleanup_cmd\"\n"
 	  if !$MS_io_braindamage;
@@ -3251,6 +3247,7 @@ POS
     }
     # Flag the output as rescalable if anti-aliasing is in effect
     $this->{aa_ready} = 1 if $this->{aa} && $this->{aa} != 1;
+    $this->{last_plotcmd} = our $last_plotcmd = $plotshow;
     # read and report any warnings that happened during the plot
     return $plotWarnings;
 }
