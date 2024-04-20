@@ -5211,7 +5211,7 @@ our $cOptionsTable = {
 		   ],
     'using'    => ['l','cl',undef,6],        # using clauses in order (straight passthrough)
 # legend is a special case -- it gets parsed as a list but emitted as a quoted scalar.
-    'legend'   => ['l', sub { if(defined($_[1]) and defined $_[1][0]) {return "title \"$_[1][0]\"";} else {return "notitle"}},
+    'legend'   => ['ln', sub { if(defined($_[1]) and defined $_[1][0]) {return "title \"$_[1][0]\"";} else {return "notitle"}},
 		   undef, 7],
     'axes'     => [['(x[12])(y[12])'],'cs',undef,8],
     'smooth'   => ['s','cs',undef,8.1],
@@ -5568,10 +5568,10 @@ $_pOHInputs = {
 
     ## one-line list (can also be boolean)
     l => sub { return $_[1] if !defined $_[1] or !length $_[1] or ref $_[1] eq 'ARRAY';
-		 return [$_[1]] if( (!ref($_[1])) && "$_[1]" =~ m/^\s*\-?\d+\s*$/); # nonzero integers yield true
-		 # Not setting a boolean value - it's a list (or a trivial list).
-		 # anything that's not an array ref (and not a number) gets put in the array
-		 return [$_[1]];
+	       return $_[1] if !ref($_[1]) && "$_[1]" =~ m/^\s*\-?\d+\s*$/; # nonzero integers yield true
+	       # Not setting a boolean value - it's a list (or a trivial list).
+	       # anything that's not an array ref (and not a number) gets put in the array
+	       return [$_[1]];
     },
 
     ## one-line list (no booleanity: scalars always get copied to the list)
