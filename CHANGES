@@ -1,3 +1,4 @@
+2.025 2024-04-20
 - Split version checking from `use Alien::Gnuplot` line for easier downstream
   packaging. Fixes #98.
 - fixes for Windows (#89)
