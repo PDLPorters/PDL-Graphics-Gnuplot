@@ -69,6 +69,8 @@
 # PDL::Options in other circumstances.
 #
 
+=encoding UTF-8
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
