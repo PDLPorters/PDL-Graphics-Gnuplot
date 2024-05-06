@@ -1545,7 +1545,7 @@ B<C<pointsize>> accepts a single number and scales the size of points used in pl
 
 B<C<style>> provides a great deal of customization for individual plot styles.
 It is not (yet) fully parsed by PDL::Graphics::Gnuplot; please refer to the Gnuplot
-manual for details (it is pp. 145ff in the Gnuplot 4.6.1 maual).  C<style> accepts
+manual for details (it is pp. 145ff in the Gnuplot 4.6.1 manual).  C<style> accepts
 a hash ref whose keys are plot styles (such as you would feed to the C<with> curve option),
 and whose values are array refs containing keywords and other parameters to modify how each
 plot style should be displayed.
