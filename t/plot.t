@@ -906,6 +906,18 @@ bless($a,'MyPackage');
 eval { $w->plot( $a ); };
 is $@, '', "subclass of PDL plots OK";
 
+my @d = qw(PDL Demos);
+my $m51path;
+foreach my $path (@INC) {
+  my $check = File::Spec->catfile( $path, @d, "m51.fits" );
+  if ( -f $check ) { $m51path = $check; last; }
+}
+if (defined $m51path) {
+  my $m51 = rfits $m51path;
+  eval { $w->reset; $w->plot(with => 'fits', $m51); }; # reset of "ascii"
+  is $@, '', "with => 'fits' OK";
+}
+
 # Test terminal defaulting
 eval { $w=PDL::Graphics::Gnuplot::new(size=>[9,9]); undef($w);};
 is $@, '', "default terminal is selected OK";
