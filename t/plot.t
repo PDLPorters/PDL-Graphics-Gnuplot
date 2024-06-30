@@ -184,6 +184,9 @@ is $@, '', "set binary mode to 0";
 eval { $w->plot( xvals(5), xvals(5)**2 ); };
 is($@, '', "ascii plot succeeded");
 
+eval { $w->plot( [xvals(5)->list], [(xvals(5)**2)->list] ); };
+is($@, '', "ascii array-ref plot succeeded");
+
 my $text = eval { $w->plot_generate( xvals(5), xvals(5)**2 ); };
 is($@, '', "plot_generate succeeded");
 like $text, qr/plot\s*'-'\s*using 1:2 notitle with lines\s*dt solid/, 'plot_generate';

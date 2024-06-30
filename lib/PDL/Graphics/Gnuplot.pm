@@ -3672,7 +3672,6 @@ FOO
       push @chunks, \%chunk;
     }
     $Ncurves += $ncurves;
-    $chunk{imageflag} = $imgFlag;
     $argIndex = $nextOptionIdx;
   }
   return (\@chunks, $Ncurves);
