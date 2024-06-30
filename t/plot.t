@@ -152,6 +152,15 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
   is($@, '', "colorbox succeeded");
 }
 
+{
+  my $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
+  my $r9 = rvals(9,9);
+  eval {$w->plot({colorbox => 1},{with => 'image'},$r9->xvals,$r9->yvals,$r9,
+    {with=>'lines'}, xvals(5)**2,
+  )};
+  is($@, '', "both image and non-image to exercise image-range path");
+}
+
 if ($PDL::Graphics::Gnuplot::gp_version >= 4.7) { # only 4.7+
   $w = gpwin('dumb',size=>[79,24,'ch'], output=>$testoutput);
   $w->multiplot(layout=>[1,2]);
