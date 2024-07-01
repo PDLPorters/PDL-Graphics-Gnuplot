@@ -3534,26 +3534,10 @@ EOF
     if ( $cdims==2 ) {
       if ($chunk{options}{with}[0] eq 'image') {
         my $dp = $dataPiddles[-1];
-        if ($dp->ndims==3) {
-          if ($dp->dim(1) >= 5) {
-            if ($dp->dim(0) ==3 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
-              $chunk{options}{with}[0] = 'rgbimage';
-              pop @dataPiddles;
-              push @dataPiddles,$dp->using(0,1,2);
-            } elsif ($dp->dim(2)==3 && $dp->dim(1)>=5 && $dp->dim(0) >= 5) {
-              $chunk{options}{with}[0] = 'rgbimage';
-              pop @dataPiddles;
-              push @dataPiddles,$dp->mv(2,0)->using(0,1,2);
-            } elsif ($dp->dim(0)==4 && $dp->dim(1) >= 5 && $dp->dim(2) >= 5) {
-              $chunk{options}{with}[0] = 'rgbalpha';
-              pop @dataPiddles;
-              push @dataPiddles,$dp->using(0,1,2,3);
-            } elsif ($dp->dim(2)==4 && $dp->dim(0) >= 5 && $dp->dim(1) >= 5) {
-              $chunk{options}{with}[0] = 'rgbalpha';
-              pop @dataPiddles;
-              push @dataPiddles, $dp->mv(2,0)->using(0,1,2,3);
-            }
-          }
+        if ($dp->ndims==3 and $dp->dim(1) >= 5) {
+          my ($with, @ndarrays) = _regularise_image($dp);
+          $chunk{options}{with}[0] = $with;
+          splice @dataPiddles, -1, 1, @ndarrays;
         }
       }
     }
@@ -3675,6 +3659,23 @@ FOO
     $argIndex = $nextOptionIdx;
   }
   return (\@chunks, $Ncurves);
+}
+
+sub _regularise_image {
+  my ($dp) = @_;
+  my $with = $dp->dim(0) == 3 || $dp->dim(2) == 3 ? 'rgbimage' :
+    $dp->dim(0) == 4 || $dp->dim(2) == 4 ? 'rgbalpha' : undef;
+  my @ndarrays;
+  if ($dp->dim(0) == 3 && $dp->dim(2) >= 5) {
+    @ndarrays = $dp->using(0..2);
+  } elsif ($dp->dim(2) == 3 && $dp->dim(0) >= 5) {
+    @ndarrays = $dp->mv(2,0)->using(0..2);
+  } elsif ($dp->dim(0) == 4 && $dp->dim(2) >= 5) {
+    @ndarrays = $dp->using(0..3);
+  } elsif ($dp->dim(2) == 4 && $dp->dim(0) >= 5) {
+    @ndarrays = $dp->mv(2,0)->using(0..3);
+  }
+  ($with, @ndarrays);
 }
 
 ##########
