@@ -7751,7 +7751,7 @@ sub _with_fits_prefrobnicator {
 	if( ($with->[$i]) =~ m/^re(s(a(m(p(l(e)?)?)?)?)?)?/i ) {
 	    splice @$with, $i,1; # remove 'resample' from list
 	    $resample_flag = 1;
-	    if( ($with->[$i]) =~ m/(\d+)(\,(\d+))?/ ) {
+	    if ($with->[$i] and $with->[$i] =~ m/(\d+)(\,(\d+))?/) {
 		@resample_dims = ($1, $3 // $1);
 		splice @$with, $i, 1;
 	    }
@@ -7798,7 +7798,7 @@ sub _with_fits_prefrobnicator {
 
     unless(defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
 	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0),$data->dim(1)) - 0.5;
-	my $corners = $pix_corners->apply(t_fits($data));
+	my $corners = $pix_corners->apply(t_fits($h));
 	$xmin //= $corners->slice("(0)")->min;
 	$xmax //= $corners->slice("(0)")->max;
 	$ymin //= $corners->slice("(1)")->min;
@@ -7812,25 +7812,25 @@ sub _with_fits_prefrobnicator {
 	my $a = $xmin; $xmin = $xmax; $xmax = $a;
     }
 
-    our $dest_hdr = {NAXIS=>2,
-		    NAXIS1=> $resample_dims[0],     NAXIS2=>$resample_dims[1],
-		    CRPIX1=> 0.5,                   CRPIX2=>0.5,
-		    CRVAL1=> $xmin,                 CRVAL2=>$ymin,
-		    CDELT1=> ($xmax-$xmin)/($resample_dims[0]),
-		    CDELT2=> ($ymax-$ymin)/($resample_dims[1]),
-		    CTYPE1=> $h->{CTYPE1},	    CTYPE2=> $h->{CTYPE2},
-		    CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
-    };
-
     my ($d2,$ndc);
     if($resample_flag) {
 	my $d1 = double $data;
 	unless($data->hdrcpy) {$d1->sethdr($data->gethdr);} # no copying - ephemeral value
+        my $dest_hdr = {
+          NAXIS=>2,
+          NAXIS1=> $resample_dims[0],     NAXIS2=>$resample_dims[1],
+          CRPIX1=> 0.5,                   CRPIX2=>0.5,
+          CRVAL1=> $xmin,                 CRVAL2=>$ymin,
+          CDELT1=> ($xmax-$xmin)/($resample_dims[0]),
+          CDELT2=> ($ymax-$ymin)/($resample_dims[1]),
+          CTYPE1=> $h->{CTYPE1},          CTYPE2=> $h->{CTYPE2},
+          CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
+        };
 	$d2 = $d1->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
-	$ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($d2) );
+	$ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($dest_hdr) );
     } else {
 	$d2 = $data;
-	$ndc = ndcoords($data->dim(0),$data->dim(1))->apply(t_fits($data));
+	$ndc = ndcoords($data->dim(0),$data->dim(1))->apply(t_fits($h));
     }
 
     # Now update plot options to set the axis labels, if they haven't been updated already...

@@ -151,9 +151,11 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
   eval {$w->plot({colorbox => 1},{with => 'image'},$r9->xvals,$r9->yvals,$r9)};
   is($@, '', "colorbox succeeded");
   for my $dims ([3,9,9],[4,9,9],[9,9,3],[9,9,4]) {
-    eval {$w->plot({colorbox => 1},{with => 'image'},$r9->xvals,$r9->yvals,rvals(@$dims))};
+    eval {$w->plot({with => 'image'},$r9->xvals,$r9->yvals,rvals(@$dims))};
     is($@, '', "regularising image succeeded (@$dims)");
   }
+  eval {$w->plot({with => 'fits'},$r9)};
+  is($@, '', "with 'fits'");
 }
 
 {
