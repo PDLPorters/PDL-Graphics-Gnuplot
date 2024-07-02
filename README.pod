@@ -6,6 +6,8 @@ page at L<http://metacpan.org/pod/PDL::Graphics::Gnuplot>.
 
 =cut
 
+=encoding UTF-8
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -520,7 +522,7 @@ FITS images in scientific coordinates with
 
  gplot( with=>'fits', $fitsdata );
 
-The fits plot style accepts a modifier "resample" (which may be
+The fits plot style accepts a curve option "resample" (which may be
 abbreviated), that allows you to downsample and/or rectify the image
 before it is passed to the Gnuplot back-end.  This is useful either to
 cut down on the burden of transferring large blocks of image data or
@@ -528,12 +530,14 @@ to rectify images with nonlinear WCS transformations in their headers.
 (gnuplot itself has a bug that prevents direct rendering of images in
 nonlinear coordinates).
 
- gplot( with=>'fits res 200', $fitsdata );
- gplot( with=>'fits res 100,400',$fitsdata );
+ gplot( with=>'fits', res=>1, $fitsdata );
+ gplot( with=>'fits', res=>[200], $fitsdata );
+ gplot( with=>'fits', res=>[100,400],$fitsdata );
 
-to specify that the output are to be resampled onto a square 200x200
-grid or a 100x400 grid, respectively.  The resample sizes must be
+to specify that the output are to be resampled onto a square 1024x1024 grid,
+a 200x200 grid, or a 100x400 grid, respectively. The resample sizes must be
 positive integers.
+A true non-ref value will be treated as 1024x1024.
 
 =head2 Interactivity
 
@@ -1718,6 +1722,10 @@ of lines using the threaded syntax, try
     $w->plot3d( wi=>'lines', cd=>1, xvals($r2), yvals($r2), $r2 );
 
 which will plot 21 separate curves in a threaded manner.
+
+=item resample
+
+For C<< with=>'fits' >>. See L</Images>.
 
 =back
 

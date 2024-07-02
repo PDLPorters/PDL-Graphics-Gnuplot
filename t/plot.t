@@ -156,6 +156,10 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
   }
   eval {$w->plot({with => 'fits'},$r9)};
   is($@, '', "with 'fits'");
+  eval {$w->plot({with => 'fits', resample=>1},$r9)};
+  is($@, '', "with 'fits', resample");
+  eval {$w->plot({with => 'fits', resample=>[100,100]},$r9)};
+  is($@, '', "with 'fits', resample [100,100]");
 }
 
 {

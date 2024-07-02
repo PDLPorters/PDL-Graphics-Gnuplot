@@ -585,7 +585,7 @@ FITS images in scientific coordinates with
 
  gplot( with=>'fits', $fitsdata );
 
-The fits plot style accepts a modifier "resample" (which may be
+The fits plot style accepts a curve option "resample" (which may be
 abbreviated), that allows you to downsample and/or rectify the image
 before it is passed to the Gnuplot back-end.  This is useful either to
 cut down on the burden of transferring large blocks of image data or
@@ -593,12 +593,14 @@ to rectify images with nonlinear WCS transformations in their headers.
 (gnuplot itself has a bug that prevents direct rendering of images in
 nonlinear coordinates).
 
- gplot( with=>'fits res 200', $fitsdata );
- gplot( with=>'fits res 100,400',$fitsdata );
+ gplot( with=>'fits', res=>1, $fitsdata );
+ gplot( with=>'fits', res=>[200], $fitsdata );
+ gplot( with=>'fits', res=>[100,400],$fitsdata );
 
-to specify that the output are to be resampled onto a square 200x200
-grid or a 100x400 grid, respectively.  The resample sizes must be
+to specify that the output are to be resampled onto a square 1024x1024 grid,
+a 200x200 grid, or a 100x400 grid, respectively. The resample sizes must be
 positive integers.
+A true non-ref value will be treated as 1024x1024.
 
 =head2 Interactivity
 
@@ -1783,6 +1785,10 @@ of lines using the threaded syntax, try
     $w->plot3d( wi=>'lines', cd=>1, xvals($r2), yvals($r2), $r2 );
 
 which will plot 21 separate curves in a threaded manner.
+
+=item resample
+
+For C<< with=>'fits' >>. See L</Images>.
 
 =back
 
@@ -3414,7 +3420,7 @@ sub parseArgs
     } else {
       @with = @{$chunk{options}{with}};
     }
-    if(@with > 1) {
+    if (@with > 1) {
       carp q{
 WARNING: deprecated usage of complex 'with' detected.  Use a simple 'with'
 specifier and curve options instead.  This will fail in future releases of
@@ -5240,7 +5246,16 @@ our $cOptionsTable = {
     'nosurface' =>['b', 'cff', undef, 21],
     'palette'   =>['b', 'cff',  undef, 22],
 
-    'tuplesize'=> ['s',sub { return ""}]    # set tuplesize explicitly (not a gnuplot option)
+    'tuplesize'=> ['s',sub { return ""}], # set tuplesize explicitly (not a gnuplot option)
+    'resample' => [sub { my ($k, $v, $h) = @_; # for FITS
+	return if !$v;
+	return [1024,1024] if !ref $v;
+	barf "Curve option 'resample' given non-array ref '$v'" if ref $v ne 'ARRAY';
+	barf "Curve option 'resample' given array-ref with no values" if !@$v;
+	barf "Curve option 'resample' given array-ref with too many values" if @$v > 2;
+	@$v == 1 ? [@$v[0,0]] : $v;
+      },
+      sub {""}],
 };
 
 our $cOptionsAbbrevs = _gen_abbrev_list(keys %$cOptionsTable);
@@ -7739,25 +7754,9 @@ sub _obj_or_global {
 # pixel coordinates and scientific plane coordinates.
 #
 #
-our $fitsmap_size = 1024;
 sub _with_fits_prefrobnicator {
     my( $with, $this, $chunk, @data ) = @_;
-    my $resample_flag = 0;
-    my @resample_dims = ($fitsmap_size,$fitsmap_size);
-
-    # search for fits-specific 'with' options
-    my $i;
-    for($i=0;$i<@$with;$i++) {
-	if( ($with->[$i]) =~ m/^re(s(a(m(p(l(e)?)?)?)?)?)?/i ) {
-	    splice @$with, $i,1; # remove 'resample' from list
-	    $resample_flag = 1;
-	    if ($with->[$i] and $with->[$i] =~ m/(\d+)(\,(\d+))?/) {
-		@resample_dims = ($1, $3 // $1);
-		splice @$with, $i, 1;
-	    }
-	    $i--;
-	}
-    }
+    my $resample = $chunk->{options}{resample};
 
     eval "use PDL::Transform;";
     barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option" if($@);
@@ -7767,36 +7766,26 @@ sub _with_fits_prefrobnicator {
 
     my $h = $data->gethdr();
     unless($h   and   ref $h eq 'HASH'   and   $h->{NAXIS}   and   $h->{NAXIS1}   and   $h->{NAXIS2}) {
-	if($data->ndims==2 or ($data->ndims==3 && ($data->dim(3)==3 || $data->dim(3)==1))) {
-	    warn("PDL::Graphics::Gnuplot: 'with fits' expected a FITS header.  Using pixel coordinates...\n");
-		 $h = {
-		     NAXIS=>2,
-		     NAXIS1 => $data->dim(0),
-		     NAXIS2 => $data->dim(1),
-		     CRPIX1=>1,		         CRPIX2=>1,
-		     CRVAL1=>0,   		 CRVAL2=>0,
-		     CDELT1=>1,                  CDELT2=>1,
-		     CTYPE1=>"X",                CTYPE2=>"Y",
-		     CUNIT1=>"Pixels",           CUNIT2=>"Pixels"
-		 }
-	} else {
-	    barf("PDL::Graphics::Gnuplot: 'with fits' got a (non-image) ".join("x",$data->dims)." PDL with no FITS header.\n");
-	}
+	barf "PDL::Graphics::Gnuplot: 'with fits' got a (non-image) ".join("x",$data->dims)." PDL with no FITS header.\n"
+	  unless $data->ndims==2 or ($data->ndims==3 && ($data->dim(3)==3 || $data->dim(3)==1));
+	warn "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header. Using pixel coordinates...\n";
+	$h = {
+	  NAXIS=>2,
+	  NAXIS1 => $data->dim(0),
+	  NAXIS2 => $data->dim(1),
+	  CRPIX1=>1,		CRPIX2=>1,
+	  CRVAL1=>0,   	CRVAL2=>0,
+	  CDELT1=>1,          CDELT2=>1,
+	  CTYPE1=>"X",        CTYPE2=>"Y",
+	  CUNIT1=>"Pixels",   CUNIT2=>"Pixels"
+	};
     }
 
     ##############################
     # Now find the dataspace boundaries for the map, so we don't waste pixels.
-    my ($xmin,$xmax,$ymin,$ymax);
-    if(exists($this->{options}{xrange})) {
-	$xmin = $this->{options}{xrange}[0];
-	$xmax = $this->{options}{xrange}[1];
-    }
-    if(exists($this->{options}{yrange})) {
-	$ymin = $this->{options}{yrange}[0];
-	$ymax = $this->{options}{yrange}[1];
-    }
-
-    unless(defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
+    my ($xmin, $xmax) = @{$this->{options}{xrange}||[]};
+    my ($ymin, $ymax) = @{$this->{options}{yrange}||[]};
+    unless (defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
 	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0),$data->dim(1)) - 0.5;
 	my $corners = $pix_corners->apply(t_fits($h));
 	$xmin //= $corners->slice("(0)")->min;
@@ -7804,25 +7793,20 @@ sub _with_fits_prefrobnicator {
 	$ymin //= $corners->slice("(1)")->min;
 	$ymax //= $corners->slice("(1)")->max;
     }
-
-    if($ymin > $ymax) {
-	my $a = $ymin; $ymin = $ymax; $ymax = $a;
-    }
-    if($xmin > $xmax) {
-	my $a = $xmin; $xmin = $xmax; $xmax = $a;
-    }
+    ($xmin, $xmax) = ($xmax, $xmin) if $xmin > $xmax;
+    ($ymin, $ymax) = ($ymax, $ymin) if $ymin > $ymax;
 
     my ($d2,$ndc);
-    if($resample_flag) {
+    if ($resample) {
 	my $d1 = double $data;
 	unless($data->hdrcpy) {$d1->sethdr($data->gethdr);} # no copying - ephemeral value
         my $dest_hdr = {
           NAXIS=>2,
-          NAXIS1=> $resample_dims[0],     NAXIS2=>$resample_dims[1],
+          NAXIS1=> $resample->[0],     NAXIS2=>$resample->[1],
           CRPIX1=> 0.5,                   CRPIX2=>0.5,
           CRVAL1=> $xmin,                 CRVAL2=>$ymin,
-          CDELT1=> ($xmax-$xmin)/($resample_dims[0]),
-          CDELT2=> ($ymax-$ymin)/($resample_dims[1]),
+          CDELT1=> ($xmax-$xmin)/($resample->[0]),
+          CDELT2=> ($ymax-$ymin)/($resample->[1]),
           CTYPE1=> $h->{CTYPE1},          CTYPE2=> $h->{CTYPE2},
           CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
         };
@@ -7874,7 +7858,6 @@ sub _with_fits_prefrobnicator {
     }
 
     barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n";
-
 }
 
 ##########
