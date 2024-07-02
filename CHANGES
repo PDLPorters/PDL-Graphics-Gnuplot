@@ -1,3 +1,5 @@
+- de-deprecate with=>'fits resample'
+
 2.026 2024-04-20
 - fix {colorbox=>1} (#100)
 

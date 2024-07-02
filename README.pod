@@ -6,6 +6,8 @@ page at L<http://metacpan.org/pod/PDL::Graphics::Gnuplot>.
 
 =cut
 
+=encoding UTF-8
+
 =head1 NAME
 
 PDL::Graphics::Gnuplot - Gnuplot-based plotting for PDL
@@ -527,6 +529,8 @@ cut down on the burden of transferring large blocks of image data or
 to rectify images with nonlinear WCS transformations in their headers.
 (gnuplot itself has a bug that prevents direct rendering of images in
 nonlinear coordinates).
+Note this format is still allowed despite "complex with" being otherwise
+deprecated.
 
  gplot( with=>'fits res 200', $fitsdata );
  gplot( with=>'fits res 100,400',$fitsdata );

@@ -592,6 +592,8 @@ cut down on the burden of transferring large blocks of image data or
 to rectify images with nonlinear WCS transformations in their headers.
 (gnuplot itself has a bug that prevents direct rendering of images in
 nonlinear coordinates).
+Note this format is still allowed despite "complex with" being otherwise
+deprecated.
 
  gplot( with=>'fits res 200', $fitsdata );
  gplot( with=>'fits res 100,400',$fitsdata );
@@ -3414,7 +3416,7 @@ sub parseArgs
     } else {
       @with = @{$chunk{options}{with}};
     }
-    if(@with > 1) {
+    if ($with[0] ne 'fits' and @with > 1) {
       carp q{
 WARNING: deprecated usage of complex 'with' detected.  Use a simple 'with'
 specifier and curve options instead.  This will fail in future releases of
