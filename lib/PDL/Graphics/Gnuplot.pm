@@ -7810,23 +7810,16 @@ sub _with_fits_prefrobnicator {
     }
 
     # Now update plot options to set the axis labels, if they haven't been updated already...
-    unless(defined $this->{options}{xlabel}) {
-	$this->{tmp_options}{xlabel} = [join(" ",
-					  $h->{CTYPE1} || "X",
-					  $h->{CUNIT1} ? "($h->{CUNIT1})" : "(pixels)"
-				      )];
-    }
-    unless(defined $this->{options}{ylabel}) {
-	$this->{tmp_options}{ylabel} = [join(" ",
-					  $h->{CTYPE2} || "Y",
-					  $h->{CUNIT2} ? "($h->{CUNIT2})" : "(pixels)"
-				      )];
-    }
-    unless(defined $this->{options}{cblabel}) {
-	$this->{tmp_options}{cblabel} = [join(" ",
-					    $h->{BTYPE} || "Value",
-					    $h->{BUNIT} ? "($h->{BUNIT})" : ""
-				       )];
+    for ([qw(xlabel CTYPE1 X CUNIT1 (pixels))],
+      [qw(ylabel CTYPE2 Y CUNIT2 (pixels))],
+      [qw(cblabel BTYPE Value BUNIT), ''],
+    ) {
+      my ($label, $type, $typel, $unit, $unitdef) = @$_;
+      next if defined $this->{options}{$label};
+      $this->{tmp_options}{$label} = [join(" ",
+        $h->{$type} || $typel,
+        $h->{$unit} ? "($h->{$unit})" : $unitdef
+      )];
     }
 
     $with->[0] = 'image';
