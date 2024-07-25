@@ -7765,13 +7765,12 @@ sub _with_fits_prefrobnicator {
   my $resample = $chunk->{options}{resample};
   eval "use PDL::Transform;";
   barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option" if($@);
-  barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if(@data != 1);
+  barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if @data != 1;
   my $data = $data[0];
   barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n" unless $data->ndims==2 || ($data->ndims==3 && ($data->dim(2)==4 || $data->dim(2)==3 || $data->dim(2)==1));
   my $h = $data->gethdr;
   barf "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header\n"
     unless $h && ref $h eq 'HASH' && !grep !$h->{$_}, qw(NAXIS NAXIS1 NAXIS2);
-  my ($d2,$ndc);
   if ($resample) {
     # Now find the dataspace boundaries for the map, so we don't waste pixels.
     my ($xmin, $xmax) = @{$this->{options}{xrange}||[]};
@@ -7788,12 +7787,8 @@ sub _with_fits_prefrobnicator {
     ($ymin, $ymax) = ($ymax, $ymin) if $ymin > $ymax;
     my $d1 = $data->double;
     $d1->sethdr($h) if !$d1->gethdr; # ie converted and no hdrcpy
-    my $dest_hdr = _make_fits_hdr(@$resample, 0.5, 0.5, $xmin, $ymin, $xmax, $ymax, @$h{qw(CTYPE1 CTYPE2 CUNIT1 CUNIT2)});
-    $d2 = $d1->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
-    $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($dest_hdr) );
-  } else {
-    $d2 = $data;
-    $ndc = ndcoords($data->dim(0),$data->dim(1))->apply(t_fits($h));
+    $h = _make_fits_hdr(@$resample, 0.5, 0.5, $xmin, $ymin, $xmax, $ymax, @$h{qw(CTYPE1 CTYPE2 CUNIT1 CUNIT2)});
+    $data = $d1->map( t_identity(), $h, {method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
   }
   # Now update plot options to set the axis labels, if they haven't been updated already...
   for ([qw(xlabel CTYPE1 X CUNIT1 (pixels))],
@@ -7808,7 +7803,7 @@ sub _with_fits_prefrobnicator {
     )];
   }
   $with->[0] = 'image';
-  ($ndc->mv(0,-1)->dog, $d2);
+  (ndcoords(map $data->dim($_), 0,1)->apply(t_fits($h))->mv(0,-1)->dog, $data);
 }
 
 ##########
