@@ -154,6 +154,11 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
     eval {$w->plot({with => 'image'},$r9->xvals,$r9->yvals,rvals(@$dims))};
     is($@, '', "regularising image succeeded (@$dims)");
   }
+  my @dims = $r9->dims;
+  my $h = PDL::Graphics::Gnuplot::_make_fits_hdr(@dims[0,1], 1, 1, 0, 0, @dims[0,1], qw(X Y Pixels Pixels));
+  eval {$w->plot({with => 'fits'},$r9)};
+  isnt $@, '', "with 'fits' only if FITS header";
+  $r9->sethdr($h);
   eval {$w->plot({with => 'fits'},$r9)};
   is($@, '', "with 'fits'");
   eval {$w->plot({with => 'fits', resample=>1},$r9)};
@@ -162,7 +167,8 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
   is($@, '', "with 'fits', resample [100,100]");
   my $r9_rgb = pdl(0,$r9,$r9);
   $r9_rgb->slice(',,0') .= 6;
-  eval {$w->plot({with => 'fits'},$r9_rgb*20)};
+  $r9_rgb->sethdr($h); $r9_rgb *= 20;
+  eval {$w->plot({with => 'fits'},$r9_rgb)};
   is($@, '', "with 'fits', rgb");
 }
 

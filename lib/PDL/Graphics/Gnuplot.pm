@@ -7736,6 +7736,20 @@ sub _obj_or_global {
 ### necessary because FITS images often have nonlinear mappings
 ### between pixel and scientific coordinates.
 
+sub _make_fits_hdr {
+  my ($x, $y, $x_pix, $y_pix, $x_min, $y_min, $x_max, $y_max, $x_type, $y_type, $x_unit, $y_unit) = @_;
+  {
+    NAXIS=>2,
+    NAXIS1=> $x,      NAXIS2=> $y,
+    CRPIX1=> $x_pix,  CRPIX2=> $y_pix,
+    CRVAL1=> $x_min,  CRVAL2=> $y_min,
+    CDELT1=> ($x_max-$x_min)/$x,
+    CDELT2=> ($y_max-$y_min)/$y,
+    CTYPE1=> $x_type, CTYPE2=> $y_type,
+    CUNIT1=> $x_unit, CUNIT2=> $x_unit
+  };
+}
+
 ##############################
 # _with_fits_prefrobnicator
 #
@@ -7755,19 +7769,8 @@ sub _with_fits_prefrobnicator {
   my $data = $data[0];
   barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n" unless $data->ndims==2 || ($data->ndims==3 && ($data->dim(2)==4 || $data->dim(2)==3 || $data->dim(2)==1));
   my $h = $data->gethdr;
-  unless ($h and ref $h eq 'HASH' and $h->{NAXIS} and $h->{NAXIS1} and $h->{NAXIS2}) {
-    warn "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header. Using pixel coordinates...\n";
-    $h = {
-      NAXIS=>2,
-      NAXIS1 => $data->dim(0),
-      NAXIS2 => $data->dim(1),
-      CRPIX1=>1,		CRPIX2=>1,
-      CRVAL1=>0,   	CRVAL2=>0,
-      CDELT1=>1,          CDELT2=>1,
-      CTYPE1=>"X",        CTYPE2=>"Y",
-      CUNIT1=>"Pixels",   CUNIT2=>"Pixels"
-    };
-  }
+  barf "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header\n"
+    unless $h && ref $h eq 'HASH' && !grep !$h->{$_}, qw(NAXIS NAXIS1 NAXIS2);
   my ($d2,$ndc);
   if ($resample) {
     # Now find the dataspace boundaries for the map, so we don't waste pixels.
@@ -7783,18 +7786,9 @@ sub _with_fits_prefrobnicator {
     }
     ($xmin, $xmax) = ($xmax, $xmin) if $xmin > $xmax;
     ($ymin, $ymax) = ($ymax, $ymin) if $ymin > $ymax;
-    my $d1 = double $data;
-    unless($data->hdrcpy) {$d1->sethdr($data->gethdr);} # no copying - ephemeral value
-    my $dest_hdr = {
-      NAXIS=>2,
-      NAXIS1=> $resample->[0],     NAXIS2=>$resample->[1],
-      CRPIX1=> 0.5,                   CRPIX2=>0.5,
-      CRVAL1=> $xmin,                 CRVAL2=>$ymin,
-      CDELT1=> ($xmax-$xmin)/($resample->[0]),
-      CDELT2=> ($ymax-$ymin)/($resample->[1]),
-      CTYPE1=> $h->{CTYPE1},          CTYPE2=> $h->{CTYPE2},
-      CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
-    };
+    my $d1 = $data->double;
+    $d1->sethdr($h) if !$d1->gethdr; # ie converted and no hdrcpy
+    my $dest_hdr = _make_fits_hdr(@$resample, 0.5, 0.5, $xmin, $ymin, $xmax, $ymax, @$h{qw(CTYPE1 CTYPE2 CUNIT1 CUNIT2)});
     $d2 = $d1->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
     $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($dest_hdr) );
   } else {
