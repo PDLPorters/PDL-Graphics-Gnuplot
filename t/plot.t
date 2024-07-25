@@ -160,6 +160,10 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
   is($@, '', "with 'fits', resample");
   eval {$w->plot({with => 'fits', resample=>[100,100]},$r9)};
   is($@, '', "with 'fits', resample [100,100]");
+  my $r9_rgb = pdl(0,$r9,$r9);
+  $r9_rgb->slice(',,0') .= 6;
+  eval {$w->plot({with => 'fits'},$r9_rgb*20)};
+  is($@, '', "with 'fits', rgb");
 }
 
 {

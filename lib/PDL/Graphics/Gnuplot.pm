@@ -7764,10 +7764,9 @@ sub _with_fits_prefrobnicator {
     barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if(@data != 1);
     my $data = $data[0];
 
-    my $h = $data->gethdr();
+    barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n" unless $data->ndims==2 || ($data->ndims==3 && ($data->dim(2)==4 || $data->dim(2)==3 || $data->dim(2)==1));
+    my $h = $data->gethdr;
     unless($h   and   ref $h eq 'HASH'   and   $h->{NAXIS}   and   $h->{NAXIS1}   and   $h->{NAXIS2}) {
-	barf "PDL::Graphics::Gnuplot: 'with fits' got a (non-image) ".join("x",$data->dims)." PDL with no FITS header.\n"
-	  unless $data->ndims==2 or ($data->ndims==3 && ($data->dim(3)==3 || $data->dim(3)==1));
 	warn "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header. Using pixel coordinates...\n";
 	$h = {
 	  NAXIS=>2,
@@ -7837,27 +7836,9 @@ sub _with_fits_prefrobnicator {
 				       )];
     }
 
-    ##
-    # Debugging Gnuplot's horrible indexing problem
-    # $PDL::Graphics::Gnuplot::prefrobnicated = [$ndc->mv(0,-1)->dog, $d2];
-
-    if($d2->ndims == 2) {
-	$with->[0] = 'image';
-	$chunk->{options}{with} = [@$with];
-	return ($ndc->mv(0,-1)->dog, $d2);
-    }
-
-    if($data->ndims == 3 and $data->dim(2)==3) {
-	$with->[0] = 'rgbimage';
-	return ($ndc->mv(0,-1)->dog, $d2->dog);
-    }
-
-    if($data->ndims == 3 and $data->dim(2)==4) {
-	$with->[0] = 'rgbalpha';
-	return ($ndc->mv(0,-1)->dog, $d2->dog);
-    }
-
-    barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n";
+    $with->[0] = 'image';
+    $chunk->{options}{with} = [@$with];
+    ($ndc->mv(0,-1)->dog, $d2);
 }
 
 ##########
