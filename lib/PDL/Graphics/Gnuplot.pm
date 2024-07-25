@@ -7746,84 +7746,75 @@ sub _obj_or_global {
 # tuple form of "with image" only works for affine transformations between
 # pixel coordinates and scientific plane coordinates.
 #
-#
 sub _with_fits_prefrobnicator {
-    my( $with, $this, $chunk, @data ) = @_;
-    my $resample = $chunk->{options}{resample};
-
-    eval "use PDL::Transform;";
-    barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option" if($@);
-
-    barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if(@data != 1);
-    my $data = $data[0];
-
-    barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n" unless $data->ndims==2 || ($data->ndims==3 && ($data->dim(2)==4 || $data->dim(2)==3 || $data->dim(2)==1));
-    my $h = $data->gethdr;
-    unless($h   and   ref $h eq 'HASH'   and   $h->{NAXIS}   and   $h->{NAXIS1}   and   $h->{NAXIS2}) {
-	warn "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header. Using pixel coordinates...\n";
-	$h = {
-	  NAXIS=>2,
-	  NAXIS1 => $data->dim(0),
-	  NAXIS2 => $data->dim(1),
-	  CRPIX1=>1,		CRPIX2=>1,
-	  CRVAL1=>0,   	CRVAL2=>0,
-	  CDELT1=>1,          CDELT2=>1,
-	  CTYPE1=>"X",        CTYPE2=>"Y",
-	  CUNIT1=>"Pixels",   CUNIT2=>"Pixels"
-	};
-    }
-
-    ##############################
+  my ($with, $this, $chunk, @data ) = @_;
+  my $resample = $chunk->{options}{resample};
+  eval "use PDL::Transform;";
+  barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option" if($@);
+  barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if(@data != 1);
+  my $data = $data[0];
+  barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n" unless $data->ndims==2 || ($data->ndims==3 && ($data->dim(2)==4 || $data->dim(2)==3 || $data->dim(2)==1));
+  my $h = $data->gethdr;
+  unless ($h and ref $h eq 'HASH' and $h->{NAXIS} and $h->{NAXIS1} and $h->{NAXIS2}) {
+    warn "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header. Using pixel coordinates...\n";
+    $h = {
+      NAXIS=>2,
+      NAXIS1 => $data->dim(0),
+      NAXIS2 => $data->dim(1),
+      CRPIX1=>1,		CRPIX2=>1,
+      CRVAL1=>0,   	CRVAL2=>0,
+      CDELT1=>1,          CDELT2=>1,
+      CTYPE1=>"X",        CTYPE2=>"Y",
+      CUNIT1=>"Pixels",   CUNIT2=>"Pixels"
+    };
+  }
+  my ($d2,$ndc);
+  if ($resample) {
     # Now find the dataspace boundaries for the map, so we don't waste pixels.
     my ($xmin, $xmax) = @{$this->{options}{xrange}||[]};
     my ($ymin, $ymax) = @{$this->{options}{yrange}||[]};
     unless (defined($xmin) && defined($xmax) && defined($ymin) && defined($ymax)) {
-	my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0),$data->dim(1)) - 0.5;
-	my $corners = $pix_corners->apply(t_fits($h));
-	$xmin //= $corners->slice("(0)")->min;
-	$xmax //= $corners->slice("(0)")->max;
-	$ymin //= $corners->slice("(1)")->min;
-	$ymax //= $corners->slice("(1)")->max;
+      my $pix_corners = pdl([0,0],[0,1],[1,0],[1,1]) * pdl($data->dim(0),$data->dim(1)) - 0.5;
+      my $corners = $pix_corners->apply(t_fits($h));
+      $xmin //= $corners->slice("(0)")->min;
+      $xmax //= $corners->slice("(0)")->max;
+      $ymin //= $corners->slice("(1)")->min;
+      $ymax //= $corners->slice("(1)")->max;
     }
     ($xmin, $xmax) = ($xmax, $xmin) if $xmin > $xmax;
     ($ymin, $ymax) = ($ymax, $ymin) if $ymin > $ymax;
-
-    my ($d2,$ndc);
-    if ($resample) {
-	my $d1 = double $data;
-	unless($data->hdrcpy) {$d1->sethdr($data->gethdr);} # no copying - ephemeral value
-        my $dest_hdr = {
-          NAXIS=>2,
-          NAXIS1=> $resample->[0],     NAXIS2=>$resample->[1],
-          CRPIX1=> 0.5,                   CRPIX2=>0.5,
-          CRVAL1=> $xmin,                 CRVAL2=>$ymin,
-          CDELT1=> ($xmax-$xmin)/($resample->[0]),
-          CDELT2=> ($ymax-$ymin)/($resample->[1]),
-          CTYPE1=> $h->{CTYPE1},          CTYPE2=> $h->{CTYPE2},
-          CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
-        };
-	$d2 = $d1->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
-	$ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($dest_hdr) );
-    } else {
-	$d2 = $data;
-	$ndc = ndcoords($data->dim(0),$data->dim(1))->apply(t_fits($h));
-    }
-
-    # Now update plot options to set the axis labels, if they haven't been updated already...
-    for ([qw(xlabel CTYPE1 X CUNIT1 (pixels))],
-      [qw(ylabel CTYPE2 Y CUNIT2 (pixels))],
-      [qw(cblabel BTYPE Value BUNIT), ''],
-    ) {
-      my ($label, $type, $typel, $unit, $unitdef) = @$_;
-      next if defined $this->{options}{$label};
-      $this->{tmp_options}{$label} = [join(" ",
-        $h->{$type} || $typel,
-        $h->{$unit} ? "($h->{$unit})" : $unitdef
-      )];
-    }
-
-    $with->[0] = 'image';
-    ($ndc->mv(0,-1)->dog, $d2);
+    my $d1 = double $data;
+    unless($data->hdrcpy) {$d1->sethdr($data->gethdr);} # no copying - ephemeral value
+    my $dest_hdr = {
+      NAXIS=>2,
+      NAXIS1=> $resample->[0],     NAXIS2=>$resample->[1],
+      CRPIX1=> 0.5,                   CRPIX2=>0.5,
+      CRVAL1=> $xmin,                 CRVAL2=>$ymin,
+      CDELT1=> ($xmax-$xmin)/($resample->[0]),
+      CDELT2=> ($ymax-$ymin)/($resample->[1]),
+      CTYPE1=> $h->{CTYPE1},          CTYPE2=> $h->{CTYPE2},
+      CUNIT1=> $h->{CUNIT1},          CUNIT2=> $h->{CUNIT2}
+    };
+    $d2 = $d1->map( t_identity(), $dest_hdr,{method=>'h'} );  # Rescale into coordinates proportional to the scientific ones
+    $ndc = ndcoords($d2->dim(0),$d2->dim(1)) -> apply( t_fits($dest_hdr) );
+  } else {
+    $d2 = $data;
+    $ndc = ndcoords($data->dim(0),$data->dim(1))->apply(t_fits($h));
+  }
+  # Now update plot options to set the axis labels, if they haven't been updated already...
+  for ([qw(xlabel CTYPE1 X CUNIT1 (pixels))],
+    [qw(ylabel CTYPE2 Y CUNIT2 (pixels))],
+    [qw(cblabel BTYPE Value BUNIT), ''],
+  ) {
+    my ($label, $type, $typel, $unit, $unitdef) = @$_;
+    next if defined $this->{options}{$label};
+    $this->{tmp_options}{$label} = [join(" ",
+      $h->{$type} || $typel,
+      $h->{$unit} ? "($h->{$unit})" : $unitdef
+    )];
+  }
+  $with->[0] = 'image';
+  ($ndc->mv(0,-1)->dog, $d2);
 }
 
 ##########
