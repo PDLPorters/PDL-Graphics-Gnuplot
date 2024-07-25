@@ -3413,14 +3413,9 @@ sub parseArgs
     # First, unpack the "with" -- we accept a list of with parameters, but also
     # unpack them if they are supplied as a single smushed-together string.
     our $plotStyleProps; # declared below
-    my @with;
-    if(@{$chunk{options}{with}}==1) {
-      @with = split /\s+/,$chunk{options}{with}->[0];
-      @{$chunk{options}{with}} = @with;
-    } else {
-      @with = @{$chunk{options}{with}};
-    }
-    if (@with > 1) {
+    my $with = $chunk{options}{with};
+    @$with = split /\s+/, $with->[0] if @$with == 1;
+    if (@$with > 1) {
       carp q{
 WARNING: deprecated usage of complex 'with' detected.  Use a simple 'with'
 specifier and curve options instead.  This will fail in future releases of
@@ -3429,26 +3424,24 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
     }
     # Look for the plotStyleProps entry.  If not there, try cleaning up the with style
     # before giving up entirely.
-    unless ( exists( $plotStyleProps->{$with[0]}[0] ) ) {
-      our $plotStylesAbbrevs;
+    unless ( exists $plotStyleProps->{$with->[0]} ) {
       # Try pluralizing and lc'ing if that works...
-      if($with[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with[0].'s'} ) ) {
-        $with[0] = lc $with[0].'s';
-        $chunk{options}{with}[0] = $with[0];
+      if ($with->[0] !~ m/s$/i  and  exists( $plotStyleProps->{lc $with->[0].'s'} ) ) {
+        $with->[0] = lc $with->[0].'s';
       } else {
         # nope.  throw a fit.
-        barf "invalid plotstyle 'with $with[0]' in plot\n";
+        barf "invalid plotstyle 'with $with->[0]' in plot\n";
       }
     }
-    my $psProps = $plotStyleProps->{$with[0]};
+    my $psProps = $plotStyleProps->{$with->[0]};
     # Extract the data objects from the argument list.
     # They should all be either PDLs or array refs.
     my @dataPiddles = @args[$argIndex..$nextOptionIdx-1];
     # Some plot styles (currently just "fits") are implemented via a
     # prefrobnicator that processes the data.
     if( $psProps->[ 4 ] ) {
-      @dataPiddles = &{ $psProps->[4] }( \@with, $this, \%chunk, @dataPiddles );
-      $psProps = $plotStyleProps->{$with[0]};
+      @dataPiddles = &{ $psProps->[4] }( $with, $this, \%chunk, @dataPiddles );
+      $psProps = $plotStyleProps->{$with->[0]};
     }
     # Image flag and base tuplesizes allowed for this plot style...
     my $tupleSizes   = $psProps->[ !!$is3d ];  # index is 0 or 1 depending on truth of 3D flag
@@ -3466,7 +3459,7 @@ PDL::Graphics::Gnuplot. (Set $ENV{'PGG_DEP'}=1 to silence this warning.
       {
       carp <<EOF;
 PDL::Graphics::Gnuplot warning: user asked for $asked data transfer, but
-'$with[0]' plots are ALWAYS sent in $got. Ignoring '$asked' request.
+'$with->[0]' plots are ALWAYS sent in $got. Ignoring '$asked' request.
 Set environment variable PGG_SUPPRESS_BINARY_MISMATCH_WARNING to suppress
 this warning.
 EOF
@@ -3475,13 +3468,13 @@ EOF
     }
     # Reject disallowed plot styles
     unless (ref $tupleSizes) {
-      barf "plotstyle 'with ".($with[0])."' isn't valid in $ND plots\n";
+      barf "plotstyle 'with $with->[0]' isn't valid in $ND plots\n";
     }
     # Additional columns are needed for certain 'with' modifiers. Figure 'em, cheesily: each
     # palette or variable option to 'with' needs an additional column.
-    # The search over @with will disappear with the deprecated compound-with form;
+    # The search over @$with will disappear with the deprecated compound-with form;
     # the real one is the second line that scans through curve options.
-    my $ExtraColumns = grep /(palette|variable)/, map split(/\s+/,$_), @with;
+    my $ExtraColumns = grep /(palette|variable)/, @$with;
     for my $k (qw/linecolor textcolor fillstyle pointsize linewidth/ ) {
       my $v = $chunk{options}{$k};
       next unless defined($v);
@@ -3506,7 +3499,7 @@ EOF
       # No match -- barf unless you really meant it
       if (!$chunk{options}{tuplesize}) {
         my $pl = ($NdataPiddles==1)?"":"s";
-        my $s = "Found $NdataPiddles PDL$pl for $ND plot type 'with ".($with[0])."', which needs ";
+        my $s = "Found $NdataPiddles PDL$pl for $ND plot type 'with $with->[0]', which needs ";
         barf "Ouch! I'm never supposed to take this path. Please report a bug."
 	  if !@$tupleSizes;
         if (@$tupleSizes==1) {
@@ -3538,11 +3531,11 @@ EOF
     # This happens if RGB or RGBA is in dim 0 or in dim 2.
     # The other dimensions have to have at least five elements.
     if ( $cdims==2 ) {
-      if ($chunk{options}{with}[0] eq 'image') {
+      if ($with->[0] eq 'image') {
         my $dp = $dataPiddles[-1];
         if ($dp->ndims==3 and $dp->dim(1) >= 5) {
-          my ($with, @ndarrays) = _regularise_image($dp);
-          $chunk{options}{with}[0] = $with;
+          my ($new_with, @ndarrays) = _regularise_image($dp);
+          $with->[0] = $new_with;
           splice @dataPiddles, -1, 1, @ndarrays;
         }
       }
@@ -7837,7 +7830,6 @@ sub _with_fits_prefrobnicator {
     }
 
     $with->[0] = 'image';
-    $chunk->{options}{with} = [@$with];
     ($ndc->mv(0,-1)->dog, $d2);
 }
 
