@@ -7762,16 +7762,15 @@ sub _make_fits_hdr {
 #
 sub _with_fits_prefrobnicator {
   my ($with, $this, $chunk, @data ) = @_;
-  my $resample = $chunk->{options}{resample};
-  eval "use PDL::Transform;";
-  barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option" if($@);
+  eval "use PDL::Transform";
+  barf "PDL::Graphics::Gnuplot: couldn't load PDL::Transform for 'with fits' option: $@" if $@;
   barf "PDL::Graphics::Gnuplot: 'with fits' special option requires a single FITS image\n" if @data != 1;
   my $data = $data[0];
   barf "PDL::Graphics::Gnuplot: 'with fits' needs an image, RGB triplet, or RGBA quad\n" unless $data->ndims==2 || ($data->ndims==3 && ($data->dim(2)==4 || $data->dim(2)==3 || $data->dim(2)==1));
   my $h = $data->gethdr;
   barf "PDL::Graphics::Gnuplot: 'with fits' expected a FITS header\n"
     unless $h && ref $h eq 'HASH' && !grep !$h->{$_}, qw(NAXIS NAXIS1 NAXIS2);
-  if ($resample) {
+  if (my $resample = $chunk->{options}{resample}) {
     # Now find the dataspace boundaries for the map, so we don't waste pixels.
     my ($xmin, $xmax) = @{$this->{options}{xrange}||[]};
     my ($ymin, $ymax) = @{$this->{options}{yrange}||[]};
