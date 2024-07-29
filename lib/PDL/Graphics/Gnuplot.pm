@@ -7802,7 +7802,7 @@ sub _with_fits_prefrobnicator {
     )];
   }
   $with->[0] = 'image';
-  (ndcoords(map $data->dim($_), 0,1)->apply(t_fits($h))->mv(0,-1)->dog, $data);
+  (ndcoords(map $data->dim($_), 0,1)->apply(t_fits($h, {ignore_rgb=>1}))->mv(0,-1)->dog, $data);
 }
 
 ##########

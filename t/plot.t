@@ -4,6 +4,7 @@ use Test::More;
 use PDL::Graphics::Gnuplot qw(plot gpwin);
 use File::Temp qw(tempfile);
 use PDL;
+use PDL::Transform::Cartography; # t_raster2fits
 
 ##########
 # Uncomment these to test error handling on Microsoft Windows, from within POSIX....
@@ -154,10 +155,10 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
     eval {$w->plot({with => 'image'},$r9->xvals,$r9->yvals,rvals(@$dims))};
     is($@, '', "regularising image succeeded (@$dims)");
   }
-  my @dims = $r9->dims;
-  my $h = PDL::Graphics::Gnuplot::_make_fits_hdr(@dims[0,1], 1, 1, 0, 0, @dims[0,1], qw(X Y Pixels Pixels));
   eval {$w->plot({with => 'fits'},$r9)};
   isnt $@, '', "with 'fits' only if FITS header";
+  my @dims = $r9->dims;
+  my $h = PDL::Graphics::Gnuplot::_make_fits_hdr(@dims[0,1], 1, 1, 0, 0, @dims[0,1], qw(X Y Pixels Pixels));
   $r9->sethdr($h);
   eval {$w->plot({with => 'fits'},$r9)};
   is($@, '', "with 'fits'");
@@ -165,10 +166,8 @@ unlink($testoutput) or warn "\$!: $! for '$testoutput'";
   is($@, '', "with 'fits', resample");
   eval {$w->plot({with => 'fits', resample=>[100,100]},$r9)};
   is($@, '', "with 'fits', resample [100,100]");
-  my $r9_rgb = pdl(0,$r9,$r9);
-  $r9_rgb->slice(',,0') .= 6;
-  $r9_rgb->sethdr($h); $r9_rgb *= 20;
-  eval {$w->plot({with => 'fits'},$r9_rgb)};
+  my $r9_rgb = pdl(0,$r9,$r9)->mv(-1,0); $r9_rgb->slice(0) .= 6; $r9_rgb *= 20;
+  eval {$w->plot({with => 'fits'}, t_raster2fits()->apply($r9_rgb))};
   is($@, '', "with 'fits', rgb");
 }
 
