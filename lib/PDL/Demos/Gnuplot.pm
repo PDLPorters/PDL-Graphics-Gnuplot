@@ -213,7 +213,7 @@ EOF
 
   $w->reset;
   # note this uses the 'fits' plot type, which adjusts the coordinates
-  $w->image({j=>1, clut=>'gray', title=>"M51 galaxy"}, with=>'fits',$m51 );
+  $w->plot({j=>1, clut=>'gray', title=>"M51 galaxy"}, with=>'fits',$m51 );
 |],
 
     [act => q|
