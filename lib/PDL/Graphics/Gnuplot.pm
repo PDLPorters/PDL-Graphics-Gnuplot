@@ -3128,7 +3128,7 @@ POS
 		$chunks->[$i]{testdata} = $testdataunit_binary x ($chunks->[$i]{tuplesize}) if $check_syntax;
 	    } else {
 		# ASCII transfer has been specified - plot command is easier, but the data are in ASCII.
-		$pchunk = " '-' ".$plotcmds[$i];
+		$pchunk = " \$PGG_data_$i ".$plotcmds[$i];
 		$tchunk = $pchunk if $check_syntax;
 		$chunks->[$i]{testdata} = " 1 " x ($chunks->[$i]{tuplesize}) . "\ne\n" if $check_syntax;
 	    }
@@ -3160,12 +3160,13 @@ POS
     ##############################
     ##### Send the PlotOptionsString
     my @plot_chunks = [$plotOptionsString];
-    my $plotshow = $plotOptionsString;
+    my @plotshow_chunks = $plotOptionsString;
     ##############################
     ##### Finally..... send the actual plot command to the gnuplot device.
     print "plot command is:\n$plotcmd\n" if $PDL::Graphics::Gnuplot::DEBUG;
     push @plot_chunks, [$plotcmd];
-    $plotshow .= $plotcmd;
+    push @plotshow_chunks, $plotcmd;
+    my $chunk_i = 0;
     for my $chunk (@$chunks) {
 	# Gnuplot doesn't handle bad values, but it *does* know to
 	# omit nans.  If we're running under a PDL that uses the
@@ -3184,22 +3185,22 @@ POS
 	    # Currently all images are sent binary
 	    my $p = $chunk->{data}[0]->double->sever;
 	    push @plot_chunks, [${$p->get_dataref}, {binary => 1, data => 1 }];
-	    $plotshow .= " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
+	    push @plotshow_chunks, " [ ".length(${$p->get_dataref})." bytes of binary image data ]\n";
 	} elsif ($chunk->{binaryCurveFlag}) {
 	    # Send in binary if the binary flag is set.
 	    my $p = pdl(@{$chunk->{data}})->mv(-1,0)->double->sever;
 	    push @plot_chunks, [${$p->get_dataref}, {binary => 1, data => 1 }];
-	    $plotshow .= " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
+	    push @plotshow_chunks, " [ ".length(${$p->get_dataref})." bytes of binary data ]\n";
 	} else {
 	    # Assemble and dump the ASCII
 	    if ($chunk->{data}[0]->$_isa('PDL')) {
 		# It's a collection of PDL data only.
 		my $p = pdl(@{$chunk->{data}})->slice(":,:"); # ensure at least 2 dims
 		$p = $p->mv(-1,0);                         # tuple dim first, rows second
-		$plotshow .= " [ ".$p->dim(1)." lines of ASCII data ]\n";
+		splice @plotshow_chunks, 1, 0, "\$PGG_data_$chunk_i << [ ".$p->dim(1)." lines of ASCII data ]\n";
 		# Create a set of ASCII lines.  If any of the elements of a given row are NaN or BAD, blank that line.
 		my $outbuf = join("\n", map $_->isfinite->all ? join(" ", $_->list) : "", $p->dog) . "\n";
-		push @plot_chunks, _emit_ascii($this, $outbuf);
+		splice @plot_chunks, 1, 0, _emit_ascii($this, $chunk_i, $outbuf);
 	    } else {
 		# It's a collection of array ref data only.  Assemble strings.
 		my $data = $chunk->{data};
@@ -3217,10 +3218,11 @@ POS
 		    }
 		    $s .= "\n";                     # add newline
 		}
-		$plotshow .= $s;
-		push @plot_chunks, _emit_ascii($this, $s);
+		splice @plotshow_chunks, 1, 0, "\$PGG_data_$chunk_i << e\n${s}e\n";
+		splice @plot_chunks, 1, 0, _emit_ascii($this, $chunk_i, $s);
 	    }
 	}
+	$chunk_i++;
     }
     ##############################
     # Finally, finally ...  send any required cleanup commands.  This
@@ -3239,10 +3241,10 @@ POS
 	  if $checkpointMessage;
     }
     push @plot_chunks, [$cleanup_cmd];
-    $plotshow .= $cleanup_cmd;
+    push @plotshow_chunks, $cleanup_cmd;
     # Flag the output as rescalable if anti-aliasing is in effect
     $this->{aa_ready} = 1 if $this->{aa} && $this->{aa} != 1;
-    (\@plot_chunks, $plotshow);
+    (\@plot_chunks, join('', @plotshow_chunks));
 }
 
 *gplot = \&plot;
@@ -3306,12 +3308,12 @@ sub plot
 # Not in binary mode - send this chunk in ASCII.  Each line gets one
 # tuple, followed a line with just "e".
 sub _emit_ascii {
-  my ($this, $chunk) = @_;
+  my ($this, $chunk_i, $chunk) = @_;
   # Under real OSes, we can just send a schwack of stuff - there is no echo.
-  return [$chunk."e\n", {data => 1}]
+  return ["\$PGG_data_$chunk_i << e\n${chunk}e\n", {data => 1}]
     if !$MS_io_braindamage;
   my $pipe_stuff = !$this->{dumping} && $echo_eating;
-  ((map $pipe_stuff ? \$_ : $_, map ["$_\n", {data => 1 }], split /\n/, $chunk), ["e\n", {data => 1 }]);
+  ((map $pipe_stuff ? \$_ : $_, map ["$_\n", {data => 1 }], "\$PGG_data_$chunk_i <<e", split /\n/, $chunk), ["e\n", {data => 1 }]);
 }
 
 #####################

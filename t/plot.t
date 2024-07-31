@@ -208,7 +208,7 @@ is($@, '', "ascii array-ref plot succeeded");
 
 my $text = eval { $w->plot_generate( xvals(5), xvals(5)**2 ); };
 is($@, '', "plot_generate succeeded");
-like $text, qr/plot\s*'-'\s*using 1:2 notitle with lines\s*dt solid/, 'plot_generate';
+like $text, qr/plot\s*\$PGG_data_\d+\s*using 1:2 notitle with lines\s*dt solid/, 'plot_generate';
 
 eval { $w->plot( xvals(10000), xvals(10000)->sqrt ); };
 is($@, '', "looong ascii plot succeeded ");
@@ -319,7 +319,7 @@ like($@, qr/mismatch/, "Mismatch detected in array size vs. PDL size");
 # Test placement of topcmds, extracmds, and bottomcmds
 eval { $w->plot(xmin=>3,extracmds=>'reset',xrange=>[4,5],xvals(10),xvals(10)**2); };
 is($@, '', "extracmds does not cause an error");
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/\]\s+reset\s+plot/o, "extracmds inserts exactly one copy in the right place");
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/\nreset\n(?:\$PGG_.*?\n)?plot/, "extracmds inserts exactly one copy in the right place");
 
 eval { $w->plot(xmin=>3,topcmds=>'reset',xrange=>[4,5],xvals(10),xvals(10)**2);};
 is($@, '', "topcmds does not cause an error");
@@ -327,7 +327,7 @@ like($PDL::Graphics::Gnuplot::last_plotcmd, qr/set\s+output\s+\"[^\"]+\"\s+reset
 
 eval { $w->plot(xmin=>3,bottomcmds=>'reset',xrange=>[4,5],xvals(10),xvals(10)**2);};
 is($@, '', "bottomcmds does not cause an error");
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/\]\s+reset\s*$/o, "bottomcmds inserts exactly one copy in the right place");
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/\s+reset\s*$/o, "bottomcmds inserts exactly one copy in the right place");
 
 ##############################
 # Test tuple size determination: 2-D, 3-D, and variables (palette and variable)
@@ -836,6 +836,20 @@ undef $@;
 eval { $w->options(justify=>"1") };
 is($@, '', "justify accepts positive numbers");
 
+eval {
+  $w = gpwin('dumb', output=>$testoutput);
+  $w->multiplot(layout=>[1,1]);
+  $w->plot(
+    {
+      label => [ [ 'left-justified', at=>[0,0], 'left' ] ],
+      xrange => [ 0, 4 ], yrange => [ -1, 5 ]
+    },
+    { with => 'labels' },
+    [ 0 ], [ -1 ], [ '' ]
+  );
+};
+is($@, '', "labels with multiplot works even in Gnuplot 6.0.1");
+
 ##############################
 ##############################
 ## Test explicit and implicit plotting in 2-D and 3-D, both binary and ASCII
@@ -848,23 +862,23 @@ $w->options(binary=>0);
 eval { $w->plot(with=>'lines',xvals(5)) };
 is($@, '', "ascii plot with implicit col succeeded");
 
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +'-' +using 0\:1 /,
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +\$PGG_data_\d+ +using 0\:1 /,
    "ascii plot with implicit col uses explicit reference to column 0");
 
 eval { $w->plot(with=>'lines',xvals(5),xvals(5)) };
 is($@, '', "ascii plot with no implicit col succeeded");
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +'-' +using 1\:2 /s,
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +\$PGG_data_\d+ +using 1\:2 /s,
    "ascii plot with no implicit cols uses columns 1 and 2");
 
 eval { $w->plot(with=>'lines',xvals(5,5)) };
 is($@, '', "ascii plot with threaded data and implicit column succeeded");
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +'-' +using 0\:1 [^u]+using 0\:1 /s,
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +\$PGG_data_\d+ +using 0\:1 [^u]+using 0\:1 /s,
    "threaded ascii plot with one implicit col does the Right Thing");
 
 
 eval { $w->plot(with=>'lines',xvals(5),{trid=>1}) };
 is($@, '', "ascii 3-d plot with 2 implicit cols succeeded");
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +'-' +using 0:\(\$0\*0\):1/s,
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +\$PGG_data_\d+ +using 0:\(\$0\*0\):1/s,
    "ascii plot with two implicit cols uses column 0 and zeroed-out column 0");
 
 eval { $w->plot(with=>'lines',xvals(5),xvals(5),{trid=>1})};
@@ -872,7 +886,7 @@ isnt($@, '', "ascii 3-d plot with 1 implicit col fails (0 or 2 only)");
 
 eval { $w->plot(with=>'lines',xvals(5),xvals(5),xvals(5),{trid=>1}) };
 is($@, '', "ascii 3-d plot with no implicit cols succeeds");
-like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +'-' +using 1:2:3 /s,
+like($PDL::Graphics::Gnuplot::last_plotcmd, qr/plot +\$PGG_data_\d+ +using 1:2:3 /s,
    "ascii 3-d plot with no implicit cols does the Right Thing");
 
 eval { $w->plot(with=>'lines',xvals(5,5),{trid=>1}) };
