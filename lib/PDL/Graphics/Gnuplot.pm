@@ -175,7 +175,7 @@ of devices; see the description of plot options, below.
 
 You can specify what type of graphics output you want, but in most cases
 doing nothing will cause a plot to be rendered on your screen: with
-X windows on UNIX or Linux systems, with an XQuartz windows on MacOS,
+X windows on UNIX or Linux systems, with an XQuartz window on MacOS,
 or with a native window on Microsoft Windows.
 
 You select a plot style with the "with" curve option, and feed in columns
