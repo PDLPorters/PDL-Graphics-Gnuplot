@@ -3704,7 +3704,7 @@ sub matchDims
           $data_dims[$i] = $ddims[$i];
         }
         elsif( ( $ddims[$i]>1) && ($ddims[$i] != $data_dims[$i] )) {
-          barf "plot(): mismatched arguments in tuple (position $i)\n";
+          barf "plot(): mismatched arguments in tuple; dims of data item $i=(@ddims), but data_dims=(@data_dims)";
         }
       }
     }
