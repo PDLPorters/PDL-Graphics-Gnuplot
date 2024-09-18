@@ -4265,7 +4265,7 @@ EOC
 	$string = _checkpoint($this, "main", {notimeout=>1});
 
 	$string =~ m/Key: (\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+)? button:(\d+)? shift:(\d+) alt:(\d+) ctrl:(\d+))?\s*$/
-	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
+	    || barf "read_mouse: string '$string' doesn't look right - doesn't match parse regexp.\n";
 
 	($ch,$x,$y,$b,$sft,$alt,$ctl) = map $_//"", ($1,$3,$4,$5,$6,$7,$8);
 
@@ -4284,8 +4284,8 @@ EOC
 	$string = _checkpoint($this, "main", {notimeout=>1});
 	$string =~ s/[\r\n]/ /sg;
 
-	$string =~ m/Key:(\-?\d+)( +at xy:([^\s\,]+)\,([^\s\,]+) shift:(\d+) alt:(\d+) ctrl:(\d+))?/
-	    || barf "read_mouse: string $string doesn't look right - doesn't match parse regexp.\n";
+	$string =~ m/Key:\s*(\-?\d+)( +at xy:\s*([^\s\,]+)\s*\,\s*([^\s\,]+) shift:\s*(\d+) alt:\s*(\d+) ctrl:\s*(\d+))?/
+	    || barf "read_mouse: string '$string' doesn't look right - doesn't match parse regexp.\n";
 
 	($ch,$x,$y,$sft,$alt,$ctl) = map $_ // "", ($1,$3,$4,$5,$6,$7);
 
