@@ -7272,7 +7272,7 @@ sub _killGnuplot {
 	    $z = waitpid($goner,0);
 
 	} else {
-	    _printGnuplotPipe($this,$suffix,"set term qt 0 close\n") if $this->{terminal} eq 'qt';
+	    _printGnuplotPipe($this,$suffix,"set term qt 0 close\n") if ($this->{terminal}//'') eq 'qt';
 	    _printGnuplotPipe($this,$suffix,"exit\n");
 
 	    # Give it 2 seconds to quit, then interrupt it again.
