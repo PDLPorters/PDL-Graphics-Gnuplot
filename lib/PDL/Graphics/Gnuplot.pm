@@ -7470,7 +7470,7 @@ sub _printGnuplotPipe
 # are explicitly stripped out
 our $cp_serial = 0;
 
-my $qt_re = qr/^qt.qpa.plugin: Could not find the Qt platform plugin.*/m;
+my $qt_re = qr/^qt\..*/m;
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
