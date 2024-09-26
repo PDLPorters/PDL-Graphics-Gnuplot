@@ -7471,6 +7471,7 @@ sub _printGnuplotPipe
 our $cp_serial = 0;
 
 my $qt_re = qr/^qt\..*/m;
+my $xtype_re = qr/^XType:.*/m;
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
@@ -7603,7 +7604,7 @@ EOM
     # that some warnings come with a line specifier and others don't.
 
   WARN: while( $fromerr =~ m/^(\s*(line \d+\:\s*)?[wW]arning\:.*)$/m or
-	       $fromerr =~ m/$qt_re/ or
+	       $fromerr =~ m/$xtype_re|$qt_re/ or
 	       $fromerr =~ m/^Populating font family aliases took/m     # CED - Quicktime on MacOS Catalina throws a warning marked as an error.  Stupid.
 	) {
       if ($2) {
@@ -7613,7 +7614,7 @@ EOM
 	  $a =~ s/^\s*line \d+\:/Gnuplot:/m;
 	  carp $a if($printwarnings);
       } else {
-	  $fromerr =~ s/$qt_re//;
+	  $fromerr =~ s/$xtype_re|$qt_re//;
 	  last WARN unless $fromerr =~ s/^(\s*(line \d+\:\s*)?[wW](arning\:.*(\n|$)))//m;
 	  carp "Gnuplot w$3\n" if($printwarnings);
       }
