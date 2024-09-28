@@ -3058,12 +3058,14 @@ unset ylabel
 unset cblabel
 unset xrange
 unset yrange
+unset link x2
+unset link y2
+POS
+	$plotOptionsString .= <<'POS' if $gp_numversion >= 5.002;
 unset nonlinear x
 unset nonlinear y
 unset nonlinear x2
 unset nonlinear y2
-unset link x2
-unset link y2
 POS
     } else {
 	# In single-plot mode, just issue a reset.  Multiple newlines to work around a gnuplot problem.
