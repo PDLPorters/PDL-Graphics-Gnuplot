@@ -67,7 +67,6 @@
 # each option.  Since this mechanism is near at hand, we use it even
 # for routines (such as read_polygon) that could and would use
 # PDL::Options in other circumstances.
-#
 
 =encoding UTF-8
 
@@ -2076,6 +2075,8 @@ our @EXPORT_OK = qw(
 );
 our @EXPORT = qw(gpwin gplot greplot greset grestart);
 
+$SIG{TERM} = $SIG{INT} = $SIG{QUIT} = $SIG{HUP} = sub { die; };
+
 # when testing plots with binary i/o, this is the unit of test data
 my $testdataunit_binary = "........"; # 8 bytes - length of an IEEE double
 
@@ -2392,13 +2393,13 @@ FOO
 
 	    # Default the 'persist' option to 0, so that interactive windows behave nicely unless
 	    # asked to stay.
-	    if(exists($termTab->{$terminal}->{opt}->[0]->{persist})  and
+	    if (exists($termTab->{$terminal}{opt}[0]{persist}) and
 	       !defined($termOptions->{persist}) ) {
 		$termOptions->{persist} = 0;
 	    }
 
 	    # Default the 'dashed' option to 1.
-	    if(exists($termTab->{$terminal}->{opt}->[0]->{dashed})  and
+	    if (exists($termTab->{$terminal}{opt}[0]{dashed}) and
 	       !defined($termOptions->{dashed}) ) {
 		$termOptions->{dashed} = 1;
 	    }
@@ -2453,7 +2454,6 @@ sub DESTROY
   my $this = shift;
   _killGnuplot($this);
 }
-
 
 =pod
 
@@ -7305,9 +7305,7 @@ sub _killGnuplot {
 
 	    $z = waitpid($goner, 0);
 	    alarm(0);
-
 	}
-
 
 	unless($z == $goner) {
 	    # If for some reason it didn't die, fire and forget.
