@@ -2585,7 +2585,7 @@ sub reset {
     if ($check_syntax) {
 	# Send multiple newlines to avoid bugs in certain gnuplots, which
 	# appear to lose a character after reset.
-	_printGnuplotPipe( $this, "syntax", "reset\n\n\n");
+	_printGnuplotPipe($this, "syntax", "reset\n\n\n");
 	$checkpointMessage = _checkpoint($this,"syntax");
     }
     _printGnuplotPipe($this, "main", "reset\n\n\n");
@@ -3315,7 +3315,7 @@ sub _emit_ascii {
   return ["\$PGG_data_$chunk_i << e\n${chunk}e\n", {data => 1}]
     if !$MS_io_braindamage;
   my $pipe_stuff = !$this->{dumping} && $echo_eating;
-  ((map $pipe_stuff ? \$_ : $_, map ["$_\n", {data => 1 }], "\$PGG_data_$chunk_i <<e", split /\n/, $chunk), ["e\n", {data => 1 }]);
+  ((map $pipe_stuff ? \$_ : $_, map ["$_\n", {data => 1}], "\$PGG_data_$chunk_i <<e", split /\n/, $chunk), ["e\n", {data => 1 }]);
 }
 
 #####################
@@ -4041,8 +4041,8 @@ Added in 2.025.
 
  $w=gpwin();
  $w->multiplot(layout=>[2,1]);
- $w->plot({title=>"points},with=>'points',$a,$b);
- $w->plot({title=>"lines",with=>"lines",$a,$b);
+ $w->plot({title=>"points"},with=>'points',$a,$b);
+ $w->plot({title=>"lines"},with=>"lines",$a,$b);
  $w->end_multi();
 
 =for ref
@@ -4102,7 +4102,7 @@ sub multiplot_generate {
 	my $test_preamble = "set terminal dumb\nset output \" \"\n";
 	$PDL::Graphics::Gnuplot::last_testcmd = $test_preamble . $command;
 	$this->{last_testcmd} = $test_preamble . $command;
-	_printGnuplotPipe( $this, "syntax", $test_preamble . $command);
+	_printGnuplotPipe($this, "syntax", $test_preamble . $command);
 	my $checkpointMessage = _checkpoint($this, "syntax");
 	if ($checkpointMessage) {
 	    if($MS_io_braindamage) {
@@ -4171,7 +4171,7 @@ sub end_multi_generate {
   barf "end_multi: you can't, you're not in multiplot mode\n"
     unless $this->{options}{multiplot};
   if ($check_syntax) {
-    _printGnuplotPipe( $this, "syntax", "unset multiplot\n");
+    _printGnuplotPipe($this, "syntax", "unset multiplot\n");
     my $checkpointMessage = _checkpoint($this, "syntax");
     barf "Gnuplot error: unset multiplot failed on syntax check!\n$checkpointMessage"
       if $checkpointMessage;
@@ -7274,6 +7274,7 @@ sub _killGnuplot {
 	    $z = waitpid($goner,0);
 
 	} else {
+	    _printGnuplotPipe($this,$suffix,"unset multiplot\n") if $this->{options}{multiplot};
 	    _printGnuplotPipe($this,$suffix,"set term qt 0 close\n") if ($this->{terminal}//'') eq 'qt';
 	    _printGnuplotPipe($this,$suffix,"exit\n");
 
