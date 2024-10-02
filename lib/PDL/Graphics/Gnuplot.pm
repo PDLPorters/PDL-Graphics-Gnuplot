@@ -7471,7 +7471,7 @@ sub _printGnuplotPipe
 # are explicitly stripped out
 our $cp_serial = 0;
 
-my $graphics_re = qr/^(?:qt\.|XType:|MESA:).*/m;
+my $graphics_re = qr/^(?:qt\.|XType:|MESA:|QSocketNotifier:).*/m;
 sub _checkpoint {
     my $this   = shift;
     my $suffix = shift || "main";
