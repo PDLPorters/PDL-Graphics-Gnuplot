@@ -7677,6 +7677,9 @@ EOM
 	) {
 	if($this->{early_gnuplot}) {
 	    barf "PDL::Graphics::Gnuplot: ERROR: the deprecated pre-v$gnuplot_dep_v gnuplot backend issued an error:\n$fromerr\n";
+	} elsif ($fromerr =~ /^line \d+: warning:/) {
+	    warn "PDL::Graphics::Gnuplot: the gnuplot backend issued a warning:\n$fromerr\n";
+	    $fromerr = '';
 	} else {
 	    barf "PDL::Graphics::Gnuplot: ERROR: the gnuplot backend issued an error:\n$fromerr\n";
 	}
